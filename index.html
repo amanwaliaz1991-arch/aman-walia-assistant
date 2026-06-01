@@ -252,6 +252,16 @@ html,body{height:100%;background:var(--bg);color:var(--tx);font-family:"Plus Jak
 ::-webkit-scrollbar{width:4px;height:4px;}
 ::-webkit-scrollbar-track{background:transparent;}
 ::-webkit-scrollbar-thumb{background:var(--b2);border-radius:4px;}
+
+.sc-drag{border-color:var(--ac) !important;background:#eff6ff !important;}
+.sc-hist-item{border:1px solid var(--b1);border-radius:10px;margin-bottom:10px;overflow:hidden;background:var(--s1);}
+.sc-hist-hdr{padding:12px 16px;display:flex;align-items:center;gap:10px;cursor:pointer;background:var(--s2);}
+.sc-hist-hdr:hover{background:#eff6ff;}
+.sc-hist-body{padding:12px 16px;border-top:1px solid var(--b1);display:none;}
+.sc-hist-item.expanded .sc-hist-body{display:block;}
+.sc-field-row{display:grid;grid-template-columns:140px 1fr;gap:8px;margin-bottom:8px;align-items:center;}
+.sc-field-row label{font-size:10.5px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.5px;}
+@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
 </style>
   <!-- Firebase SDK -->
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
@@ -265,7 +275,7 @@ html,body{height:100%;background:var(--bg);color:var(--tx);font-family:"Plus Jak
   <button class="hdr-menu" id="menu-btn" onclick="toggleSB()">☰</button>
   <div class="hdr-logo">Aman Walia<span>Personal Assistant</span></div>
   <div class="hdr-r"><div id="sync-status" style="font-size:11px;color:rgba(255,255,255,.7);display:flex;align-items:center;gap:4px;">💾 <span>Local Only</span></div>
-    <button class="btn" onclick="exportBackup()" style="background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.2);color:#fff;font-size:11px;padding:5px 10px;">📥 Backup</button><button class="hdr-scan" onclick="openScan()"><span class="scan-ico">📷</span><span class="scan-txt">Scan / Upload</span></button>
+    <button class="btn" onclick="exportBackup()" style="background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.2);color:#fff;font-size:11px;padding:5px 10px;">📥 Backup</button><button class="btn" onclick="openApiKeySettings()" style="background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.2);color:#fff;font-size:11px;padding:5px 10px;" title="Set Anthropic API Key">⚙️ AI Key</button><button class="hdr-scan" onclick="openScan()"><span class="scan-ico">📷</span><span class="scan-txt">Scan / Upload</span></button>
     <div class="hdr-clk" id="clk">--:--</div>
   </div>
 </div>
@@ -284,7 +294,10 @@ html,body{height:100%;background:var(--bg);color:var(--tx);font-family:"Plus Jak
       <button class="scan-close" onclick="closeScan()">✕</button>
     </div>
     <div class="scan-body">
-      <p style="font-size:13px;color:var(--muted);margin-bottom:14px;line-height:1.5">Take a photo or upload any document, invoice, notice, cheque, or note. AI will read it and suggest which module to update.</p>
+      <p style="font-size:13px;color:var(--muted);margin-bottom:10px;line-height:1.5">Take a photo or upload any document, invoice, notice, cheque, or note. AI will read it and suggest which module to update.</p>
+      <div id="scan-key-warn" style="display:none;background:var(--warn);color:var(--warn-tx);padding:8px 12px;border-radius:8px;font-size:12px;margin-bottom:10px">
+        ⚠️ No API key set. <button onclick="openApiKeySettings()" style="background:none;border:none;color:var(--ac);cursor:pointer;font-weight:700;font-size:12px;text-decoration:underline">Click here to add your Anthropic API key</button> to enable Smart Scan.
+      </div>
       <div class="scan-drop" id="scan-drop" onclick="document.getElementById('scan-file').click()" ondrop="handleDrop(event)" ondragover="handleDragOver(event)" ondragleave="this.classList.remove('drag')">
         <div class="drop-ico">📄</div>
         <p><strong>Tap to take photo or choose file</strong></p>
@@ -324,6 +337,7 @@ html,body{height:100%;background:var(--bg);color:var(--tx);font-family:"Plus Jak
   <div class="sb-grp">
     <div class="sb-lbl">Home</div>
     <div class="sb-item on" id="n-home" onclick="go('home')"><span class="sb-ico">🏠</span>Dashboard</div>
+    <div class="sb-item" id="n-scanner" onclick="go('scanner')"><span class="sb-ico">📷</span>Paper Scanner<span class="sb-bdg b" id="b-scanner">0</span></div>
   </div>
   <div class="sb-grp">
     <div class="sb-lbl">Operations</div>
@@ -690,6 +704,155 @@ html,body{height:100%;background:var(--bg);color:var(--tx);font-family:"Plus Jak
   <div id="exp-empty" class="es" style="display:none"><div class="em">💸</div>No expenses recorded.</div></div></div>
 </div>
 
+
+<!-- ████ PAPER SCANNER MODULE ████ -->
+<div class="mod" id="mod-scanner">
+  <div class="ph">
+    <div><div class="pt">PAPER <span>SCANNER</span></div><div class="pt-sub">Scan any document · Claude reads it · Review & save to right module</div></div>
+    <div style="display:flex;gap:8px">
+      <select class="sel" id="scan-hist-filter" onchange="R.scanner()" style="width:140px">
+        <option value="">All Documents</option>
+        <option value="order">Orders</option>
+        <option value="invoice">Invoices/Bills</option>
+        <option value="compliance">Compliance</option>
+        <option value="bank">Bank/Cheque</option>
+        <option value="register">Register/Excel</option>
+        <option value="other">Other</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- SCAN AREA -->
+  <div class="card">
+    <div class="card-hdr">📸 Scan New Document</div>
+    <div class="card-body">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px">
+
+        <!-- Drop Zone -->
+        <div id="sc-drop" onclick="document.getElementById('sc-file').click()"
+          ondrop="scHandleDrop(event)" ondragover="event.preventDefault();this.classList.add('sc-drag')"
+          ondragleave="this.classList.remove('sc-drag')"
+          style="border:2px dashed var(--b2);border-radius:12px;padding:20px;text-align:center;cursor:pointer;transition:all .15s;background:var(--s2)">
+          <div style="font-size:36px;margin-bottom:8px">📄</div>
+          <div style="font-weight:700;font-size:13px;color:var(--tx);margin-bottom:4px">Tap to upload or drag & drop</div>
+          <div style="font-size:12px;color:var(--muted)">Invoice · Order book · Challan · Notice · Cheque · Register page</div>
+          <input type="file" id="sc-file" accept="image/*" style="display:none" onchange="scHandleFile(this)">
+        </div>
+
+        <!-- Camera buttons -->
+        <div style="display:flex;flex-direction:column;gap:10px;justify-content:center">
+          <button class="btn btn-p" style="padding:14px;font-size:14px" onclick="scCamera()">
+            📷 Take Photo with Camera
+          </button>
+          <button class="btn" style="padding:14px;font-size:14px" onclick="scGallery()">
+            🖼️ Choose from Gallery
+          </button>
+          <div style="font-size:11px;color:var(--muted);text-align:center;line-height:1.5">
+            Works best in good lighting<br>Make sure text is clearly visible
+          </div>
+        </div>
+      </div>
+
+      <!-- Preview + Processing -->
+      <div id="sc-preview-area" style="display:none">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+          <!-- Image preview -->
+          <div>
+            <div style="font-size:11px;font-weight:700;color:var(--muted);letter-spacing:1px;text-transform:uppercase;margin-bottom:8px">SCANNED DOCUMENT</div>
+            <img id="sc-img" src="" style="width:100%;border-radius:10px;border:1px solid var(--b1);max-height:300px;object-fit:contain;background:#f8f9fa">
+            <div style="display:flex;gap:8px;margin-top:8px">
+              <button class="btn btn-sm" onclick="scClear()">🗑 Clear</button>
+              <button class="btn btn-sm" onclick="document.getElementById('sc-file').click()">📄 Change</button>
+              <button class="btn btn-p btn-sm" id="sc-analyse-btn" onclick="scAnalyse()">🤖 Analyse with Claude</button>
+            </div>
+          </div>
+
+          <!-- Analysis result -->
+          <div id="sc-result-area" style="display:none">
+            <div style="font-size:11px;font-weight:700;color:var(--muted);letter-spacing:1px;text-transform:uppercase;margin-bottom:8px">CLAUDE'S READING</div>
+            <div id="sc-result-content"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Loading state -->
+      <div id="sc-loading" style="display:none;text-align:center;padding:24px">
+        <div style="font-size:32px;margin-bottom:8px;animation:spin 1s linear infinite;display:inline-block">🔄</div>
+        <div style="font-weight:600;font-size:14px;color:var(--ac)">Claude is reading your document...</div>
+        <div style="font-size:12px;color:var(--muted);margin-top:4px" id="sc-loading-text">Extracting text and data...</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SCAN HISTORY -->
+  <div class="card">
+    <div class="card-hdr">
+      📋 Scan History
+      <div style="display:flex;gap:8px;align-items:center">
+        <span id="scanner-count" style="font-size:11px;color:var(--muted);font-weight:400"></span>
+        <button class="btn btn-sm" onclick="if(confirm('Clear all scan history?')){D.scanHistory=[];autoSave('scanHistory');R.scanner();}">🗑 Clear All</button>
+      </div>
+    </div>
+    <div id="sc-history-list"></div>
+    <div id="sc-history-empty" class="es" style="display:none"><div class="em">📷</div>No scans yet. Scan a document to get started.</div>
+  </div>
+</div>
+
+<!-- SCAN REVIEW MODAL -->
+<div class="mo" id="sc-review-mo" onclick="if(event.target===this)closeSCReview()" style="align-items:center">
+  <div class="mo-box" style="max-width:640px;border-radius:16px">
+    <div class="mo-handle"></div>
+    <div class="mo-title">
+      <span id="scr-title">📄 Review Extracted Data</span>
+      <button class="mo-x" onclick="closeSCReview()">✕</button>
+    </div>
+
+    <!-- Doc type badge + summary -->
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap">
+      <span id="scr-doctype" class="pill pb">Document</span>
+      <span id="scr-module-badge" class="pill pg">→ Module</span>
+    </div>
+    <div id="scr-summary" style="background:var(--s2);border:1px solid var(--b1);border-radius:8px;padding:12px 14px;font-size:13px;line-height:1.6;margin-bottom:14px;color:var(--tx)"></div>
+
+    <!-- Editable extracted fields -->
+    <div style="font-size:11px;font-weight:700;color:var(--muted);letter-spacing:1px;text-transform:uppercase;margin-bottom:10px">EXTRACTED DATA — EDIT IF NEEDED</div>
+    <div id="scr-fields"></div>
+
+    <!-- Raw text toggle -->
+    <div style="margin-top:12px">
+      <button class="btn btn-sm" onclick="document.getElementById('scr-raw-area').style.display=document.getElementById('scr-raw-area').style.display==='none'?'block':'none'">
+        👁 Show Raw Text
+      </button>
+      <div id="scr-raw-area" style="display:none;margin-top:8px;background:var(--s2);border:1px solid var(--b1);border-radius:8px;padding:10px;font-size:11px;color:var(--muted);max-height:120px;overflow-y:auto;white-space:pre-wrap"></div>
+    </div>
+
+    <!-- Target module selector -->
+    <div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--b1)">
+      <div style="font-size:11px;font-weight:700;color:var(--muted);letter-spacing:1px;text-transform:uppercase;margin-bottom:8px">SAVE TO MODULE</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+        <select class="sel" id="scr-target-module" style="width:180px">
+          <option value="urgent">🚨 Urgent Orders</option>
+          <option value="payment">💰 Payment Follow-Up</option>
+          <option value="expenses">💸 Expenses</option>
+          <option value="compliance">✅ Compliance</option>
+          <option value="banking">🏦 Banking Issues</option>
+          <option value="transport">🚚 Transport</option>
+          <option value="cod">💳 COD Parties</option>
+          <option value="purchase">🛒 Purchase/Reorder</option>
+          <option value="production">🏭 Production</option>
+          <option value="defaulter">⚠️ Defaulters</option>
+          <option value="deadstock">📦 Dead Stock</option>
+          <option value="future">🚀 Future Plans</option>
+          <option value="tracker">📅 Day Tracker</option>
+          <option value="notes_only">📝 Save as Note Only</option>
+        </select>
+        <button class="btn btn-p" onclick="scConfirmSave()">✅ Confirm & Save</button>
+        <button class="btn" onclick="closeSCReview()">Cancel</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 </div><!-- /main -->
 
 <!-- AI PANEL (desktop) -->
@@ -717,7 +880,7 @@ html,body{height:100%;background:var(--bg);color:var(--tx);font-family:"Plus Jak
   <div class="bnav-item" id="bn-urgent" onclick="go('urgent')"><span class="bi">🚨</span>Orders<span class="bb" id="bn-badge">0</span></div>
   <div class="bnav-item" onclick="openScan()"><div class="bnav-scan">📷</div></div>
   <div class="bnav-item" id="bn-compliance" onclick="go('compliance')"><span class="bi">✅</span>Comply</div>
-  <div class="bnav-item" id="bn-tracker" onclick="go('tracker')"><span class="bi">📅</span>Today</div>
+  <div class="bnav-item" id="bn-scanner" onclick="go('scanner')"><span class="bi">📷</span>Scanner</div>
 </div>
 
 </div><!-- /app -->
@@ -885,6 +1048,7 @@ const D={
     {id:3,title:"Rich Dad Poor Dad",author:"R. Kiyosaki",status:"done"},
   ],
   weeklyReviews:[],
+  scanHistory:[],
   purchase:[
     {id:1,item:"Natural Rubber",cat:"raw_material",stock:80,minLevel:150,toOrder:200,supplier:"Rubber World",lastPrice:850,unit:"kg",status:"critical"},
     {id:2,item:"Chevron Grip Blanks",cat:"raw_material",stock:340,minLevel:300,toOrder:500,supplier:"Raw Materials Ltd",lastPrice:28,unit:"pcs",status:"low"},
@@ -1524,6 +1688,10 @@ const R={
     </tr>`).join("");
     document.getElementById("exp-empty").style.display=filtered.length?"none":"block";
   },
+  scanner(){
+    // Calls the full scanner renderer defined below
+    scRenderHistory();
+  },
   quotes(){
     document.getElementById("qgrid").innerHTML=D.quotes.map(q=>`
       <div class="qcard">
@@ -1682,8 +1850,41 @@ function R_home(){
   const bn=document.getElementById("bn-badge");if(bn)bn.textContent=D.urgent.filter(x=>x.status!=="done").length||0;
 }
 
+
+// ── API KEY MANAGEMENT ──
+function getApiKey(){
+  return localStorage.getItem("anthropic_api_key")||"";
+}
+function saveApiKey(key){
+  localStorage.setItem("anthropic_api_key",key.trim());
+}
+function openApiKeySettings(){
+  const current=getApiKey();
+  const key=prompt(
+    "Enter your Anthropic API Key\n\nGet it from: console.anthropic.com → API Keys\n\nKey starts with sk-ant-...",
+    current
+  );
+  if(key!==null){
+    saveApiKey(key);
+    if(key){
+      const el=document.getElementById("sync-status");
+      if(el){el.innerHTML="✅ <span>AI Key Saved</span>";setTimeout(()=>showSyncStatus(firebaseReady?"connected":"local"),2000);}
+    }
+  }
+}
+function getAuthHeaders(){
+  const key=getApiKey();
+  const h={"Content-Type":"application/json","anthropic-dangerous-direct-browser-access":"true"};
+  if(key)h["x-api-key"]=key;
+  return h;
+}
+
 // ── SMART SCAN ──
-function openScan(){document.getElementById("scan-mo").classList.add("show");}
+function openScan(){
+  document.getElementById("scan-mo").classList.add("show");
+  const warn=document.getElementById("scan-key-warn");
+  if(warn) warn.style.display=getApiKey()?"none":"block";
+}
 function closeScan(){document.getElementById("scan-mo").classList.remove("show");document.getElementById("scan-preview").style.display="none";document.getElementById("scan-result").style.display="none";}
 function handleDragOver(e){e.preventDefault();document.getElementById("scan-drop").classList.add("drag");}
 function handleDrop(e){e.preventDefault();document.getElementById("scan-drop").classList.remove("drag");const f=e.dataTransfer.files[0];if(f)processScanFile(f);}
@@ -1714,15 +1915,24 @@ Respond ONLY with valid JSON. No markdown, no explanation outside JSON.`;
     const msgs=[{role:"user",content:[{type:"text",text:"Analyse this document and tell me what it is and how to update the assistant:"}]}];
     if(mimeType.startsWith("image/")){msgs[0].content.push({type:"image",source:{type:"base64",media_type:mimeType,data:base64data.split(",")[1]}});}
     else{msgs[0].content[0].text+=` File: ${fileName}`;}
-    const r=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json"},
-      body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:1000,system:sys,messages:msgs})});
+    const r=await fetch("https://api.anthropic.com/v1/messages",{
+      method:"POST",
+      headers:getAuthHeaders(),
+      body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:1000,system:sys,messages:msgs})
+    });
     const data=await r.json();
     let raw=data.content?.[0]?.text||"{}";
     raw=raw.replace(/```json|```/g,"").trim();
     let parsed;try{parsed=JSON.parse(raw);}catch(e){parsed={docType:"Unknown",summary:raw,suggestedModule:"",suggestedAction:"Review manually"};}
     showScanResult(parsed);
   }catch(e){
-    document.getElementById("scan-result-body").innerHTML=`<span style="color:var(--red)">⚠️ Error analysing document. Please try again.</span>`;
+    console.error("Scan error:", e);
+    document.getElementById("scan-result-body").innerHTML=`
+      <span style="color:var(--red)">⚠️ Error: ${e.message||"Could not analyse document."}</span>
+      <div style="margin-top:8px;font-size:11px;color:var(--muted)">
+        Make sure you have a valid Anthropic API key set in the app settings.
+        <br>Check browser console for details.
+      </div>`;
   }
 }
 function showScanResult(p){
@@ -1777,6 +1987,7 @@ async function sendAI(){
   const inp=document.getElementById("ai-inp"),btn=document.getElementById("ai-btn");
   const q=inp.value.trim();if(!q)return;
   addAI(q,"user");inp.value="";btn.disabled=true;
+  if(!getApiKey()){addAI('⚠️ No API key set. Click <b>⚙️ AI Key</b> in the header to add your Anthropic API key.','bot');btn.disabled=false;return;}
   const typing=addAI("Thinking…","bot");
   const ctx=`You are Aman Walia's warm, practical personal business advisor. 
 Business: Marigold — Indian SME making cricket bat grips (Chevron ₹35, Octopus ₹40, Hex ₹50, Rainbow ₹53, Toe Guard Sets ₹100/set).
@@ -1787,8 +1998,11 @@ Health habits done: ${D.healthHabits.filter(h=>h.done).length}/${D.healthHabits.
 Drills done: ${D.bdmDrills.filter(d=>d.done).length}/${D.bdmDrills.length}
 Be direct, warm, practical. Use bullets. Max 120 words. Respond in same language as question.`;
   try{
-    const r=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json"},
-      body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:1000,system:ctx,messages:[{role:"user",content:q}]})});
+    const r=await fetch("https://api.anthropic.com/v1/messages",{
+      method:"POST",
+      headers:getAuthHeaders(),
+      body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:1000,system:ctx,messages:[{role:"user",content:q}]})
+    });
     const data=await r.json();
     typing.className="ai-msg bot";
     typing.innerHTML=(data.content?.[0]?.text||"Sorry.").replace(/\n/g,"<br>").replace(/\*\*(.*?)\*\*/g,"<b>$1</b>");
@@ -1883,7 +2097,7 @@ function reRenderCurrent() {
     itax:R.itax, tds:R.tds, gst:R.gst, itc:R.itc, future:R.future,
     tracker:()=>renderDT(document.getElementById("td")?.value||new Date().toISOString().slice(0,10)),
     health:R.health, badminton:R.badminton, self:R.self, quotes:R.quotes,
-    purchase:R.purchase, production:R.production, expenses:R.expenses
+    purchase:R.purchase, production:R.production, expenses:R.expenses, scanner:R.scanner
   };
   rmap[id]?.();
 }
@@ -1897,7 +2111,7 @@ function loadAllFromFirebase() {
     "deadstock","rd","compliance","itax","tds","gst","itc","future",
     "dayData","healthHabits","healthGoals","bdmGames","bdmSkills",
     "bdmDrills","selfGoals","books","weeklyReviews","quotes","uid",
-    "purchase","production","prodStock","expenses"
+    "purchase","production","prodStock","expenses","scanHistory"
   ];
 
   let initialLoadDone = false;
@@ -1989,7 +2203,7 @@ function loadAllFromFirebase() {
 // ── LOCALSTORAGE FALLBACK ──
 function saveToLocal() {
   try {
-    const save = {urgent:D.urgent,cod:D.cod,transport:D.transport,payment:D.payment,defaulter:D.defaulter,banking:D.banking,deadstock:D.deadstock,rd:D.rd,compliance:D.compliance,itax:D.itax,tds:D.tds,gst:D.gst,itc:D.itc,future:D.future,dayData:D.dayData,healthHabits:D.healthHabits,healthGoals:D.healthGoals,bdmGames:D.bdmGames,bdmSkills:D.bdmSkills,bdmDrills:D.bdmDrills,selfGoals:D.selfGoals,books:D.books,weeklyReviews:D.weeklyReviews,quotes:D.quotes,uid:D.uid,purchase:D.purchase,production:D.production,prodStock:D.prodStock,expenses:D.expenses};
+    const save = {urgent:D.urgent,cod:D.cod,transport:D.transport,payment:D.payment,defaulter:D.defaulter,banking:D.banking,deadstock:D.deadstock,rd:D.rd,compliance:D.compliance,itax:D.itax,tds:D.tds,gst:D.gst,itc:D.itc,future:D.future,dayData:D.dayData,healthHabits:D.healthHabits,healthGoals:D.healthGoals,bdmGames:D.bdmGames,bdmSkills:D.bdmSkills,bdmDrills:D.bdmDrills,selfGoals:D.selfGoals,books:D.books,weeklyReviews:D.weeklyReviews,quotes:D.quotes,uid:D.uid,purchase:D.purchase,production:D.production,prodStock:D.prodStock,expenses:D.expenses,scanHistory:D.scanHistory};
     localStorage.setItem("aman_walia_data", JSON.stringify(save));
   } catch(e) { console.warn("LocalStorage save failed:", e); }
 }
@@ -2035,6 +2249,371 @@ window.delItem = function(type, id) {
 
 // ── START ──
 initFirebase();
+
+
+// ══════════════════════════════════════════════
+// PAPER SCANNER MODULE
+// ══════════════════════════════════════════════
+let scCurrentFile = null;
+let scCurrentBase64 = null;
+let scCurrentMime = null;
+let scCurrentResult = null;
+
+// File handling
+function scCamera(){
+  const f=document.getElementById("sc-file");
+  f.setAttribute("capture","environment");
+  f.click();
+}
+function scGallery(){
+  const f=document.getElementById("sc-file");
+  f.removeAttribute("capture");
+  f.click();
+}
+function scHandleDrop(e){
+  e.preventDefault();
+  document.getElementById("sc-drop").classList.remove("sc-drag");
+  const file=e.dataTransfer.files[0];
+  if(file && file.type.startsWith("image/")) scProcessFile(file);
+}
+function scHandleFile(input){
+  if(input.files[0]) scProcessFile(input.files[0]);
+}
+function scProcessFile(file){
+  scCurrentFile=file;
+  scCurrentMime=file.type;
+  const reader=new FileReader();
+  reader.onload=e=>{
+    scCurrentBase64=e.target.result;
+    document.getElementById("sc-img").src=e.target.result;
+    document.getElementById("sc-preview-area").style.display="block";
+    document.getElementById("sc-result-area").style.display="none";
+    document.getElementById("sc-loading").style.display="none";
+  };
+  reader.readAsDataURL(file);
+}
+function scClear(){
+  scCurrentFile=null;scCurrentBase64=null;scCurrentMime=null;scCurrentResult=null;
+  document.getElementById("sc-preview-area").style.display="none";
+  document.getElementById("sc-loading").style.display="none";
+  document.getElementById("sc-file").value="";
+}
+
+// Main analyse function
+async function scAnalyse(){
+  if(!scCurrentBase64){alert("Please select or take a photo first.");return;}
+  if(!getApiKey()){
+    if(!confirm("No Anthropic API key set. Click OK to add your key."))return;
+    openApiKeySettings();return;
+  }
+
+  // Show loading
+  document.getElementById("sc-preview-area").style.display="block";
+  document.getElementById("sc-result-area").style.display="none";
+  document.getElementById("sc-loading").style.display="block";
+  document.getElementById("sc-analyse-btn").disabled=true;
+
+  const loadingTexts=[
+    "Reading handwriting...",
+    "Extracting numbers and names...",
+    "Identifying document type...",
+    "Matching to your modules...",
+    "Almost done..."
+  ];
+  let li=0;
+  const lt=setInterval(()=>{
+    document.getElementById("sc-loading-text").textContent=loadingTexts[li%loadingTexts.length];
+    li++;
+  },1500);
+
+  const sys=`You are an expert document reader for Aman Walia, owner of Marigold Cricket Grip Manufacturing.
+
+You will receive an image of a physical document — handwritten notes, invoices, challans, order books, register pages, compliance notices, bank statements, or cheques.
+
+TASK: Extract ALL information from the document and return structured JSON.
+
+Return ONLY valid JSON with this exact structure:
+{
+  "docType": "one of: order|invoice|challan|compliance|bank_statement|cheque|register|notice|receipt|other",
+  "docTypeLabel": "Human readable label e.g. 'Handwritten Order Book Page'",
+  "confidence": "high|medium|low",
+  "rawText": "All text you can read from the document, verbatim",
+  "summary": "2-3 sentence summary of what this document is about",
+  "suggestedModule": "one of: urgent|payment|expenses|compliance|banking|transport|cod|purchase|production|defaulter|deadstock|future|tracker",
+  "suggestedModuleLabel": "Human readable module name",
+  "extractedData": {
+    "party": "party/company name if found",
+    "amount": "amount in rupees if found, numbers only",
+    "date": "date in YYYY-MM-DD format if found",
+    "items": "items/products mentioned",
+    "invoiceNo": "invoice or reference number",
+    "dueDate": "due date if found in YYYY-MM-DD",
+    "quantity": "quantity if found",
+    "notes": "any other important notes"
+  },
+  "multipleEntries": false,
+  "entries": [],
+  "actionRequired": "What Aman should do with this document"
+}
+
+For register pages or order books with MULTIPLE entries, set multipleEntries=true and populate entries array with one object per row/entry.
+
+Be thorough — read every number, name, date visible. If handwriting is unclear, make your best guess and note it.`;
+
+  try{
+    const r=await fetch("https://api.anthropic.com/v1/messages",{
+      method:"POST",
+      headers:getAuthHeaders(),
+      body:JSON.stringify({
+        model:"claude-sonnet-4-20250514",
+        max_tokens:2000,
+        system:sys,
+        messages:[{
+          role:"user",
+          content:[
+            {type:"text",text:"Please read and extract all information from this document:"},
+            {type:"image",source:{type:"base64",media_type:scCurrentMime,data:scCurrentBase64.split(",")[1]}}
+          ]
+        }]
+      })
+    });
+    clearInterval(lt);
+    const data=await r.json();
+    if(data.error){throw new Error(data.error.message);}
+    let raw=data.content?.[0]?.text||"{}";
+    raw=raw.replace(/```json|```/g,"").trim();
+    let parsed;
+    try{parsed=JSON.parse(raw);}
+    catch(e){
+      parsed={
+        docType:"other",docTypeLabel:"Document",confidence:"low",
+        rawText:raw,summary:"Could not fully parse. Raw text extracted.",
+        suggestedModule:"tracker",extractedData:{notes:raw},
+        actionRequired:"Review manually"
+      };
+    }
+    scCurrentResult=parsed;
+    document.getElementById("sc-loading").style.display="none";
+    document.getElementById("sc-result-area").style.display="block";
+    document.getElementById("sc-analyse-btn").disabled=false;
+    scShowResult(parsed);
+  }catch(err){
+    clearInterval(lt);
+    document.getElementById("sc-loading").style.display="none";
+    document.getElementById("sc-analyse-btn").disabled=false;
+    document.getElementById("sc-result-area").style.display="block";
+    document.getElementById("sc-result-content").innerHTML=`<div style="color:var(--red);padding:12px;background:var(--danger);border-radius:8px">⚠️ ${err.message||"Error reading document. Check your API key and try again."}</div>`;
+  }
+}
+
+function scShowResult(p){
+  const catColors={order:"var(--ac)",invoice:"var(--green)",challan:"var(--teal)",compliance:"var(--red)",bank_statement:"var(--orange)",cheque:"var(--gold)",register:"var(--a2)",notice:"var(--red)",receipt:"var(--green)",other:"var(--muted)"};
+  const confColor=p.confidence==="high"?"var(--green)":p.confidence==="medium"?"var(--gold)":"var(--red)";
+
+  document.getElementById("sc-result-content").innerHTML=`
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">
+      <span class="pill pb">${p.docTypeLabel||p.docType}</span>
+      <span class="pill" style="background:${confColor}20;color:${confColor}">Confidence: ${p.confidence}</span>
+      <span class="pill pg">→ ${p.suggestedModuleLabel||p.suggestedModule}</span>
+    </div>
+    <div style="font-size:12.5px;line-height:1.6;color:var(--tx);margin-bottom:10px">${p.summary}</div>
+    ${p.actionRequired?`<div style="font-size:12px;color:var(--orange);font-weight:600">💡 ${p.actionRequired}</div>`:""}
+    <div style="margin-top:10px">
+      <button class="btn btn-p" onclick="scOpenReview()" style="width:100%;padding:10px;font-size:13px">
+        ✏️ Review Extracted Data & Save to Module
+      </button>
+    </div>
+    ${p.multipleEntries&&p.entries?.length?`<div style="margin-top:8px"><button class="btn btn-sm" onclick="scOpenMultiReview()">📋 ${p.entries.length} entries found — review all</button></div>`:""}
+  `;
+}
+
+// Review modal
+function scOpenReview(){
+  if(!scCurrentResult)return;
+  const p=scCurrentResult;
+  const modLabels={urgent:"🚨 Urgent Orders",payment:"💰 Payment Follow-Up",expenses:"💸 Expenses",compliance:"✅ Compliance",banking:"🏦 Banking",transport:"🚚 Transport",cod:"💳 COD Parties",purchase:"🛒 Purchase",production:"🏭 Production",defaulter:"⚠️ Defaulters",deadstock:"📦 Dead Stock",future:"🚀 Future Plans",tracker:"📅 Day Tracker",notes_only:"📝 Note Only"};
+
+  document.getElementById("scr-title").textContent="📄 Review: "+( p.docTypeLabel||p.docType);
+  document.getElementById("scr-doctype").textContent=p.docTypeLabel||p.docType;
+  document.getElementById("scr-module-badge").textContent="→ "+(p.suggestedModuleLabel||modLabels[p.suggestedModule]||p.suggestedModule);
+  document.getElementById("scr-summary").textContent=p.summary||"";
+  document.getElementById("scr-raw-area").textContent=p.rawText||"";
+
+  // Set target module
+  const sel=document.getElementById("scr-target-module");
+  if(p.suggestedModule) sel.value=p.suggestedModule;
+
+  // Build editable fields
+  const ed=p.extractedData||{};
+  const fieldDefs=[
+    {key:"party",label:"Party / Company",type:"text",placeholder:"Party name"},
+    {key:"amount",label:"Amount (₹)",type:"number",placeholder:"Amount"},
+    {key:"date",label:"Date",type:"date"},
+    {key:"dueDate",label:"Due Date",type:"date"},
+    {key:"invoiceNo",label:"Invoice / Reference #",type:"text"},
+    {key:"items",label:"Items / Products",type:"text",placeholder:"Items"},
+    {key:"quantity",label:"Quantity",type:"text"},
+    {key:"notes",label:"Notes",type:"textarea"},
+  ];
+  document.getElementById("scr-fields").innerHTML=fieldDefs.map(f=>`
+    <div class="sc-field-row">
+      <label>${f.label}</label>
+      ${f.type==="textarea"
+        ?`<textarea class="ta" id="scrf-${f.key}" rows="2" style="font-size:12px">${ed[f.key]||""}</textarea>`
+        :`<input class="inp" id="scrf-${f.key}" type="${f.type}" value="${ed[f.key]||""}" placeholder="${f.placeholder||""}" style="font-size:12.5px">`
+      }
+    </div>`).join("");
+
+  document.getElementById("sc-review-mo").style.display="flex";
+}
+
+function closeSCReview(){
+  document.getElementById("sc-review-mo").style.display="none";
+}
+
+// Confirm and save
+function scConfirmSave(){
+  const p=scCurrentResult;
+  if(!p)return;
+  const targetModule=document.getElementById("scr-target-module").value;
+  const g=id=>(document.getElementById("scrf-"+id)?.value||"").trim();
+
+  // Build the data object from edited fields
+  const data={
+    party:g("party"),amount:g("amount"),date:g("date"),dueDate:g("dueDate"),
+    invoiceNo:g("invoiceNo"),items:g("items"),quantity:g("quantity"),notes:g("notes")
+  };
+
+  // Save to scan history first
+  const histEntry={
+    id:++D.uid,
+    timestamp:new Date().toISOString(),
+    docType:p.docType,
+    docTypeLabel:p.docTypeLabel||p.docType,
+    summary:p.summary,
+    rawText:p.rawText||"",
+    extractedData:data,
+    savedToModule:targetModule,
+    confidence:p.confidence,
+    imageThumb:scCurrentBase64?.substring(0,200)+"..."
+  };
+  D.scanHistory.unshift(histEntry);
+  autoSave("scanHistory");
+
+  // Save to target module
+  let saved=false;
+  if(targetModule==="urgent"){
+    D.urgent.push({id:++D.uid,party:data.party||"From Scan",items:data.items||p.summary,amt:data.amount,orderdate:data.date||new Date().toISOString().slice(0,10),deadline:data.dueDate||"",courier:"",pri:"high",status:"pending",notes:`Scanned: ${p.docTypeLabel}. ${data.notes||""}`});
+    autoSave("urgent");saved=true;
+  } else if(targetModule==="payment"){
+    D.payment.push({id:++D.uid,party:data.party||"From Scan",inv:data.invoiceNo||"",amt:data.amount||"0",due:data.dueDate||data.date||new Date().toISOString().slice(0,10),lastContact:new Date().toISOString().slice(0,10),remark:`Scanned: ${p.docTypeLabel}. ${data.notes||""}`,agent:"",status:"pending"});
+    autoSave("payment");saved=true;
+  } else if(targetModule==="expenses"){
+    D.expenses.push({id:++D.uid,date:data.date||new Date().toISOString().slice(0,10),cat:"misc",desc:data.items||p.docTypeLabel||"Scanned document",vendor:data.party||"",amount:data.amount||"0",mode:"cash",receipt:data.invoiceNo||""});
+    autoSave("expenses");saved=true;
+  } else if(targetModule==="compliance"){
+    D.compliance.push({id:++D.uid,name:data.items||p.docTypeLabel,auth:data.party||"Authority",due:data.dueDate||data.date||"",penalty:data.notes||"",resp:"Self",status:"pending"});
+    autoSave("compliance");saved=true;
+  } else if(targetModule==="banking"){
+    D.banking.push({id:++D.uid,issue:data.items||p.summary,bank:data.party||"",acc:"",amt:data.amount||"",remark:data.notes||`Scanned: ${p.docTypeLabel}`,status:"open",date:data.date||new Date().toISOString().slice(0,10)});
+    autoSave("banking");saved=true;
+  } else if(targetModule==="transport"){
+    D.transport.push({id:++D.uid,track:data.invoiceNo||"SCAN-"+D.uid,party:data.party||"From Scan",courier:"",type:"cod_rejected",amt:data.amount||"0",date:data.date||new Date().toISOString().slice(0,10),status:"Logged from scan",remark:data.notes||""});
+    autoSave("transport");saved=true;
+  } else if(targetModule==="purchase"){
+    D.purchase.push({id:++D.uid,item:data.items||"Scanned item",cat:"raw_material",stock:0,minLevel:parseInt(data.quantity||0),toOrder:parseInt(data.quantity||0),supplier:data.party||"",lastPrice:parseInt(data.amount||0),unit:"pcs",status:"critical"});
+    autoSave("purchase");saved=true;
+  } else if(targetModule==="tracker"){
+    const today=new Date().toISOString().slice(0,10);
+    if(!D.dayData[today])D.dayData[today]={tasks:[],notes:""};
+    D.dayData[today].tasks.push({id:++D.uid,text:`${p.docTypeLabel}: ${data.party||""} ${data.amount?"₹"+data.amount:""} ${data.notes||""}`.trim(),done:false,pri:"high"});
+    autoSave("dayData");saved=true;
+  }
+  autoSave("uid");
+
+  closeSCReview();
+  scClear();
+  R.scanner();
+
+  // Show success
+  const msg=saved?`✅ Saved to ${targetModule} module + scan history!`:"✅ Saved to scan history.";
+  const el=document.getElementById("sync-status");
+  if(el){el.innerHTML=msg.replace("✅","✅ <span>").replace("!","!</span>");setTimeout(()=>showSyncStatus(firebaseReady?"connected":"local"),3000);}
+  
+  // Offer to go to module
+  if(saved && confirm(`${msg}
+
+Go to the ${targetModule} module now?`)){
+    go(targetModule);
+  }
+}
+
+// Scanner renderer
+function scRenderHistory(){
+  const filter=document.getElementById("scan-hist-filter")?.value||"";
+  const list=D.scanHistory.filter(h=>!filter||h.docType===filter||
+    (filter==="order"&&h.docType==="order")||(filter==="invoice"&&["invoice","receipt","challan"].includes(h.docType))||
+    (filter==="compliance"&&["compliance","notice"].includes(h.docType))||
+    (filter==="bank"&&["bank_statement","cheque"].includes(h.docType))||
+    (filter==="register"&&h.docType==="register")||(filter==="other"&&!["order","invoice","receipt","challan","compliance","notice","bank_statement","cheque","register"].includes(h.docType))
+  );
+
+  const em=document.getElementById("sc-history-empty");
+  const hl=document.getElementById("sc-history-list");
+  document.getElementById("scanner-count").textContent=`${list.length} of ${D.scanHistory.length} scans`;
+  document.getElementById("b-scanner").textContent=D.scanHistory.length||0;
+
+  if(!list.length){em.style.display="block";hl.innerHTML="";return;}
+  em.style.display="none";
+
+  const modIcons={urgent:"🚨",payment:"💰",expenses:"💸",compliance:"✅",banking:"🏦",transport:"🚚",cod:"💳",purchase:"🛒",production:"🏭",defaulter:"⚠️",deadstock:"📦",future:"🚀",tracker:"📅",notes_only:"📝"};
+  const confColor=c=>c==="high"?"var(--green)":c==="medium"?"var(--gold)":"var(--red)";
+
+  hl.innerHTML=list.map((h,i)=>{
+    const d=new Date(h.timestamp);
+    const dateStr=d.toLocaleDateString("en-IN",{day:"numeric",month:"short",year:"numeric"})+" "+d.toLocaleTimeString("en-IN",{hour:"2-digit",minute:"2-digit"});
+    const ed=h.extractedData||{};
+    return`<div class="sc-hist-item" id="shi-${h.id}">
+      <div class="sc-hist-hdr" onclick="document.getElementById('shi-${h.id}').classList.toggle('expanded')">
+        <span style="font-size:20px">${modIcons[h.savedToModule]||"📄"}</span>
+        <div style="flex:1">
+          <div style="font-size:13px;font-weight:600">${h.docTypeLabel||h.docType}</div>
+          <div style="font-size:11px;color:var(--muted)">${dateStr} · Saved to: ${h.savedToModule}</div>
+        </div>
+        <span class="pill" style="background:${confColor(h.confidence)}20;color:${confColor(h.confidence)};font-size:9px">${h.confidence}</span>
+        <button class="btn-d btn-sm" onclick="event.stopPropagation();D.scanHistory=D.scanHistory.filter(x=>x.id!==${h.id});autoSave('scanHistory');R.scanner()">🗑</button>
+        <span style="color:var(--muted);font-size:12px">▼</span>
+      </div>
+      <div class="sc-hist-body">
+        <div style="font-size:12.5px;color:var(--tx);margin-bottom:10px;line-height:1.6">${h.summary||"—"}</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:12px">
+          ${ed.party?`<div><span style="color:var(--muted);font-size:10px">PARTY</span><div><b>${ed.party}</b></div></div>`:""}
+          ${ed.amount?`<div><span style="color:var(--muted);font-size:10px">AMOUNT</span><div class="amt neg">₹${parseInt(ed.amount||0).toLocaleString("en-IN")}</div></div>`:""}
+          ${ed.date?`<div><span style="color:var(--muted);font-size:10px">DATE</span><div>${ed.date}</div></div>`:""}
+          ${ed.invoiceNo?`<div><span style="color:var(--muted);font-size:10px">INVOICE #</span><div>${ed.invoiceNo}</div></div>`:""}
+          ${ed.items?`<div style="grid-column:span 2"><span style="color:var(--muted);font-size:10px">ITEMS</span><div>${ed.items}</div></div>`:""}
+          ${ed.notes?`<div style="grid-column:span 2"><span style="color:var(--muted);font-size:10px">NOTES</span><div style="color:var(--muted)">${ed.notes}</div></div>`:""}
+        </div>
+        ${h.rawText?`<div style="margin-top:10px"><button class="btn btn-sm" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='none'?'block':'none'">👁 Raw Text</button><div style="display:none;margin-top:6px;background:var(--s2);border:1px solid var(--b1);border-radius:7px;padding:9px;font-size:11px;color:var(--muted);white-space:pre-wrap;max-height:100px;overflow-y:auto">${h.rawText.substring(0,500)}${h.rawText.length>500?"...":""}</div></div>`:""}
+        <div style="margin-top:10px;display:flex;gap:8px">
+          <button class="btn btn-sm btn-p" onclick="scResaveEntry(${h.id})">↩ Re-save to Different Module</button>
+        </div>
+      </div>
+    </div>`;
+  }).join("");
+}
+
+function scResaveEntry(id){
+  const h=D.scanHistory.find(x=>x.id===id);
+  if(!h)return;
+  scCurrentResult={
+    docType:h.docType,docTypeLabel:h.docTypeLabel,
+    summary:h.summary,rawText:h.rawText,
+    suggestedModule:h.savedToModule,
+    extractedData:h.extractedData,confidence:h.confidence
+  };
+  scOpenReview();
+}
 
 // ── INIT ──
 R_home();
