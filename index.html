@@ -1785,10 +1785,10 @@ function R_home(){
   // Alerts
   const alerts=[];
   D.gst.filter(g=>g.status==="pending").forEach(g=>{const d=Math.floor((new Date(g.due)-now)/86400000);if(d<=5)alerts.push({cls:d<=2?"red":"yel",msg:`${d<=2?"🔴":"🟡"} ${g.ret} (${g.period}) due ${d<=0?"TODAY":"in "+d+"d"}`});});
-  D.compliance.filter(c=>c.status==="pending").forEach(c=>{const d=Math.floor((new Date(c.due)-now)/86400000);if(d<=7)alerts.push({cls:d<=2?"red":"yel",msg:`${d<=2?"🔴":"🟡"} ${c.name} due ${d<=0?"TODAY/OVERDUE":"in "+d+"d"}`});});
+  D.compliance.filter(c=>c.status==="pending").forEach(c=>{const d=Math.floor((new Date(c.due)-now)/86400000);if(d<=7)alerts.push({cls:d<=2?"red":"yel",msg:`${d<=2?"🔴":"🟡"} ${c.name} due ${d<=0?"TODAY/OVERDUE":"in "+d+"d"} →`,link:"compliance"});});
   D.payment.filter(p=>p.status!=="collected"&&dOvr(p.due)>30).forEach(p=>alerts.push({cls:"yel",msg:`🟡 ${p.party} — ${fa(p.amt)} overdue ${dOvr(p.due)}d`}));
-  if(D.defaulter.length)alerts.push({cls:"red",msg:`⚠️ ${D.defaulter.length} defaulter(s) need attention`});
-  document.getElementById("dash-al").innerHTML=alerts.slice(0,4).map(a=>`<div class="al ${a.cls}">${a.msg}</div>`).join("");
+  if(D.defaulter.length)alerts.push({cls:"red",msg:`⚠️ ${D.defaulter.length} defaulter(s) need attention →`,link:"defaulter"});
+  document.getElementById("dash-al").innerHTML=alerts.slice(0,4).map(a=>`<div class="al ${a.cls}" ${a.link?`onclick="go('${a.link}')" style="cursor:pointer" title="Tap to open"`:""}>${a.msg}</div>`).join("");
   // KPIs
   const pendOrd=D.urgent.filter(x=>x.status!=="done").length;
   const overAmt=D.payment.filter(p=>p.status!=="collected").reduce((s,p)=>s+parseInt((p.amt||0).toString().replace(/[₹,]/g,"")),0);
@@ -1839,7 +1839,7 @@ function R_home(){
   document.getElementById("d-rd").textContent=D.rd.filter(r=>r.status==="testing"||r.status==="approved").length;
   // Purchase low stock alert on dashboard
   const lowStock=D.purchase.filter(p=>p.status==="critical"||p.status==="low").length;
-  if(lowStock>0){const al=document.getElementById("dash-al");if(al)al.innerHTML+=`<div class="al yel">🟡 ${lowStock} item(s) low/critical stock — check Purchase module</div>`;}
+  if(lowStock>0){const al=document.getElementById("dash-al");if(al)al.innerHTML+=`<div class="al yel" onclick="go('purchase')" style="cursor:pointer" title="Click to open Purchase module">🟡 ${lowStock} item(s) low/critical stock — <u>tap to view Purchase module</u> →</div>`;}
 
   // Update all sidebar badges
   const bu=document.getElementById("b-urgent");if(bu)bu.textContent=D.urgent.filter(x=>x.pri==="critical"&&x.status!=="done").length||0;
