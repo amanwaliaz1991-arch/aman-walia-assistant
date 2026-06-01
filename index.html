@@ -2086,6 +2086,39 @@ async function saveToFirebase(collection, data, showStatus=true) {
 // ── REAL-TIME LISTENERS — auto-update on ALL devices instantly ──
 const activeListeners = [];
 
+function updateAllBadges() {
+  // Update all sidebar badges instantly when any data changes
+  const bu = document.getElementById("b-urgent");
+  if (bu) bu.textContent = D.urgent.filter(x=>x.pri==="critical"&&x.status!=="done").length || 0;
+  const bp = document.getElementById("b-pay");
+  if (bp) bp.textContent = D.payment.filter(x=>x.status!=="collected").length || 0;
+  const bc = document.getElementById("b-comp");
+  if (bc) bc.textContent = D.compliance.filter(c=>c.status==="pending").length || 0;
+  const bg = document.getElementById("b-gst");
+  if (bg) bg.textContent = D.gst.filter(g=>g.status==="pending").length || 0;
+  const bs = document.getElementById("b-scanner");
+  if (bs) bs.textContent = D.scanHistory.length || 0;
+  const bn = document.getElementById("bn-badge");
+  if (bn) bn.textContent = D.urgent.filter(x=>x.status!=="done").length || 0;
+}
+
+let updateToastTimer = null;
+function showUpdateToast(modName, modId) {
+  // Show a non-intrusive tap-to-view notification
+  let toast = document.getElementById("update-toast");
+  if (!toast) {
+    toast = document.createElement("div");
+    toast.id = "update-toast";
+    toast.style.cssText = "position:fixed;top:64px;right:12px;background:#1e293b;color:#fff;padding:10px 14px;border-radius:10px;font-size:12.5px;display:flex;align-items:center;gap:10px;z-index:9998;box-shadow:0 4px 16px rgba(0,0,0,.3);cursor:pointer;transition:all .3s;transform:translateX(120%);max-width:240px;";
+    document.body.appendChild(toast);
+  }
+  toast.innerHTML = `<span>${modName}</span><span style="font-size:11px;opacity:.7">updated • tap to view</span>`;
+  toast.onclick = () => { go(modId); toast.style.transform = "translateX(120%)"; };
+  toast.style.transform = "translateX(0)";
+  clearTimeout(updateToastTimer);
+  updateToastTimer = setTimeout(() => { toast.style.transform = "translateX(120%)"; }, 4000);
+}
+
 function reRenderCurrent() {
   const active = document.querySelector(".mod.on");
   if (!active) return;
@@ -2171,19 +2204,40 @@ function loadAllFromFirebase() {
             initialLoadDone = true;
             showSyncStatus("connected");
             reRenderCurrent();
+            updateAllBadges();
             console.log("Firebase initial load complete ✅");
           }
         } else {
           // This is a REAL-TIME UPDATE from another device
-          console.log("Real-time update received:", col);
-          showSyncStatus("connected");
+          console.log("🔄 Real-time update:", col);
+
+          // Always re-render current active module
           reRenderCurrent();
 
-          // Flash update indicator
+          // Always update badges (visible on all screens)
+          updateAllBadges();
+
+          // Show which module updated
+          const modNames = {
+            urgent:"🚨 Orders", payment:"💰 Payments", compliance:"✅ Compliance",
+            purchase:"🛒 Purchase", production:"🏭 Production", expenses:"💸 Expenses",
+            transport:"🚚 Transport", banking:"🏦 Banking", defaulter:"⚠️ Defaulters",
+            cod:"💳 COD", deadstock:"📦 Dead Stock", itc:"🔁 ITC",
+            healthHabits:"❤️ Habits", bdmDrills:"🏸 Drills", dayData:"📅 Tasks",
+            scanHistory:"📷 Scanner", quotes:"💡 Quotes", future:"🚀 Plans"
+          };
+          const modName = modNames[col] || col;
           const el = document.getElementById("sync-status");
           if (el) {
-            el.innerHTML = "🔄 <span>Synced!</span>";
-            setTimeout(() => showSyncStatus("connected"), 2000);
+            el.innerHTML = `🔄 <span>${modName} updated</span>`;
+            setTimeout(() => showSyncStatus("connected"), 2500);
+          }
+
+          // If the updated module is NOT currently active, show a tap-to-view toast
+          const active = document.querySelector(".mod.on");
+          const activeId = active ? active.id.replace("mod-","") : "";
+          if (col !== activeId && col !== "uid" && modNames[col]) {
+            showUpdateToast(modName, col);
           }
         }
 
