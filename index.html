@@ -2160,9 +2160,10 @@ function loadAllFromFirebase() {
     } catch(e) { console.warn("pushIfMissing error:", col, e); }
   }
 
-  // Push ALL collections to Firebase if they don't exist yet
-  // This handles first-time setup AND new modules added later
-  collections.forEach(col => pushIfMissing(col));
+  // Note: pushIfMissing disabled - onSnapshot handles all data loading
+  // Only push truly new collections that have never been in Firebase
+  const newOnlyCollections = ["scanHistory"];
+  newOnlyCollections.forEach(col => pushIfMissing(col));
 
   collections.forEach(col => {
     const unsubscribe = db.collection("aman_assistant").doc(col)
