@@ -1049,35 +1049,14 @@ const D={
   ],
   weeklyReviews:[],
   scanHistory:[],
-  purchase:[
-    {id:1,item:"Natural Rubber",cat:"raw_material",stock:80,minLevel:150,toOrder:200,supplier:"Rubber World",lastPrice:850,unit:"kg",status:"critical"},
-    {id:2,item:"Chevron Grip Blanks",cat:"raw_material",stock:340,minLevel:300,toOrder:500,supplier:"Raw Materials Ltd",lastPrice:28,unit:"pcs",status:"low"},
-    {id:3,item:"Packaging Cartons",cat:"packaging",stock:180,minLevel:200,toOrder:400,supplier:"Packaging Supplies",lastPrice:12,unit:"pcs",status:"low"},
-    {id:4,item:"Toe Guard Rubber",cat:"raw_material",stock:420,minLevel:200,toOrder:0,supplier:"Rubber World",lastPrice:45,unit:"kg",status:"ok"},
-    {id:5,item:"Marigold Stickers (Chevron)",cat:"stickers",stock:2400,minLevel:1000,toOrder:0,supplier:"Sticker Printer",lastPrice:2,unit:"pcs",status:"ok"},
-    {id:6,item:"Marigold Stickers (Octopus)",cat:"stickers",stock:800,minLevel:1000,toOrder:2000,supplier:"Sticker Printer",lastPrice:2,unit:"pcs",status:"low"},
-    {id:7,item:"Marigold Stickers (Hex)",cat:"stickers",stock:1200,minLevel:1000,toOrder:0,supplier:"Sticker Printer",lastPrice:2,unit:"pcs",status:"ok"},
-  ],
-  production:[
-    {id:1,date:"2026-05-29",product:"Chevron Grips",type:"grips",target:1000,produced:980,rejected:20,stickers:980,notes:"Machine B slow"},
-    {id:2,date:"2026-05-29",product:"Octopus Grips",type:"grips",target:800,produced:850,rejected:10,stickers:850,notes:"Good run"},
-    {id:3,date:"2026-05-28",product:"Hex Grips",type:"grips",target:600,produced:570,rejected:30,stickers:570,notes:""},
-    {id:4,date:"2026-05-28",product:"Toe Guard Sets",type:"toe_guard",target:500,produced:510,rejected:5,stickers:510,notes:""},
-  ],
-  prodStock:[
-    {id:1,item:"Chevron Stickers",qty:2400,minQty:1000,status:"ok"},
-    {id:2,item:"Octopus Stickers",qty:800,minQty:1000,status:"low"},
-    {id:3,item:"Hex Stickers",qty:1200,minQty:1000,status:"ok"},
-    {id:4,item:"Rainbow Stickers",qty:600,minQty:500,status:"ok"},
-    {id:5,item:"Toe Guard Stickers",qty:300,minQty:500,status:"low"},
-    {id:6,item:"Grip Blanks (Raw)",qty:340,minQty:300,status:"ok"},
-  ],
-  expenses:[
-    {id:1,date:"2026-05-27",cat:"labour",desc:"Factory staff wages - May week 4",vendor:"Staff",amount:"21000",mode:"cash",receipt:"EXP-001"},
-    {id:2,date:"2026-05-25",cat:"electricity",desc:"Electricity bill - May",vendor:"PSPCL",amount:"8400",mode:"online",receipt:"PSPCL-MAY"},
-    {id:3,date:"2026-05-20",cat:"raw_material",desc:"Natural Rubber purchase",vendor:"Rubber World",amount:"145000",mode:"cheque",receipt:"RW-2024"},
-    {id:4,date:"2026-05-15",cat:"maintenance",desc:"Machine B service and repair",vendor:"Local Engineer",amount:"3500",mode:"cash",receipt:"MNT-015"},
-  ],
+  purchase:[],
+
+  production:[],
+
+  prodStock:[],
+
+  expenses:[],
+
   quotes:[
     {id:1,text:"Success is not final, failure is not fatal: it is the courage to continue that counts.",author:"Winston Churchill",cat:"courage"},
     {id:2,text:"Jo kal karna hai woh aaj karo, jo aaj karna hai woh abhi karo.",author:"Hindi Proverb",cat:"action"},
@@ -2168,7 +2147,9 @@ function loadAllFromFirebase() {
       const doc = await docRef.get();
       if (!doc.exists) {
         const data = col === "uid" ? D.uid : D[col];
-        if (data !== undefined) {
+        // Only push if data is non-empty (don't overwrite Firebase with empty arrays)
+        const isEmpty = Array.isArray(data) && data.length === 0;
+        if (data !== undefined && !isEmpty) {
           await docRef.set({
             data: JSON.stringify(data),
             updatedAt: new Date().toISOString()
