@@ -244,15 +244,21 @@ html,body{height:100%;background:var(--bg);color:var(--tx);font-family:"Plus Jak
 .sc-field-row label{font-size:10.5px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.5px;}
 @keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
 
-/* ── FIREBASE CONNECTING OVERLAY ── */
-#fb-overlay{position:fixed;inset:0;background:linear-gradient(135deg,#1e293b,#0f172a);z-index:99999;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;font-family:"Plus Jakarta Sans",sans-serif;}
-#fb-overlay .fb-logo{font-family:"Bebas Neue";font-size:28px;letter-spacing:4px;margin-bottom:6px;background:linear-gradient(135deg,#60a5fa,#a78bfa);-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
-#fb-overlay .fb-sub{font-size:12px;opacity:.6;letter-spacing:2px;text-transform:uppercase;margin-bottom:40px;}
-#fb-overlay .fb-spinner{width:48px;height:48px;border:3px solid rgba(255,255,255,.1);border-top-color:#60a5fa;border-radius:50%;animation:spin 1s linear infinite;margin-bottom:20px;}
-#fb-overlay .fb-msg{font-size:13px;opacity:.7;margin-bottom:8px;}
-#fb-overlay .fb-dot{display:inline-block;animation:pulse 1.5s infinite;}
-#fb-overlay .fb-error{display:none;background:#ef4444;color:#fff;padding:12px 20px;border-radius:10px;font-size:13px;text-align:center;max-width:280px;margin-top:20px;}
-#fb-overlay .fb-retry{display:none;background:#3b82f6;color:#fff;border:none;padding:10px 24px;border-radius:8px;font-size:13px;cursor:pointer;margin-top:12px;font-family:"Plus Jakarta Sans";}
+/* ── SAVE TO CLOUD PANEL ── */
+#save-panel{position:fixed;bottom:70px;right:16px;z-index:500;display:flex;flex-direction:column;align-items:flex-end;gap:8px;}
+.save-fab{background:linear-gradient(135deg,var(--green),#059669);color:#fff;border:none;border-radius:50px;padding:10px 18px;font-size:13px;font-weight:700;cursor:pointer;box-shadow:0 4px 16px rgba(16,185,129,.4);display:flex;align-items:center;gap:8px;font-family:"Plus Jakarta Sans";transition:all .2s;}
+.save-fab:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(16,185,129,.5);}
+.save-fab:active{transform:scale(.96);}
+.save-verify-panel{background:#fff;border:1px solid var(--b1);border-radius:14px;padding:16px;box-shadow:0 8px 32px rgba(0,0,0,.15);width:280px;display:none;animation:slideUp .2s ease;}
+.save-verify-panel.show{display:block;}
+.sav-row{display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--b1);font-size:12.5px;}
+.sav-row:last-child{border-bottom:none;}
+.sav-col{font-weight:600;color:var(--tx);}
+.sav-count{font-family:"JetBrains Mono";font-size:11px;color:var(--muted);}
+.sav-status{font-size:11px;font-weight:700;}
+.sav-ok{color:var(--green);}
+.sav-warn{color:var(--orange);}
+@media(max-width:900px){#save-panel{bottom:75px;right:10px;}}
 </style>
   <!-- Firebase SDK -->
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
@@ -260,16 +266,6 @@ html,body{height:100%;background:var(--bg);color:var(--tx);font-family:"Plus Jak
 </head>
 <body>
 <div class="app">
-
-<!-- FIREBASE CONNECTING OVERLAY -->
-<div id="fb-overlay">
-  <div class="fb-logo">Aman Walia</div>
-  <div class="fb-sub">Personal Assistant</div>
-  <div class="fb-spinner"></div>
-  <div class="fb-msg">Connecting to cloud<span class="fb-dot">...</span></div>
-  <div class="fb-error" id="fb-error">❌ Could not connect to Firebase.<br>Check your internet connection.</div>
-  <button class="fb-retry" id="fb-retry" onclick="location.reload()">🔄 Retry</button>
-</div>
 
 <!-- HEADER -->
 <div class="hdr">
@@ -2399,23 +2395,9 @@ function initFirebase() {
     showSyncStatus("connected");
     console.log("Firebase connected ✅");
     loadAllFromFirebase();
-    // Hide overlay after Firebase connects — with small delay for data load
-    setTimeout(() => {
-      const ov = document.getElementById("fb-overlay");
-      if(ov) { ov.style.opacity="0"; ov.style.transition="opacity .5s"; setTimeout(()=>ov.style.display="none",500); }
-    }, 1500);
   } catch(e) {
     console.error("Firebase failed:", e.message);
-    // Show error on overlay
-    const err = document.getElementById("fb-error");
-    const retry = document.getElementById("fb-retry");
-    const spinner = document.querySelector("#fb-overlay .fb-spinner");
-    const msg = document.querySelector("#fb-overlay .fb-msg");
-    if(err) err.style.display="block";
-    if(retry) retry.style.display="block";
-    if(spinner) spinner.style.display="none";
-    if(msg) msg.textContent="Connection failed";
-    showSyncStatus("local");
+    showSyncStatus("error");
   }
 }
 
@@ -2584,13 +2566,7 @@ function loadAllFromFirebase() {
             reRenderCurrent();
             updateAllBadges();
             console.log("Firebase initial load complete ✅");
-            // Hide overlay now that data is loaded
-            const ov = document.getElementById("fb-overlay");
-            if(ov && ov.style.display !== "none") {
-              ov.style.opacity="0";
-              ov.style.transition="opacity .4s";
-              setTimeout(()=>ov.style.display="none",400);
-            }
+
           }
         } else {
           // This is a REAL-TIME UPDATE from another device
@@ -3054,7 +3030,126 @@ function scResaveEntry(id){
   scOpenReview();
 }
 
+
+// ── SAVE TO CLOUD PANEL ──
+const ALL_COLLECTIONS = [
+  {key:"urgent",      label:"Urgent Orders"},
+  {key:"cod",         label:"COD Parties"},
+  {key:"transport",   label:"Transport"},
+  {key:"payment",     label:"Payments"},
+  {key:"defaulter",   label:"Defaulters"},
+  {key:"banking",     label:"Banking"},
+  {key:"deadstock",   label:"Dead Stock"},
+  {key:"rd",          label:"R&D Ideas"},
+  {key:"compliance",  label:"Compliance"},
+  {key:"itc",         label:"ITC Tracker"},
+  {key:"future",      label:"Future Plans"},
+  {key:"orders",      label:"Order Tracker"},
+  {key:"purchase",    label:"Purchase"},
+  {key:"production",  label:"Production"},
+  {key:"expenses",    label:"Expenses"},
+  {key:"healthHabits",label:"Health Habits"},
+  {key:"bdmDrills",   label:"Badminton Drills"},
+  {key:"selfGoals",   label:"Self Goals"},
+  {key:"books",       label:"Books"},
+  {key:"quotes",      label:"Quotes"},
+  {key:"scanHistory", label:"Scan History"},
+  {key:"dayData",     label:"Day Tracker"},
+  {key:"uid",         label:"ID Counter"},
+];
+
+function toggleSavePanel() {
+  const p = document.getElementById("svp");
+  if(p.classList.contains("show")) {
+    closeSavePanel();
+  } else {
+    renderSavePanel();
+    p.classList.add("show");
+  }
+}
+
+function closeSavePanel() {
+  document.getElementById("svp").classList.remove("show");
+}
+
+function renderSavePanel() {
+  const rows = document.getElementById("svp-rows");
+  const connected = firebaseReady && db;
+  rows.innerHTML = ALL_COLLECTIONS.map(c => {
+    const data = c.key === "uid" ? D.uid : D[c.key];
+    const count = Array.isArray(data) ? data.length : typeof data === "object" ? Object.keys(data||{}).length : 1;
+    const hasData = Array.isArray(data) ? data.length > 0 : !!data;
+    return `<div class="sav-row">
+      <div>
+        <div class="sav-col">${c.label}</div>
+        <div class="sav-count">${count} ${Array.isArray(data)?"entries":""}</div>
+      </div>
+      <div class="sav-status ${connected && hasData?"sav-ok":"sav-warn"}">
+        ${connected ? (hasData ? "✅ Ready" : "— Empty") : "⚠️ Offline"}
+      </div>
+    </div>`;
+  }).join("");
+  document.getElementById("svp-result").style.display = "none";
+}
+
+async function saveAllToCloud() {
+  if(!firebaseReady || !db) {
+    const r = document.getElementById("svp-result");
+    r.style.display="block";r.style.background="#fee2e2";r.style.color="#991b1b";
+    r.textContent="❌ Not connected to Firebase. Check internet.";
+    return;
+  }
+  const btn = document.querySelector(".save-fab");
+  btn.textContent="🔄 Saving...";btn.disabled=true;
+  let saved=0, failed=0;
+  for(const c of ALL_COLLECTIONS) {
+    try {
+      const data = c.key === "uid" ? D.uid : D[c.key];
+      await db.collection("aman_assistant").doc(c.key).set({
+        data: JSON.stringify(data),
+        updatedAt: new Date().toISOString()
+      });
+      saved++;
+    } catch(e) {
+      console.error("Save failed:", c.key, e);
+      failed++;
+    }
+  }
+  btn.textContent="☁️ Save to Cloud";btn.disabled=false;
+  const r = document.getElementById("svp-result");
+  r.style.display="block";
+  if(failed===0) {
+    r.style.background="#f0fdf4";r.style.color="#166534";
+    r.textContent=`✅ All ${saved} modules saved to Firebase successfully!`;
+    showSyncStatus("saved");
+  } else {
+    r.style.background="#fff7ed";r.style.color="#9a3412";
+    r.textContent=`⚠️ ${saved} saved, ${failed} failed. Try again.`;
+  }
+  renderSavePanel();
+}
+
 // ── INIT ──
 R_home();
 </script><input type="file" id="import-file" accept=".json" style="display:none" onchange="importBackup(this)">
+
+<!-- SAVE TO CLOUD PANEL -->
+<div id="save-panel">
+  <div class="save-verify-panel" id="svp">
+    <div style="font-size:13px;font-weight:700;margin-bottom:10px;display:flex;align-items:center;gap:8px">
+      <span>☁️</span><span>Cloud Save Status</span>
+      <button onclick="closeSavePanel()" style="margin-left:auto;background:none;border:none;cursor:pointer;color:var(--muted);font-size:16px">✕</button>
+    </div>
+    <div id="svp-rows"></div>
+    <div style="margin-top:12px;padding-top:10px;border-top:1px solid var(--b1);display:flex;gap:8px">
+      <button class="btn btn-p" style="flex:1;font-size:12px" onclick="saveAllToCloud()">☁️ Save All to Cloud</button>
+      <button class="btn" style="font-size:12px" onclick="closeSavePanel()">Close</button>
+    </div>
+    <div id="svp-result" style="display:none;margin-top:8px;padding:8px;border-radius:8px;font-size:12px;text-align:center;font-weight:600"></div>
+  </div>
+  <button class="save-fab" onclick="toggleSavePanel()">
+    ☁️ Save to Cloud
+  </button>
+</div>
+
 </body></html>
