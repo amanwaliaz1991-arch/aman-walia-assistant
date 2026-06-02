@@ -387,7 +387,7 @@ html,body{height:100%;background:var(--bg);color:var(--tx);font-family:"Plus Jak
   <div class="al-strip" id="dash-al"></div>
   <div class="g4" id="dash-kpi" style="margin-bottom:14px"></div>
   <div class="g2" style="margin-bottom:14px">
-    <div class="card"><div class="card-hdr">🔥 Today's Tasks<button class="btn btn-sm" style="margin-left:auto" onclick="go('tracker')">Full Tracker →</button></div><div id="dash-tasks" style="padding:6px 8px;"></div></div>
+    <div class="card"><div class="card-hdr">🔥 Today's Tasks<span id="dash-pending-badge" style="display:none;background:var(--orange);color:#fff;font-size:10px;border-radius:10px;padding:2px 7px;margin-left:6px;font-family:'JetBrains Mono'"></span><button class="btn btn-sm" style="margin-left:auto" onclick="go('tracker')">Full Tracker →</button></div><div id="dash-tasks"></div></div>
     <div class="card"><div class="card-hdr">📋 Compliance Deadlines<button class="btn btn-sm" style="margin-left:auto" onclick="go('compliance')">View All →</button></div>
       <div class="tbl-scroll"><table class="tbl"><thead><tr><th>Filing</th><th>Due</th><th>Days</th><th>Status</th></tr></thead><tbody id="dash-comp"></tbody></table></div></div>
   </div>
@@ -2053,13 +2053,44 @@ function R_home(){
   if(!D.dayData[today])D.dayData[today]={tasks:[],notes:""};
   const tasks=D.dayData[today].tasks;
   const pc={high:"var(--red)",med:"var(--gold)",low:"var(--green)"};
-  document.getElementById("dash-tasks").innerHTML=tasks.length?tasks.slice(0,5).map(t=>`
+  // Get pending tasks from previous days
+  const pendingTasks = typeof getPendingTasks === "function" ? getPendingTasks(today) : [];
+  const pendingBadge = document.getElementById("dash-pending-badge");
+  if(pendingBadge){
+    if(pendingTasks.length){
+      pendingBadge.style.display="inline";
+      pendingBadge.textContent=pendingTasks.length+" pending";
+    } else {
+      pendingBadge.style.display="none";
+    }
+  }
+  const pendingHtml = pendingTasks.length ? `
+    <div style="background:#fff7ed;border-bottom:2px dashed var(--orange);padding:8px 12px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+        <div style="font-size:12px;font-weight:700;color:var(--orange)">⚠️ ${pendingTasks.length} pending from previous days</div>
+        <button class="btn btn-sm" style="font-size:10px;border-color:var(--orange);color:var(--orange)" onclick="carryForwardAll();R_home()">↩ Carry All</button>
+      </div>
+      ${pendingTasks.slice(0,3).map(t=>`
+        <div style="display:flex;align-items:center;gap:8px;padding:4px 0;border-bottom:1px solid #fed7aa">
+          <span style="width:7px;height:7px;border-radius:50%;background:${pc[t.pri||"med"]};flex-shrink:0"></span>
+          <div style="flex:1;font-size:12px">${t.text}</div>
+          <span style="font-size:10px;color:var(--orange)">${t.fromDateLabel}</span>
+          <button class="btn-u" style="font-size:10px;padding:2px 7px" onclick="carryForwardTask('${t.fromDate}',${t.id},'${today}');R_home()">↩</button>
+          <button class="btn-e" style="font-size:10px;padding:2px 7px" onclick="markDoneFromPending('${t.fromDate}',${t.id},'${today}');R_home()">✅</button>
+        </div>`).join("")}
+      ${pendingTasks.length>3?`<div style="font-size:11px;color:var(--orange);padding-top:4px;cursor:pointer" onclick="go('tracker')">+${pendingTasks.length-3} more — tap to view all →</div>`:""}
+    </div>` : "";
+
+  document.getElementById("dash-tasks").innerHTML = pendingHtml + (tasks.length?tasks.slice(0,4).map(t=>`
     <div class="task-item ${t.done?"di":""}">
       <div class="chk ${t.done?"done":""}" onclick="tgDT('${today}',${t.id});R_home()"></div>
-      <span style="font-size:13px;flex:1;${t.done?"text-decoration:line-through;color:var(--dim)":""}">${t.text}</span>
+      <div style="flex:1">
+        <div style="font-size:13px;${t.done?"text-decoration:line-through;color:var(--dim)":""}">${t.text}</div>
+        ${t.carriedFrom?`<div style="font-size:10px;color:var(--orange)">↩ Carried from ${new Date(t.carriedFrom).toLocaleDateString("en-IN",{day:"numeric",month:"short"})}</div>`:""}
+      </div>
       <span style="width:8px;height:8px;border-radius:50%;background:${pc[t.pri||"med"]};flex-shrink:0"></span>
-    </div>`).join("")+(tasks.length>5?`<div style="padding:6px 14px;font-size:11px;color:var(--muted)">+${tasks.length-5} more…</div>`:""):
-    `<div style="padding:10px 14px"><div style="font-size:12.5px;color:var(--muted);margin-bottom:8px">No tasks for today yet.</div><button class="btn btn-p btn-sm" onclick="go('tracker')">+ Add Tasks</button></div>`;
+    </div>`).join("")+(tasks.length>4?`<div style="padding:6px 14px;font-size:11px;color:var(--muted);cursor:pointer" onclick="go('tracker')">+${tasks.length-4} more today →</div>`:""):
+    `<div style="padding:10px 14px"><div style="font-size:12.5px;color:var(--muted);margin-bottom:8px">No tasks for today yet.</div><button class="btn btn-p btn-sm" onclick="go('tracker')">+ Add Tasks</button></div>`);
   // Compliance
   const compRows=D.compliance.filter(c=>c.status!=="filed").sort((a,b)=>new Date(a.due)-new Date(b.due)).slice(0,4);
   document.getElementById("dash-comp").innerHTML=compRows.map(c=>{
