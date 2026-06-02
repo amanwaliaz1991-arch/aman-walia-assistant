@@ -341,6 +341,7 @@ html,body{height:100%;background:var(--bg);color:var(--tx);font-family:"Plus Jak
   </div>
   <div class="sb-grp">
     <div class="sb-lbl">Operations</div>
+    <div class="sb-item" id="n-orders" onclick="go('orders')"><span class="sb-ico">📦</span>Order Tracker<span class="sb-bdg o" id="b-orders">0</span></div>
     <div class="sb-item" id="n-urgent" onclick="go('urgent')"><span class="sb-ico">🚨</span>Urgent Orders<span class="sb-bdg o" id="b-urgent">0</span></div>
     <div class="sb-item" id="n-cod" onclick="go('cod')"><span class="sb-ico">💳</span>COD of Parties</div>
     <div class="sb-item" id="n-transport" onclick="go('transport')"><span class="sb-ico">🚚</span>Transport / Delivery</div>
@@ -853,6 +854,59 @@ html,body{height:100%;background:var(--bg);color:var(--tx);font-family:"Plus Jak
   </div>
 </div>
 
+
+<!-- ████ ORDER TRACKER ████ -->
+<div class="mod" id="mod-orders">
+  <div class="ph">
+    <div><div class="pt">ORDER <span>TRACKER</span></div><div class="pt-sub">Dispatch → COD → Cheque → Cleared</div></div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+      <select class="sel" id="ord-status-f" onchange="R.orders()" style="width:150px">
+        <option value="">All Status</option>
+        <option value="dispatched">Dispatched</option>
+        <option value="cod_pending">COD Pending</option>
+        <option value="chq_received">Cheque Received</option>
+        <option value="chq_cleared">Cheque Cleared</option>
+        <option value="done">Done ✓</option>
+      </select>
+      <select class="sel" id="ord-agent-f" onchange="R.orders()" style="width:120px">
+        <option value="">All Agents</option>
+        <option value="Aman">Aman</option>
+        <option value="Raman">Raman</option>
+        <option value="Baba Ji">Baba Ji</option>
+      </select>
+      <input class="inp" id="ord-search" placeholder="🔍 Party / Invoice…" oninput="R.orders()" style="width:160px">
+      <button class="btn btn-p" onclick="Mo.open('orders')">+ Add Order</button>
+    </div>
+  </div>
+
+  <!-- Stats -->
+  <div class="g4" id="ord-stats" style="margin-bottom:14px"></div>
+
+  <!-- Pipeline view -->
+  <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:14px" id="ord-pipeline"></div>
+
+  <!-- Main table -->
+  <div class="card">
+    <div class="card-hdr">
+      Order Register
+      <span id="ord-count" style="font-size:11px;color:var(--muted);font-weight:400;margin-left:8px"></span>
+    </div>
+    <div class="tbl-scroll">
+      <table class="tbl">
+        <thead><tr>
+          <th>Party</th><th>Invoice #</th><th>Inv Value</th>
+          <th>Dispatch</th><th>Courier</th><th>Track #</th>
+          <th>COD Amt</th><th>Status</th>
+          <th>Chq #</th><th>Chq Date</th><th>Bank</th><th>Cleared</th>
+          <th>Agent</th><th>Remarks</th><th>Actions</th>
+        </tr></thead>
+        <tbody id="ord-body"></tbody>
+      </table>
+    </div>
+    <div id="ord-empty" class="es" style="display:none"><div class="em">📦</div>No orders yet. Add your first order.</div>
+  </div>
+</div>
+
 </div><!-- /main -->
 
 <!-- AI PANEL (desktop) -->
@@ -1048,6 +1102,7 @@ const D={
     {id:3,title:"Rich Dad Poor Dad",author:"R. Kiyosaki",status:"done"},
   ],
   weeklyReviews:[],
+  orders:[],
   scanHistory:[],
   purchase:[],
 
@@ -1158,6 +1213,15 @@ const Mo={
       book:{t:"ADD BOOK/COURSE",h:`
         <div class="fr one"><div class="fg"><label>Title *</label><input class="inp" id="mf-title" style="width:100%"></div></div>
         <div class="fr"><div class="fg"><label>Author</label><input class="inp" id="mf-author" style="width:100%"></div><div class="fg"><label>Status</label><select class="sel" id="mf-status" style="width:100%"><option value="to-read">To Read</option><option value="reading">Reading</option><option value="done">Done ✓</option></select></div></div>`},
+      orders:{t:ie?"EDIT ORDER":"ADD ORDER",h:`
+        <div class="fr"><div class="fg"><label>Party Name *</label><input class="inp" id="mf-party" value="${v("party")}" style="width:100%"></div><div class="fg"><label>Invoice #</label><input class="inp" id="mf-inv" value="${v("inv")}" style="width:100%"></div></div>
+        <div class="fr"><div class="fg"><label>Invoice Value (₹)</label><input class="inp" id="mf-invVal" type="number" value="${vn("invVal")}" style="width:100%"></div><div class="fg"><label>COD Amount (₹)</label><input class="inp" id="mf-codAmt" type="number" value="${vn("codAmt")}" style="width:100%"></div></div>
+        <div class="fr"><div class="fg"><label>Dispatch Date</label><input class="inp" id="mf-dispatchDate" type="date" value="${v("dispatchDate",new Date().toISOString().slice(0,10))}" style="width:100%"></div><div class="fg"><label>Courier</label><input class="inp" id="mf-courier" value="${v("courier")}" placeholder="DTDC, BlueDart…" style="width:100%"></div></div>
+        <div class="fr"><div class="fg"><label>Tracking #</label><input class="inp" id="mf-trackNo" value="${v("trackNo")}" style="width:100%"></div><div class="fg"><label>Agent</label><select class="sel" id="mf-agent" style="width:100%"><option value="">— No Agent —</option><option value="Aman" ${ie&&item.agent==="Aman"?"selected":""}>Aman</option><option value="Raman" ${ie&&item.agent==="Raman"?"selected":""}>Raman</option><option value="Baba Ji" ${ie&&item.agent==="Baba Ji"?"selected":""}>Baba Ji</option></select></div></div>
+        <div style="border-top:1px solid var(--b1);margin:12px 0 10px;padding-top:10px;font-size:11px;font-weight:700;color:var(--muted);letter-spacing:1px">CHEQUE DETAILS</div>
+        <div class="fr"><div class="fg"><label>Cheque #</label><input class="inp" id="mf-chqNo" value="${v("chqNo")}" style="width:100%"></div><div class="fg"><label>Cheque Date</label><input class="inp" id="mf-chqDate" type="date" value="${v("chqDate")}" style="width:100%"></div></div>
+        <div class="fr"><div class="fg"><label>Bank Name</label><input class="inp" id="mf-bank" value="${v("bank")}" style="width:100%"></div><div class="fg"><label>Cleared Date</label><input class="inp" id="mf-clearedDate" type="date" value="${v("clearedDate")}" style="width:100%"></div></div>
+        <div class="fr"><div class="fg"><label>Status</label><select class="sel" id="mf-status" style="width:100%"><option value="dispatched" ${!ie||item.status==="dispatched"?"selected":""}>🚚 Dispatched</option><option value="cod_pending" ${ie&&item.status==="cod_pending"?"selected":""}>💳 COD Pending</option><option value="chq_received" ${ie&&item.status==="chq_received"?"selected":""}>📬 Cheque Received</option><option value="chq_cleared" ${ie&&item.status==="chq_cleared"?"selected":""}>✅ Cheque Cleared</option><option value="done" ${ie&&item.status==="done"?"selected":""}>🏁 Done</option></select></div><div class="fg"><label>Remarks</label><input class="inp" id="mf-remarks" value="${v("remarks")}" style="width:100%"></div></div>`},
       purchase:{t:ie?"EDIT ITEM":"ADD PURCHASE ITEM",h:`
         <div class="fr"><div class="fg"><label>Item Name *</label><input class="inp" id="mf-item" value="${v("item")}" style="width:100%"></div><div class="fg"><label>Category</label><select class="sel" id="mf-cat" style="width:100%">${sel("cat",[["raw_material","Raw Material"],["stickers","Stickers"],["packaging","Packaging"],["machinery","Machinery"],["consumable","Consumable"],["other","Other"]])}</select></div></div>
         <div class="fr three"><div class="fg"><label>Current Stock</label><input class="inp" id="mf-stock" type="number" value="${vn("stock")}" style="width:100%"></div><div class="fg"><label>Min Level (Reorder at)</label><input class="inp" id="mf-minLevel" type="number" value="${vn("minLevel")}" style="width:100%"></div><div class="fg"><label>Qty to Order</label><input class="inp" id="mf-toOrder" type="number" value="${vn("toOrder")}" style="width:100%"></div></div>
@@ -1238,6 +1302,7 @@ function moSave(){
     compliance:()=>({name:g("mf-name"),auth:g("mf-auth"),due:g("mf-due"),resp:g("mf-resp"),penalty:g("mf-penalty"),status:g("mf-status")}),
     itc:()=>({supplier:g("mf-supplier"),inv:g("mf-inv"),date:g("mf-date"),igst:gn("mf-igst"),cgst:gn("mf-cgst"),sgst:gn("mf-sgst"),eligible:g("mf-eligible")}),
     future:()=>({plan:g("mf-plan"),cat:g("mf-cat"),timeline:g("mf-timeline"),invest:g("mf-invest"),ret:g("mf-ret"),status:g("mf-status")}),
+    orders:()=>({party:g("mf-party"),inv:g("mf-inv"),invVal:gn("mf-invVal"),codAmt:gn("mf-codAmt"),dispatchDate:g("mf-dispatchDate"),courier:g("mf-courier"),trackNo:g("mf-trackNo"),agent:g("mf-agent"),chqNo:g("mf-chqNo"),chqDate:g("mf-chqDate"),bank:g("mf-bank"),clearedDate:g("mf-clearedDate"),status:g("mf-status")||"dispatched",remarks:g("mf-remarks")}),
     purchase:()=>({item:g("mf-item"),cat:g("mf-cat"),stock:gn("mf-stock"),minLevel:gn("mf-minLevel"),toOrder:gn("mf-toOrder"),supplier:g("mf-supplier"),lastPrice:gn("mf-lastPrice"),unit:g("mf-unit")||"pcs",status:g("mf-status")}),
     expenses:()=>({date:g("mf-date"),cat:g("mf-cat"),desc:g("mf-desc"),vendor:g("mf-vendor"),amount:g("mf-amount"),mode:g("mf-mode"),receipt:g("mf-receipt")}),
   };
@@ -1552,6 +1617,93 @@ const R={
         <div style="font-size:13px;margin-top:3px">${w.text}</div>
       </div>`).join(""):'<div class="es"><div class="em">📝</div>No reviews yet</div>';
   },
+
+  orders(){
+    const sf = document.getElementById("ord-status-f")?.value||"";
+    const af = document.getElementById("ord-agent-f")?.value||"";
+    const sq = (document.getElementById("ord-search")?.value||"").toLowerCase();
+    const list = D.orders.filter(o=>
+      (!sf||o.status===sf) &&
+      (!af||o.agent===af) &&
+      (!sq||(o.party+o.inv+o.trackNo).toLowerCase().includes(sq))
+    );
+
+    // Status labels & colors
+    const stL = {
+      dispatched:  {l:"🚚 Dispatched",   c:"var(--ac)"},
+      cod_pending: {l:"💳 COD Pending",   c:"var(--orange)"},
+      chq_received:{l:"📬 Chq Received",  c:"var(--gold)"},
+      chq_cleared: {l:"✅ Chq Cleared",   c:"var(--teal)"},
+      done:        {l:"🏁 Done",          c:"var(--green)"}
+    };
+    const stP = s => {
+      const x=stL[s]||{l:s,c:"var(--muted)"};
+      return `<span class="pill" style="background:${x.c}20;color:${x.c};font-weight:700;white-space:nowrap">${x.l}</span>`;
+    };
+
+    // Stats
+    const totVal = D.orders.reduce((s,o)=>s+(o.invVal||0),0);
+    const totCOD = D.orders.reduce((s,o)=>s+(o.codAmt||0),0);
+    const pending = D.orders.filter(o=>o.status!=="done"&&o.status!=="chq_cleared").length;
+    const cleared = D.orders.filter(o=>o.status==="chq_cleared"||o.status==="done").length;
+    document.getElementById("ord-stats").innerHTML =
+      sc("var(--ac)","Total Orders",D.orders.length) +
+      sc("var(--orange)","Invoice Value",fa(totVal)) +
+      sc("var(--gold)","COD Pending",fa(D.orders.filter(o=>o.status==="cod_pending"||o.status==="dispatched").reduce((s,o)=>s+(o.codAmt||0),0))) +
+      sc("var(--green)","Cleared",cleared+" orders");
+
+    // Pipeline
+    const stages = ["dispatched","cod_pending","chq_received","chq_cleared","done"];
+    const stageNames = {dispatched:"🚚 Dispatched",cod_pending:"💳 COD Pending",chq_received:"📬 Chq Received",chq_cleared:"✅ Cleared",done:"🏁 Done"};
+    const stageColors = {dispatched:"var(--ac)",cod_pending:"var(--orange)",chq_received:"var(--gold)",chq_cleared:"var(--teal)",done:"var(--green)"};
+    document.getElementById("ord-pipeline").innerHTML = stages.map(s=>{
+      const cnt = D.orders.filter(o=>o.status===s).length;
+      const val = D.orders.filter(o=>o.status===s).reduce((sum,o)=>sum+(o.invVal||0),0);
+      return `<div class="stat" style="--c:${stageColors[s]};cursor:pointer;text-align:center" onclick="document.getElementById('ord-status-f').value='${s}';R.orders()">
+        <div class="stat-lbl">${stageNames[s]}</div>
+        <div class="stat-val" style="color:${stageColors[s]};font-size:22px">${cnt}</div>
+        <div class="stat-sub">${val?fa(val):""}</div>
+      </div>`;
+    }).join("");
+
+    // Badge
+    const b = document.getElementById("b-orders");
+    if(b) b.textContent = D.orders.filter(o=>o.status!=="done").length || 0;
+
+    // Count
+    document.getElementById("ord-count").textContent = `${list.length} of ${D.orders.length}`;
+
+    // Table
+    const tbody = document.getElementById("ord-body");
+    const empty = document.getElementById("ord-empty");
+    if(!list.length){tbody.innerHTML="";empty.style.display="block";return;}
+    empty.style.display="none";
+
+    tbody.innerHTML = list.map(o=>`<tr>
+      <td><b>${o.party}</b></td>
+      <td style="font-size:11px;font-family:'JetBrains Mono'">${o.inv||"—"}</td>
+      <td class="amt pos">${o.invVal?fa(o.invVal):"—"}</td>
+      <td style="font-size:11px">${fd(o.dispatchDate)}</td>
+      <td style="font-size:11px">${o.courier||"—"}</td>
+      <td style="font-size:11px;font-family:'JetBrains Mono'">${o.trackNo||"—"}</td>
+      <td class="amt neg">${o.codAmt?fa(o.codAmt):"—"}</td>
+      <td>${stP(o.status)}</td>
+      <td style="font-size:11px;font-family:'JetBrains Mono'">${o.chqNo||"—"}</td>
+      <td style="font-size:11px">${o.chqDate?fd(o.chqDate):"—"}</td>
+      <td style="font-size:11px">${o.bank||"—"}</td>
+      <td style="font-size:11px;color:${o.clearedDate?"var(--green)":"var(--muted)"}">${o.clearedDate?fd(o.clearedDate):"—"}</td>
+      <td><span class="pill pb" style="font-size:10px">${o.agent||"—"}</span></td>
+      <td style="font-size:11px;color:var(--muted);max-width:120px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${o.remarks||"—"}</td>
+      <td style="white-space:nowrap">
+        ${o.status==="dispatched"?`<button class="btn-u" style="font-size:10px;padding:3px 7px" onclick="moveOrder(${o.id},'cod_pending')">💳 COD</button>`:""}
+        ${o.status==="cod_pending"?`<button class="btn-u" style="font-size:10px;padding:3px 7px" onclick="moveOrder(${o.id},'chq_received')">📬 Chq In</button>`:""}
+        ${o.status==="chq_received"?`<button class="btn-u" style="font-size:10px;padding:3px 7px" onclick="moveOrder(${o.id},'chq_cleared')">✅ Cleared</button>`:""}
+        ${o.status==="chq_cleared"?`<button class="btn-u" style="font-size:10px;padding:3px 7px" onclick="moveOrder(${o.id},'done')">🏁 Done</button>`:""}
+        <button class="btn-e" onclick="Mo.open('orders',${o.id})">✏️</button>
+        <button class="btn-d" onclick="delItem('orders',${o.id})">🗑</button>
+      </td>
+    </tr>`).join("");
+  },
   purchase(){
     const low=D.purchase.filter(p=>p.status==="critical"||p.status==="low");
     const critical=D.purchase.filter(p=>p.status==="critical");
@@ -1858,6 +2010,18 @@ function getAuthHeaders(){
   return h;
 }
 
+
+function moveOrder(id, newStatus) {
+  const o = D.orders.find(x=>x.id===id);
+  if(!o) return;
+  o.status = newStatus;
+  // Auto-fill dates
+  if(newStatus==="chq_received" && !o.chqDate) o.chqDate = new Date().toISOString().slice(0,10);
+  if(newStatus==="chq_cleared" && !o.clearedDate) o.clearedDate = new Date().toISOString().slice(0,10);
+  autoSave("orders");
+  R.orders();
+}
+
 // ── SMART SCAN ──
 function openScan(){
   document.getElementById("scan-mo").classList.add("show");
@@ -2109,7 +2273,7 @@ function reRenderCurrent() {
     itax:R.itax, tds:R.tds, gst:R.gst, itc:R.itc, future:R.future,
     tracker:()=>renderDT(document.getElementById("td")?.value||new Date().toISOString().slice(0,10)),
     health:R.health, badminton:R.badminton, self:R.self, quotes:R.quotes,
-    purchase:R.purchase, production:R.production, expenses:R.expenses, scanner:R.scanner
+    orders:R.orders, orders:R.orders, purchase:R.purchase, production:R.production, expenses:R.expenses, scanner:R.scanner
   };
   rmap[id]?.();
 }
@@ -2123,7 +2287,7 @@ function loadAllFromFirebase() {
     "deadstock","rd","compliance","itax","tds","gst","itc","future",
     "dayData","healthHabits","healthGoals","bdmGames","bdmSkills",
     "bdmDrills","selfGoals","books","weeklyReviews","quotes","uid",
-    "purchase","production","prodStock","expenses","scanHistory"
+    "orders","purchase","production","prodStock","expenses","scanHistory"
   ];
 
   let initialLoadDone = false;
@@ -2239,7 +2403,7 @@ function loadAllFromFirebase() {
 // ── LOCALSTORAGE FALLBACK ──
 function saveToLocal() {
   try {
-    const save = {urgent:D.urgent,cod:D.cod,transport:D.transport,payment:D.payment,defaulter:D.defaulter,banking:D.banking,deadstock:D.deadstock,rd:D.rd,compliance:D.compliance,itax:D.itax,tds:D.tds,gst:D.gst,itc:D.itc,future:D.future,dayData:D.dayData,healthHabits:D.healthHabits,healthGoals:D.healthGoals,bdmGames:D.bdmGames,bdmSkills:D.bdmSkills,bdmDrills:D.bdmDrills,selfGoals:D.selfGoals,books:D.books,weeklyReviews:D.weeklyReviews,quotes:D.quotes,uid:D.uid,purchase:D.purchase,production:D.production,prodStock:D.prodStock,expenses:D.expenses,scanHistory:D.scanHistory};
+    const save = {urgent:D.urgent,cod:D.cod,transport:D.transport,payment:D.payment,defaulter:D.defaulter,banking:D.banking,deadstock:D.deadstock,rd:D.rd,compliance:D.compliance,itax:D.itax,tds:D.tds,gst:D.gst,itc:D.itc,future:D.future,dayData:D.dayData,healthHabits:D.healthHabits,healthGoals:D.healthGoals,bdmGames:D.bdmGames,bdmSkills:D.bdmSkills,bdmDrills:D.bdmDrills,selfGoals:D.selfGoals,books:D.books,weeklyReviews:D.weeklyReviews,quotes:D.quotes,uid:D.uid,orders:D.orders,purchase:D.purchase,production:D.production,prodStock:D.prodStock,expenses:D.expenses,scanHistory:D.scanHistory};
     localStorage.setItem("aman_walia_data", JSON.stringify(save));
   } catch(e) { console.warn("LocalStorage save failed:", e); }
 }
