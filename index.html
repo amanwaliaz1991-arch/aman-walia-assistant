@@ -2529,7 +2529,7 @@ function reRenderCurrent() {
     itax:R.itax, tds:R.tds, gst:R.gst, itc:R.itc, future:R.future,
     tracker:()=>renderDT(document.getElementById("td")?.value||new Date().toISOString().slice(0,10)),
     health:R.health, badminton:R.badminton, self:R.self, quotes:R.quotes,
-    orders:R.orders, orders:R.orders, purchase:R.purchase, production:R.production, expenses:R.expenses, scanner:R.scanner
+    orders:R.orders, purchase:R.purchase, production:R.production, expenses:R.expenses, scanner:R.scanner
   };
   rmap[id]?.();
 }
@@ -2622,7 +2622,8 @@ function loadAllFromFirebase() {
 
           // Show which module updated
           const modNames = {
-            urgent:"🚨 Orders", payment:"💰 Payments", compliance:"✅ Compliance",
+            urgent:"🚨 Urgent Orders", orders:"📦 Order Tracker",
+            payment:"💰 Payments", compliance:"✅ Compliance",
             purchase:"🛒 Purchase", production:"🏭 Production", expenses:"💸 Expenses",
             transport:"🚚 Transport", banking:"🏦 Banking", defaulter:"⚠️ Defaulters",
             cod:"💳 COD", deadstock:"📦 Dead Stock", itc:"🔁 ITC",
