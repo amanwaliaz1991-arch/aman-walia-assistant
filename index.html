@@ -274,7 +274,9 @@ html,body{height:100%;background:var(--bg);color:var(--tx);font-family:"Plus Jak
 <div class="hdr">
   <button class="hdr-menu" id="menu-btn" onclick="toggleSB()">☰</button>
   <div class="hdr-logo">Aman Walia<span>Personal Assistant</span></div>
-  <div class="hdr-r"><div id="sync-status" style="font-size:11px;color:rgba(255,255,255,.7);display:flex;align-items:center;gap:4px;">💾 <span>Local Only</span></div>
+  <div class="hdr-r">
+    <button onclick="manualRefresh()" title="Refresh data from Firebase" style="background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.25);color:#fff;width:34px;height:34px;border-radius:8px;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;" id="refresh-btn">🔄</button>
+    <div id="sync-status" style="font-size:11px;color:rgba(255,255,255,.7);display:flex;align-items:center;gap:4px;">💾 <span>Local Only</span></div>
     <button class="btn" onclick="exportBackup()" style="background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.2);color:#fff;font-size:11px;padding:5px 10px;">📥 Backup</button><button class="btn" onclick="openApiKeySettings()" style="background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.2);color:#fff;font-size:11px;padding:5px 10px;" title="Set Anthropic API Key">⚙️ AI Key</button><button class="hdr-scan" onclick="openScan()"><span class="scan-ico">📷</span><span class="scan-txt">Scan / Upload</span></button>
     <div class="hdr-clk" id="clk">--:--</div>
   </div>
@@ -2273,6 +2275,19 @@ function openOrderChain(id) {
   `;
   document.getElementById("mo-sv").style.display="none";
   document.getElementById("mo").style.display="flex";
+}
+
+
+function manualRefresh() {
+  const btn = document.getElementById("refresh-btn");
+  if(btn) { btn.style.animation="spin 1s linear infinite"; btn.style.pointerEvents="none"; }
+  showSyncStatus("saving");
+  // Reload all data from Firebase
+  loadAllFromFirebase();
+  setTimeout(() => {
+    if(btn) { btn.style.animation=""; btn.style.pointerEvents=""; }
+    showSyncStatus("connected");
+  }, 2000);
 }
 
 // ── SMART SCAN ──
