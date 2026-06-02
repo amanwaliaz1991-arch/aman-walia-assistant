@@ -1263,7 +1263,7 @@ const Mo={
     setTimeout(()=>document.querySelector("#mo-b input,#mo-b textarea")?.focus(),100);
   }
 };
-function closeMo(){document.getElementById("mo").style.display="none";MC={};}
+function closeMo(){document.getElementById("mo").style.display="none";MC={};document.getElementById("mo-sv").style.display="";}
 document.addEventListener("keydown",e=>{if(e.key==="Escape"){closeMo();closeScan();}});
 
 function moSave(){
@@ -1693,7 +1693,7 @@ const R={
     empty.style.display="none";
 
     tbody.innerHTML = list.map(o=>`<tr>
-      <td><b>${o.party}</b></td>
+      <td><b style="cursor:pointer;color:var(--ac)" onclick="openOrderChain(${o.id})" title="View order chain">${o.party}</b></td>
       <td style="font-size:11px;font-family:'JetBrains Mono'">${o.inv||"—"}</td>
       <td class="amt pos">${o.invVal?fa(o.invVal):"—"}</td>
       <td style="font-size:11px">${fd(o.dispatchDate)}</td>
@@ -1708,10 +1708,11 @@ const R={
       <td><span class="pill pb" style="font-size:10px">${o.agent||"—"}</span></td>
       <td style="font-size:11px;color:var(--muted);max-width:120px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${o.remarks||"—"}</td>
       <td style="white-space:nowrap">
-        ${o.status==="dispatched"?`<button class="btn-u" style="font-size:10px;padding:3px 7px" onclick="moveOrder(${o.id},'cod_pending')">💳 COD</button>`:""}
-        ${o.status==="cod_pending"?`<button class="btn-u" style="font-size:10px;padding:3px 7px" onclick="moveOrder(${o.id},'chq_received')">📬 Chq In</button>`:""}
+        <button class="btn" style="font-size:10px;padding:3px 8px;background:#eff6ff;border-color:#bfdbfe;color:var(--ac)" onclick="openOrderChain(${o.id})">🔗 Chain</button>
+        ${o.status==="dispatched"  ?`<button class="btn-u" style="font-size:10px;padding:3px 7px" onclick="moveOrder(${o.id},'cod_pending')">💳 COD</button>`:""}
+        ${o.status==="cod_pending" ?`<button class="btn-u" style="font-size:10px;padding:3px 7px" onclick="moveOrder(${o.id},'chq_received')">📬 Chq In</button>`:""}
         ${o.status==="chq_received"?`<button class="btn-u" style="font-size:10px;padding:3px 7px" onclick="moveOrder(${o.id},'chq_cleared')">✅ Cleared</button>`:""}
-        ${o.status==="chq_cleared"?`<button class="btn-u" style="font-size:10px;padding:3px 7px" onclick="moveOrder(${o.id},'done')">🏁 Done</button>`:""}
+        ${o.status==="chq_cleared" ?`<button class="btn-u" style="font-size:10px;padding:3px 7px" onclick="moveOrder(${o.id},'done')">🏁 Done</button>`:""}
         <button class="btn-e" onclick="Mo.open('orders',${o.id})">✏️</button>
         <button class="btn-d" onclick="delItem('orders',${o.id})">🗑</button>
       </td>
@@ -2165,12 +2166,113 @@ function getAuthHeaders(){
 function moveOrder(id, newStatus) {
   const o = D.orders.find(x=>x.id===id);
   if(!o) return;
+  const today = new Date().toISOString().slice(0,10);
+  const now = new Date().toISOString();
+  // Track timeline
+  if(!o.timeline) o.timeline = [];
+  o.timeline.push({status: newStatus, date: today, time: now});
   o.status = newStatus;
   // Auto-fill dates
-  if(newStatus==="chq_received" && !o.chqDate) o.chqDate = new Date().toISOString().slice(0,10);
-  if(newStatus==="chq_cleared" && !o.clearedDate) o.clearedDate = new Date().toISOString().slice(0,10);
+  if(newStatus==="cod_pending"   && !o.codDate)     o.codDate = today;
+  if(newStatus==="chq_received"  && !o.chqDate)     o.chqDate = today;
+  if(newStatus==="chq_cleared"   && !o.clearedDate) o.clearedDate = today;
+  if(newStatus==="done"          && !o.doneDate)    o.doneDate = today;
   autoSave("orders");
   R.orders();
+}
+
+// Open order chain/timeline view
+function openOrderChain(id) {
+  const o = D.orders.find(x=>x.id===id);
+  if(!o) return;
+
+  const stages = [
+    {key:"dispatched",   label:"🚚 Dispatched",    dateField:"dispatchDate",  color:"var(--ac)"},
+    {key:"cod_pending",  label:"💳 COD Pending",    dateField:"codDate",       color:"var(--orange)"},
+    {key:"chq_received", label:"📬 Cheque Received",dateField:"chqDate",       color:"var(--gold)"},
+    {key:"chq_cleared",  label:"✅ Cheque Cleared", dateField:"clearedDate",   color:"var(--teal)"},
+    {key:"done",         label:"🏁 Done",           dateField:"doneDate",      color:"var(--green)"},
+  ];
+
+  const stageOrder = stages.map(s=>s.key);
+  const currentIdx = stageOrder.indexOf(o.status);
+
+  // Build chain HTML
+  const chainHtml = stages.map((s,i) => {
+    const done = i <= currentIdx;
+    const current = i === currentIdx;
+    const date = o[s.dateField] || (o.timeline||[]).find(t=>t.status===s.key)?.date || "";
+    const days = date ? Math.floor((new Date() - new Date(date))/86400000) : null;
+
+    return `
+      <div style="display:flex;align-items:flex-start;gap:12px;margin-bottom:${i<stages.length-1?"0":"0"}">
+        <!-- Left: circle + line -->
+        <div style="display:flex;flex-direction:column;align-items:center;flex-shrink:0">
+          <div style="width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;
+            background:${done?s.color:"var(--b1)"};
+            color:${done?"#fff":"var(--muted)"};
+            border:2px solid ${done?s.color:"var(--b2)"};
+            box-shadow:${current?"0 0 0 4px "+s.color+"30":"none"}">
+            ${done?"✓":""}
+          </div>
+          ${i<stages.length-1?`<div style="width:2px;height:40px;background:${i<currentIdx?"var(--green)":"var(--b1)"};margin:4px 0"></div>`:""}
+        </div>
+        <!-- Right: content -->
+        <div style="padding-bottom:${i<stages.length-1?"28px":"0"};flex:1">
+          <div style="font-weight:700;font-size:13px;color:${done?s.color:"var(--muted)"}">${s.label}</div>
+          ${date?`<div style="font-size:12px;color:var(--muted);margin-top:2px">📅 ${fd(date)} ${days!==null&&days>=0?"("+days+" days ago)":""}</div>`
+                :done?`<div style="font-size:11px;color:var(--muted);font-style:italic">Date not recorded</div>`
+                     :`<div style="font-size:11px;color:var(--dim);font-style:italic">Pending</div>`}
+          ${current?`<div style="margin-top:6px"><span style="font-size:10px;background:${s.color};color:#fff;padding:2px 8px;border-radius:10px;font-weight:700">CURRENT STAGE</span></div>`:""}
+          <!-- Stage specific details -->
+          ${s.key==="dispatched"&&o.courier?`<div style="font-size:11px;color:var(--muted);margin-top:3px">🚚 ${o.courier} ${o.trackNo?"· "+o.trackNo:""}</div>`:""}
+          ${s.key==="cod_pending"&&o.codAmt?`<div style="font-size:11px;color:var(--muted);margin-top:3px">💰 COD: ${fa(o.codAmt)}</div>`:""}
+          ${s.key==="chq_received"&&o.chqNo?`<div style="font-size:11px;color:var(--muted);margin-top:3px">📄 Chq #${o.chqNo} · ${o.bank||""}</div>`:""}
+          ${s.key==="chq_cleared"&&o.clearedDate?`<div style="font-size:11px;color:var(--green);margin-top:3px">✅ Cleared on ${fd(o.clearedDate)}</div>`:""}
+        </div>
+      </div>`;
+  }).join("");
+
+  // Total days calculation
+  const startDate = o.dispatchDate ? new Date(o.dispatchDate) : null;
+  const totalDays = startDate ? Math.floor((new Date()-startDate)/86400000) : null;
+
+  // Show in a modal
+  document.getElementById("mo-t").textContent = "📦 Order Chain — "+o.party;
+  document.getElementById("mo-b").innerHTML = `
+    <!-- Order summary -->
+    <div style="background:var(--s2);border:1px solid var(--b1);border-radius:10px;padding:12px 14px;margin-bottom:16px;display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:12.5px">
+      <div><span style="color:var(--muted);font-size:10px;display:block">PARTY</span><b>${o.party}</b></div>
+      <div><span style="color:var(--muted);font-size:10px;display:block">INVOICE</span>${o.inv||"—"}</div>
+      <div><span style="color:var(--muted);font-size:10px;display:block">VALUE</span><span class="amt pos">${o.invVal?fa(o.invVal):"—"}</span></div>
+      <div><span style="color:var(--muted);font-size:10px;display:block">COD AMOUNT</span><span class="amt neg">${o.codAmt?fa(o.codAmt):"—"}</span></div>
+      <div><span style="color:var(--muted);font-size:10px;display:block">AGENT</span>${o.agent||"—"}</div>
+      <div><span style="color:var(--muted);font-size:10px;display:block">DAYS IN PROCESS</span><b style="color:${totalDays>30?"var(--red)":"var(--tx)"}">${totalDays!==null?totalDays+"d":"—"}</b></div>
+    </div>
+
+    <!-- Timeline chain -->
+    <div style="font-size:11px;font-weight:700;color:var(--muted);letter-spacing:1px;text-transform:uppercase;margin-bottom:14px">ORDER JOURNEY</div>
+    <div style="padding:4px 0">
+      ${chainHtml}
+    </div>
+
+    <!-- Next action -->
+    ${o.status!=="done"?`
+    <div style="margin-top:16px;padding-top:14px;border-top:1px solid var(--b1)">
+      <div style="font-size:11px;font-weight:700;color:var(--muted);letter-spacing:1px;margin-bottom:8px">NEXT ACTION</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        ${o.status==="dispatched"  ?`<button class="btn btn-p" onclick="moveOrder(${o.id},'cod_pending');closeMo()">💳 Mark COD Pending</button>`:""}
+        ${o.status==="cod_pending" ?`<button class="btn btn-p" onclick="moveOrder(${o.id},'chq_received');closeMo()">📬 Mark Cheque Received</button>`:""}
+        ${o.status==="chq_received"?`<button class="btn btn-p" onclick="moveOrder(${o.id},'chq_cleared');closeMo()">✅ Mark Cheque Cleared</button>`:""}
+        ${o.status==="chq_cleared" ?`<button class="btn btn-p" onclick="moveOrder(${o.id},'done');closeMo()">🏁 Mark Done</button>`:""}
+        <button class="btn" onclick="closeMo();Mo.open('orders',${o.id})">✏️ Edit Details</button>
+      </div>
+    </div>`:""}
+
+    ${o.remarks?`<div style="margin-top:12px;font-size:12px;color:var(--muted);background:var(--s2);padding:8px 12px;border-radius:8px">📝 ${o.remarks}</div>`:""}
+  `;
+  document.getElementById("mo-sv").style.display="none";
+  document.getElementById("mo").style.display="flex";
 }
 
 // ── SMART SCAN ──
