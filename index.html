@@ -564,7 +564,20 @@ html,body{height:100%;background:var(--bg);color:var(--tx);font-family:"Plus Jak
     <div class="prg" style="margin-top:8px;background:rgba(255,255,255,.3)"><div class="prg-f" id="d-prg" style="background:#fff;width:0%"></div></div></div>
   </div>
   <div class="g2">
-    <div class="card"><div class="card-hdr">📋 Tasks<button class="btn btn-p btn-sm" style="margin-left:auto" onclick="addDTUI()">+ Add</button></div>
+    <div class="card">
+      <!-- Pending from previous days -->
+      <div id="dt-pending-section" style="display:none;border-bottom:2px dashed var(--orange);margin-bottom:0">
+        <div style="background:#fff7ed;padding:10px 14px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
+          <div style="display:flex;align-items:center;gap:8px">
+            <span style="font-size:16px">⚠️</span>
+            <div><div style="font-size:12.5px;font-weight:700;color:var(--orange)">Pending from previous days</div>
+            <div style="font-size:11px;color:var(--muted)" id="dt-pending-subtitle"></div></div>
+          </div>
+          <button class="btn btn-sm" style="border-color:var(--orange);color:var(--orange)" onclick="carryForwardAll()">↩ Carry All to Today</button>
+        </div>
+        <div id="dt-pending-list" style="padding:4px 8px;background:#fffbf5"></div>
+      </div>
+      <div class="card-hdr">📋 Tasks<button class="btn btn-p btn-sm" style="margin-left:auto" onclick="addDTUI()">+ Add</button></div>
       <div id="dt-add" style="display:none;padding:10px;border-bottom:1px solid var(--b1)">
         <div style="display:flex;gap:8px;flex-wrap:wrap">
           <input class="inp" id="dt-t" placeholder="Task…" style="flex:1;min-width:140px" onkeydown="if(event.key==='Enter')saveDT()">
@@ -1858,13 +1871,113 @@ function addHGoalUI(){document.getElementById("hga").style.display="block";setTi
 function saveHGoal(){const t=document.getElementById("hg-t")?.value?.trim();if(!t)return;D.healthGoals.push({id:++D.uid,text:t,done:false});document.getElementById("hg-t").value="";document.getElementById("hga").style.display="none";autoSave("healthGoals");autoSave("uid");R.health();}
 
 // ── DAY TRACKER ──
-function initTracker(){const today=new Date().toISOString().slice(0,10);document.getElementById("td").value=today;loadDay(today);}
+function initTracker(){
+  const today=new Date().toISOString().slice(0,10);
+  document.getElementById("td").value=today;
+  loadDay(today);
+}
+
 function loadDay(ds){
-  if(!ds)return;const d=new Date(ds);
+  if(!ds)return;
+  const d=new Date(ds);
   document.getElementById("d-num").textContent=d.getDate();
   document.getElementById("d-full").textContent=d.toLocaleDateString("en-IN",{weekday:"long",day:"numeric",month:"long",year:"numeric"});
   if(!D.dayData[ds])D.dayData[ds]={tasks:[],notes:""};
-  renderDT(ds);document.getElementById("dn").value=D.dayData[ds].notes||"";
+  renderDT(ds);
+  renderPendingTasks(ds);
+  document.getElementById("dn").value=D.dayData[ds].notes||"";
+}
+
+// Get all pending (undone) tasks from previous days
+function getPendingTasks(currentDs) {
+  const pending = [];
+  const today = new Date(currentDs);
+  // Look back up to 30 days
+  for(let i=1; i<=30; i++){
+    const d = new Date(today);
+    d.setDate(d.getDate()-i);
+    const ds = d.toISOString().slice(0,10);
+    if(!D.dayData[ds]) continue;
+    const undoneTasks = D.dayData[ds].tasks.filter(t=>!t.done);
+    undoneTasks.forEach(t => pending.push({...t, fromDate:ds, fromDateLabel:d.toLocaleDateString("en-IN",{weekday:"short",day:"numeric",month:"short"})}));
+  }
+  return pending;
+}
+
+function renderPendingTasks(currentDs) {
+  const pending = getPendingTasks(currentDs);
+  const section = document.getElementById("dt-pending-section");
+  const list = document.getElementById("dt-pending-list");
+  const subtitle = document.getElementById("dt-pending-subtitle");
+
+  if(!pending.length){
+    section.style.display="none";
+    return;
+  }
+
+  section.style.display="block";
+  const days = [...new Set(pending.map(t=>t.fromDate))].length;
+  subtitle.textContent = `${pending.length} task${pending.length>1?"s":""} from ${days} previous day${days>1?"s":""}`;
+
+  const pc = {high:"var(--red)",med:"var(--gold)",low:"var(--green)"};
+
+  list.innerHTML = pending.map(t=>`
+    <div class="task-item" style="background:#fffbf5;border-bottom:1px solid #fed7aa">
+      <div style="width:8px;height:8px;border-radius:50%;background:${pc[t.pri||"med"]};flex-shrink:0;margin-top:4px"></div>
+      <div style="flex:1">
+        <div style="font-size:13px">${t.text}</div>
+        <div style="font-size:10px;color:var(--orange);font-weight:600;margin-top:2px">📅 ${t.fromDateLabel}</div>
+      </div>
+      <button class="btn-u" style="font-size:10px;padding:3px 8px;white-space:nowrap" onclick="carryForwardTask('${t.fromDate}',${t.id},'${currentDs}')">↩ Carry</button>
+      <button class="btn-e" style="font-size:10px;padding:3px 8px" onclick="markDoneFromPending('${t.fromDate}',${t.id},'${currentDs}')">✅ Done</button>
+    </div>`).join("");
+}
+
+function carryForwardTask(fromDs, taskId, toDs) {
+  // Copy task to today
+  const fromDay = D.dayData[fromDs];
+  if(!fromDay) return;
+  const task = fromDay.tasks.find(t=>t.id===taskId);
+  if(!task) return;
+  // Mark as done in original day
+  task.done = true;
+  // Add to target day
+  if(!D.dayData[toDs]) D.dayData[toDs]={tasks:[],notes:""};
+  D.dayData[toDs].tasks.push({id:++D.uid, text:task.text, done:false, pri:task.pri||"med", carriedFrom:fromDs});
+  autoSave("dayData");
+  autoSave("uid");
+  renderDT(toDs);
+  renderPendingTasks(toDs);
+}
+
+function carryForwardAll() {
+  const toDs = document.getElementById("td").value;
+  const pending = getPendingTasks(toDs);
+  if(!pending.length) return;
+  if(!D.dayData[toDs]) D.dayData[toDs]={tasks:[],notes:""};
+  pending.forEach(t=>{
+    // Mark done in original
+    const fromDay = D.dayData[t.fromDate];
+    if(fromDay){
+      const orig = fromDay.tasks.find(x=>x.id===t.id);
+      if(orig) orig.done = true;
+    }
+    // Add to today
+    D.dayData[toDs].tasks.push({id:++D.uid, text:t.text, done:false, pri:t.pri||"med", carriedFrom:t.fromDate});
+  });
+  autoSave("dayData");
+  autoSave("uid");
+  renderDT(toDs);
+  renderPendingTasks(toDs);
+}
+
+function markDoneFromPending(fromDs, taskId, currentDs) {
+  const fromDay = D.dayData[fromDs];
+  if(!fromDay) return;
+  const task = fromDay.tasks.find(t=>t.id===taskId);
+  if(task) task.done = true;
+  autoSave("dayData");
+  renderPendingTasks(currentDs);
 }
 function renderDT(ds){
   const dd=D.dayData[ds];if(!dd)return;
@@ -1872,14 +1985,21 @@ function renderDT(ds){
   document.getElementById("dtl").innerHTML=dd.tasks.length?dd.tasks.map(t=>`
     <div class="task-item ${t.done?"di":""}">
       <div class="chk ${t.done?"done":""}" onclick="tgDT('${ds}',${t.id})"></div>
-      <span style="font-size:13px;flex:1;${t.done?"text-decoration:line-through;color:var(--dim)":""}">${t.text}</span>
+      <div style="flex:1">
+        <div style="font-size:13px;${t.done?"text-decoration:line-through;color:var(--dim)":""}">${t.text}</div>
+        ${t.carriedFrom?`<div style="font-size:10px;color:var(--orange);margin-top:1px">↩ Carried from ${new Date(t.carriedFrom).toLocaleDateString("en-IN",{day:"numeric",month:"short"})}</div>`:""}
+      </div>
       <span style="width:8px;height:8px;border-radius:50%;background:${pc[t.pri||"med"]};flex-shrink:0"></span>
       ${t.done?`<button class="btn-u" onclick="tgDT('${ds}',${t.id})">↩</button>`:""}
       <button class="btn-d" onclick="delDT('${ds}',${t.id})">🗑</button>
-    </div>`).join(''):'<div class="es"><div class="em">📋</div>No tasks</div>';
+    </div>`).join(''):'<div class="es"><div class="em">📋</div>No tasks. Add one above.</div>';
   const done=dd.tasks.filter(t=>t.done).length,pct=dd.tasks.length?Math.round(done/dd.tasks.length*100):0;
   document.getElementById("d-prg").style.width=pct+"%";
   document.getElementById("d-sum").textContent=`${dd.tasks.length} tasks · ${done} done · ${pct}%`;
+  // Show pending on dashboard too
+  const allPending=getPendingTasks(ds);
+  const sumEl=document.getElementById("d-sum");
+  if(sumEl&&allPending.length>0){sumEl.textContent+=` · ⚠️ ${allPending.length} pending`;}
 }
 function tgDT(ds,id){const t=D.dayData[ds]?.tasks.find(x=>x.id===id);if(t)t.done=!t.done;autoSave("dayData");renderDT(ds);}
 function delDT(ds,id){D.dayData[ds].tasks=D.dayData[ds].tasks.filter(x=>x.id!==id);renderDT(ds);}
