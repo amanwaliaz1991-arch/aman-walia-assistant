@@ -2405,22 +2405,64 @@ function showSyncStatus(state) {
   const el = document.getElementById("sync-status");
   if (!el) return;
   if (state === "connected") {
-    el.innerHTML = '🟢 <span>Cloud Sync ON</span>';
+    el.innerHTML = '🟢 <span>Synced</span>';
     el.style.color = "rgba(255,255,255,.9)";
+    el.style.background = "rgba(255,255,255,.1)";
+    hideOfflineWarning();
   } else if (state === "saving") {
     el.innerHTML = '🔄 <span>Saving…</span>';
-    el.style.color = "rgba(255,255,255,.7)";
+    el.style.color = "rgba(255,255,255,.8)";
   } else if (state === "saved") {
     el.innerHTML = '✅ <span>Saved</span>';
     el.style.color = "rgba(255,255,255,.9)";
     setTimeout(() => showSyncStatus("connected"), 2000);
+    hideOfflineWarning();
   } else if (state === "error") {
-    el.innerHTML = '🔴 <span>Sync Error</span>';
-    el.style.color = "rgba(255,255,255,.7)";
+    el.innerHTML = '🔴 <span>Not Saved!</span>';
+    el.style.color = "#fca5a5";
+    el.style.background = "rgba(239,68,68,.3)";
+    showOfflineWarning();
   } else {
-    el.innerHTML = '💾 <span>Local Only</span>';
-    el.style.color = "rgba(255,255,255,.6)";
+    el.innerHTML = '🔴 <span>Not Saved!</span>';
+    el.style.color = "#fca5a5";
+    el.style.background = "rgba(239,68,68,.3)";
+    showOfflineWarning();
   }
+}
+
+let offlineWarningShown = false;
+let autoRetryTimer = null;
+
+function showOfflineWarning() {
+  if(offlineWarningShown) return;
+  offlineWarningShown = true;
+  // Show a prominent warning banner
+  let banner = document.getElementById("offline-banner");
+  if(!banner) {
+    banner = document.createElement("div");
+    banner.id = "offline-banner";
+    banner.style.cssText = "position:fixed;top:56px;left:0;right:0;background:#dc2626;color:#fff;text-align:center;padding:10px 16px;font-size:13px;font-weight:600;z-index:9999;display:flex;align-items:center;justify-content:center;gap:12px;";
+    banner.innerHTML = `⚠️ NOT connected to cloud — entries will NOT be saved! <button onclick="location.reload()" style="background:#fff;color:#dc2626;border:none;border-radius:6px;padding:4px 12px;font-weight:700;cursor:pointer;font-size:12px">🔄 Reconnect</button>`;
+    document.body.appendChild(banner);
+  }
+  banner.style.display = "flex";
+  // Auto retry every 10 seconds
+  autoRetryTimer = setInterval(() => {
+    if(firebaseReady && db) {
+      clearInterval(autoRetryTimer);
+      hideOfflineWarning();
+    } else {
+      // Try to reinitialize
+      try { initFirebase(); } catch(e) {}
+    }
+  }, 10000);
+}
+
+function hideOfflineWarning() {
+  offlineWarningShown = false;
+  clearInterval(autoRetryTimer);
+  const banner = document.getElementById("offline-banner");
+  if(banner) banner.style.display = "none";
 }
 
 // ── SAVE ALL DATA TO FIRESTORE ──
@@ -2638,11 +2680,38 @@ function loadFromLocal() {
 
 // ── AUTO-SAVE WRAPPER ──
 // Intercept all D mutations and auto-save to Firebase + localStorage
+// Queue for failed saves - retry when Firebase reconnects
+let saveQueue = {};
+let saveRetryTimer = null;
+
 function autoSave(collection) {
   const data = collection === "uid" ? D.uid : D[collection];
   if (data === undefined) return;
-  saveToFirebase(collection, data, false);
+  // Always save to localStorage as backup
   saveToLocal();
+  if (firebaseReady && db) {
+    saveToFirebase(collection, data, false);
+  } else {
+    // Queue for retry when Firebase reconnects
+    saveQueue[collection] = data;
+    console.warn("Queued for retry:", collection);
+    showSyncStatus("error");
+    // Start retry timer
+    if(!saveRetryTimer) {
+      saveRetryTimer = setInterval(async () => {
+        if(firebaseReady && db && Object.keys(saveQueue).length > 0) {
+          console.log("Retrying queued saves:", Object.keys(saveQueue));
+          for(const col of Object.keys(saveQueue)) {
+            await saveToFirebase(col, saveQueue[col], false);
+            delete saveQueue[col];
+          }
+          clearInterval(saveRetryTimer);
+          saveRetryTimer = null;
+          showSyncStatus("saved");
+        }
+      }, 5000);
+    }
+  }
 }
 
 // ── AUTO-SAVE WRAPPERS for mark functions ──
