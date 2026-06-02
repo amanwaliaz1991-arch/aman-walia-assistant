@@ -243,6 +243,16 @@ html,body{height:100%;background:var(--bg);color:var(--tx);font-family:"Plus Jak
 .sc-field-row{display:grid;grid-template-columns:140px 1fr;gap:8px;margin-bottom:8px;align-items:center;}
 .sc-field-row label{font-size:10.5px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.5px;}
 @keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+
+/* ── FIREBASE CONNECTING OVERLAY ── */
+#fb-overlay{position:fixed;inset:0;background:linear-gradient(135deg,#1e293b,#0f172a);z-index:99999;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;font-family:"Plus Jakarta Sans",sans-serif;}
+#fb-overlay .fb-logo{font-family:"Bebas Neue";font-size:28px;letter-spacing:4px;margin-bottom:6px;background:linear-gradient(135deg,#60a5fa,#a78bfa);-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
+#fb-overlay .fb-sub{font-size:12px;opacity:.6;letter-spacing:2px;text-transform:uppercase;margin-bottom:40px;}
+#fb-overlay .fb-spinner{width:48px;height:48px;border:3px solid rgba(255,255,255,.1);border-top-color:#60a5fa;border-radius:50%;animation:spin 1s linear infinite;margin-bottom:20px;}
+#fb-overlay .fb-msg{font-size:13px;opacity:.7;margin-bottom:8px;}
+#fb-overlay .fb-dot{display:inline-block;animation:pulse 1.5s infinite;}
+#fb-overlay .fb-error{display:none;background:#ef4444;color:#fff;padding:12px 20px;border-radius:10px;font-size:13px;text-align:center;max-width:280px;margin-top:20px;}
+#fb-overlay .fb-retry{display:none;background:#3b82f6;color:#fff;border:none;padding:10px 24px;border-radius:8px;font-size:13px;cursor:pointer;margin-top:12px;font-family:"Plus Jakarta Sans";}
 </style>
   <!-- Firebase SDK -->
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
@@ -250,6 +260,16 @@ html,body{height:100%;background:var(--bg);color:var(--tx);font-family:"Plus Jak
 </head>
 <body>
 <div class="app">
+
+<!-- FIREBASE CONNECTING OVERLAY -->
+<div id="fb-overlay">
+  <div class="fb-logo">Aman Walia</div>
+  <div class="fb-sub">Personal Assistant</div>
+  <div class="fb-spinner"></div>
+  <div class="fb-msg">Connecting to cloud<span class="fb-dot">...</span></div>
+  <div class="fb-error" id="fb-error">❌ Could not connect to Firebase.<br>Check your internet connection.</div>
+  <button class="fb-retry" id="fb-retry" onclick="location.reload()">🔄 Retry</button>
+</div>
 
 <!-- HEADER -->
 <div class="hdr">
@@ -2379,8 +2399,22 @@ function initFirebase() {
     showSyncStatus("connected");
     console.log("Firebase connected ✅");
     loadAllFromFirebase();
+    // Hide overlay after Firebase connects — with small delay for data load
+    setTimeout(() => {
+      const ov = document.getElementById("fb-overlay");
+      if(ov) { ov.style.opacity="0"; ov.style.transition="opacity .5s"; setTimeout(()=>ov.style.display="none",500); }
+    }, 1500);
   } catch(e) {
-    console.warn("Firebase not configured yet:", e.message);
+    console.error("Firebase failed:", e.message);
+    // Show error on overlay
+    const err = document.getElementById("fb-error");
+    const retry = document.getElementById("fb-retry");
+    const spinner = document.querySelector("#fb-overlay .fb-spinner");
+    const msg = document.querySelector("#fb-overlay .fb-msg");
+    if(err) err.style.display="block";
+    if(retry) retry.style.display="block";
+    if(spinner) spinner.style.display="none";
+    if(msg) msg.textContent="Connection failed";
     showSyncStatus("local");
   }
 }
@@ -2550,6 +2584,13 @@ function loadAllFromFirebase() {
             reRenderCurrent();
             updateAllBadges();
             console.log("Firebase initial load complete ✅");
+            // Hide overlay now that data is loaded
+            const ov = document.getElementById("fb-overlay");
+            if(ov && ov.style.display !== "none") {
+              ov.style.opacity="0";
+              ov.style.transition="opacity .4s";
+              setTimeout(()=>ov.style.display="none",400);
+            }
           }
         } else {
           // This is a REAL-TIME UPDATE from another device
