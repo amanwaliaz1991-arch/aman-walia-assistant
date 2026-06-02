@@ -2468,17 +2468,17 @@ function hideOfflineWarning() {
 // ── SAVE ALL DATA TO FIRESTORE ──
 async function saveToFirebase(collection, data, showStatus=true) {
   if (!firebaseReady || !db) {
-    saveToLocal(); // fallback to localStorage
-    return;
+    return false;
   }
   try {
     if (showStatus) showSyncStatus("saving");
     await db.collection("aman_assistant").doc(collection).set({ data: JSON.stringify(data), updatedAt: new Date().toISOString() });
     if (showStatus) showSyncStatus("saved");
+    return true;
   } catch(e) {
     console.error("Firebase save error:", e);
     showSyncStatus("error");
-    saveToLocal(); // fallback
+    return false; // fallback
   }
 }
 
@@ -2680,37 +2680,61 @@ function loadFromLocal() {
 
 // ── AUTO-SAVE WRAPPER ──
 // Intercept all D mutations and auto-save to Firebase + localStorage
-// Queue for failed saves - retry when Firebase reconnects
-let saveQueue = {};
-let saveRetryTimer = null;
+// ── AUTO-SAVE — fires on every data change ──
+let pendingSaves = new Set();
+let saveDebounceTimer = null;
 
 function autoSave(collection) {
   const data = collection === "uid" ? D.uid : D[collection];
   if (data === undefined) return;
-  // Always save to localStorage as backup
-  saveToLocal();
-  if (firebaseReady && db) {
-    saveToFirebase(collection, data, false);
-  } else {
-    // Queue for retry when Firebase reconnects
-    saveQueue[collection] = data;
-    console.warn("Queued for retry:", collection);
+
+  // Add to pending saves set
+  pendingSaves.add(collection);
+
+  // Debounce — batch saves that happen within 300ms
+  clearTimeout(saveDebounceTimer);
+  saveDebounceTimer = setTimeout(() => {
+    flushSaves();
+  }, 300);
+}
+
+async function flushSaves() {
+  if(!pendingSaves.size) return;
+  const toSave = new Set(pendingSaves);
+  pendingSaves.clear();
+
+  if(!firebaseReady || !db) {
     showSyncStatus("error");
-    // Start retry timer
-    if(!saveRetryTimer) {
-      saveRetryTimer = setInterval(async () => {
-        if(firebaseReady && db && Object.keys(saveQueue).length > 0) {
-          console.log("Retrying queued saves:", Object.keys(saveQueue));
-          for(const col of Object.keys(saveQueue)) {
-            await saveToFirebase(col, saveQueue[col], false);
-            delete saveQueue[col];
-          }
-          clearInterval(saveRetryTimer);
-          saveRetryTimer = null;
-          showSyncStatus("saved");
-        }
-      }, 5000);
+    // Put back in pending for retry
+    toSave.forEach(c => pendingSaves.add(c));
+    // Retry in 5 seconds
+    setTimeout(flushSaves, 5000);
+    return;
+  }
+
+  showSyncStatus("saving");
+  let allOk = true;
+
+  for(const collection of toSave) {
+    try {
+      const data = collection === "uid" ? D.uid : D[collection];
+      if(data === undefined) continue;
+      await db.collection("aman_assistant").doc(collection).set({
+        data: JSON.stringify(data),
+        updatedAt: new Date().toISOString()
+      });
+    } catch(e) {
+      console.error("Save failed for:", collection, e);
+      allOk = false;
+      pendingSaves.add(collection); // retry this one
     }
+  }
+
+  if(allOk) {
+    showSyncStatus("saved");
+  } else {
+    showSyncStatus("error");
+    setTimeout(flushSaves, 5000); // retry failed ones
   }
 }
 
