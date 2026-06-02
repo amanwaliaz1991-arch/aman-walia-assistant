@@ -2360,6 +2360,17 @@ const style=document.createElement("style");style.textContent="@keyframes spin{f
 let db = null;
 let firebaseReady = false;
 
+
+// ── FIREBASE CONFIG ──
+const FIREBASE_CONFIG = {
+  apiKey:            "AIzaSyDv2i5hTYz_9gie-Ia3MtBFk1O4guer3dU",
+  authDomain:        "aman-walia-assistant.firebaseapp.com",
+  projectId:         "aman-walia-assistant",
+  storageBucket:     "aman-walia-assistant.firebasestorage.app",
+  messagingSenderId: "591665220219",
+  appId:             "1:591665220219:web:fdb180cae293bc144cf0de"
+};
+
 function initFirebase() {
   try {
     firebase.initializeApp(FIREBASE_CONFIG);
