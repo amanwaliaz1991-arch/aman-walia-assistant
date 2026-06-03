@@ -357,6 +357,7 @@ html,body{height:100%;background:var(--bg);color:var(--tx);font-family:"Plus Jak
     <div class="sb-item" id="n-tds" onclick="go('tds')"><span class="sb-ico">📑</span>TDS Dates</div>
     <div class="sb-item" id="n-gst" onclick="go('gst')"><span class="sb-ico">📋</span>GST Dates<span class="sb-bdg" id="b-gst">2</span></div>
     <div class="sb-item" id="n-itc" onclick="go('itc')"><span class="sb-ico">🔁</span>ITC Tracker</div>
+    <div class="sb-item" id="n-accounts" onclick="go('accounts')"><span class="sb-ico">🧾</span>Accounting Issues<span class="sb-bdg o" id="b-accounts">0</span></div>
     <div class="sb-item" id="n-compliance" onclick="go('compliance')"><span class="sb-ico">✅</span>Compliances<span class="sb-bdg" id="b-comp">3</span></div>
     <div class="sb-item" id="n-expenses" onclick="go('expenses')"><span class="sb-ico">💸</span>Expenses</div>
   </div>
@@ -984,6 +985,60 @@ html,body{height:100%;background:var(--bg);color:var(--tx);font-family:"Plus Jak
   </div>
 </div>
 
+
+<!-- ████ ACCOUNTING ISSUES ████ -->
+<div class="mod" id="mod-accounts">
+  <div class="ph">
+    <div><div class="pt">ACCOUNTING <span>ISSUES</span></div>
+    <div class="pt-sub">Add · Edit · Delete · Mark Resolved</div></div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+      <select class="sel" id="acc-status-f" onchange="R.accounts()" style="width:130px">
+        <option value="">All Status</option>
+        <option value="open">Open</option>
+        <option value="in_progress">In Progress</option>
+        <option value="pending_info">Pending Info</option>
+        <option value="resolved">Resolved</option>
+      </select>
+      <select class="sel" id="acc-cat-f" onchange="R.accounts()" style="width:140px">
+        <option value="">All Categories</option>
+        <option value="debit_note">Debit Note</option>
+        <option value="statement">Statement</option>
+        <option value="invoice">Invoice</option>
+        <option value="gst">GST</option>
+        <option value="tds">TDS</option>
+        <option value="bank">Bank</option>
+        <option value="ledger">Ledger</option>
+        <option value="other">Other</option>
+      </select>
+      <input class="inp" id="acc-search" placeholder="🔍 Search…" oninput="R.accounts()" style="width:150px">
+      <button class="btn btn-p" onclick="Mo.open('accounts')">+ Add Issue</button>
+    </div>
+  </div>
+
+  <!-- Stats -->
+  <div class="g4" id="acc-stats" style="margin-bottom:14px"></div>
+
+  <!-- Table -->
+  <div class="card">
+    <div class="card-hdr">Issue Register
+      <span id="acc-count" style="font-size:11px;color:var(--muted);font-weight:400;margin-left:8px"></span>
+    </div>
+    <div class="tbl-scroll">
+      <table class="tbl">
+        <thead><tr>
+          <th>Issue</th><th>Category</th><th>Party</th>
+          <th>Amount</th><th>Priority</th><th>Assigned To</th>
+          <th>Due Date</th><th>Status</th><th>Remarks</th><th>Actions</th>
+        </tr></thead>
+        <tbody id="acc-body"></tbody>
+      </table>
+    </div>
+    <div id="acc-empty" class="es" style="display:none">
+      <div class="em">🧾</div>No accounting issues. 
+    </div>
+  </div>
+</div>
+
 </div><!-- /main -->
 
 </div><!-- /body -->
@@ -1057,7 +1112,7 @@ function go(id){
     defaulter:R.defaulter,banking:R.banking,deadstock:R.deadstock,rd:R.rd,compliance:R.compliance,
     itax:R.itax,tds:R.tds,gst:R.gst,itc:R.itc,future:R.future,tracker:initTracker,
     health:R.health,badminton:R.badminton,self:R.self,quotes:R.quotes,
-    mustdo:R.mustdo,orders:R.orders,purchase:R.purchase,production:R.production,
+    mustdo:R.mustdo,accounts:R.accounts,orders:R.orders,purchase:R.purchase,production:R.production,
     expenses:R.expenses,scanner:R.scanner};
   rmap[id]?.();
 }
@@ -1166,6 +1221,7 @@ const D={
   weeklyReviews:[],
   orders:[],
   mustdo:[],
+  accounts:[],
   scanHistory:[],
   purchase:[],
 
@@ -1276,6 +1332,34 @@ const Mo={
       book:{t:"ADD BOOK/COURSE",h:`
         <div class="fr one"><div class="fg"><label>Title *</label><input class="inp" id="mf-title" style="width:100%"></div></div>
         <div class="fr"><div class="fg"><label>Author</label><input class="inp" id="mf-author" style="width:100%"></div><div class="fg"><label>Status</label><select class="sel" id="mf-status" style="width:100%"><option value="to-read">To Read</option><option value="reading">Reading</option><option value="done">Done ✓</option></select></div></div>`},
+      accounts:{t:ie?"EDIT ISSUE":"ADD ACCOUNTING ISSUE",h:`
+        <div class="fr one"><div class="fg"><label>Issue Description *</label><input class="inp" id="mf-issue" value="${v('issue')}" placeholder="e.g. Customer debit note pending from Sharma Traders" style="width:100%"></div></div>
+        <div class="fr"><div class="fg"><label>Category</label><select class="sel" id="mf-cat" style="width:100%">
+          <option value="debit_note" ${ie&&item.cat==="debit_note"?"selected":""}>📋 Debit Note</option>
+          <option value="statement" ${ie&&item.cat==="statement"?"selected":""}>📊 Statement Mismatch</option>
+          <option value="invoice" ${ie&&item.cat==="invoice"?"selected":""}>🧾 Invoice Issue</option>
+          <option value="gst" ${ie&&item.cat==="gst"?"selected":""}>📑 GST</option>
+          <option value="tds" ${ie&&item.cat==="tds"?"selected":""}>📄 TDS</option>
+          <option value="bank" ${ie&&item.cat==="bank"?"selected":""}>🏦 Bank</option>
+          <option value="ledger" ${ie&&item.cat==="ledger"?"selected":""}>📒 Ledger</option>
+          <option value="other" ${ie&&item.cat==="other"?"selected":""}>📌 Other</option>
+        </select></div>
+        <div class="fg"><label>Priority</label><select class="sel" id="mf-pri" style="width:100%">
+          <option value="high" ${ie&&item.pri==="high"?"selected":""}>🔴 High</option>
+          <option value="medium" ${!ie||item.pri==="medium"?"selected":""}>🟡 Medium</option>
+          <option value="low" ${ie&&item.pri==="low"?"selected":""}>🟢 Low</option>
+        </select></div></div>
+        <div class="fr"><div class="fg"><label>Party / Vendor</label><input class="inp" id="mf-party" value="${v('party')}" style="width:100%"></div>
+        <div class="fg"><label>Amount (₹)</label><input class="inp" id="mf-amount" type="number" value="${vn('amount')}" style="width:100%"></div></div>
+        <div class="fr"><div class="fg"><label>Assigned To</label><input class="inp" id="mf-assignedTo" value="${v('assignedTo','CA Ramesh')}" placeholder="CA Ramesh / Self" style="width:100%"></div>
+        <div class="fg"><label>Due Date</label><input class="inp" id="mf-due" type="date" value="${v('due')}" style="width:100%"></div></div>
+        <div class="fr"><div class="fg"><label>Status</label><select class="sel" id="mf-status" style="width:100%">
+          <option value="open" ${!ie||item.status==="open"?"selected":""}>🔴 Open</option>
+          <option value="in_progress" ${ie&&item.status==="in_progress"?"selected":""}>🔄 In Progress</option>
+          <option value="pending_info" ${ie&&item.status==="pending_info"?"selected":""}>⏳ Pending Info</option>
+          <option value="resolved" ${ie&&item.status==="resolved"?"selected":""}>✅ Resolved</option>
+        </select></div>
+        <div class="fg"><label>Remarks</label><input class="inp" id="mf-remarks" value="${v('remarks')}" style="width:100%"></div></div>`},
       orders:{t:ie?"EDIT ORDER":"ADD ORDER",h:`
         <div class="fr"><div class="fg"><label>Party Name *</label><input class="inp" id="mf-party" value="${v("party")}" style="width:100%"></div><div class="fg"><label>Invoice #</label><input class="inp" id="mf-inv" value="${v("inv")}" style="width:100%"></div></div>
         <div class="fr"><div class="fg"><label>Invoice Value (₹)</label><input class="inp" id="mf-invVal" type="number" value="${vn("invVal")}" style="width:100%"></div><div class="fg"><label>COD Amount (₹)</label><input class="inp" id="mf-codAmt" type="number" value="${vn("codAmt")}" style="width:100%"></div></div>
@@ -1365,6 +1449,7 @@ function moSave(){
     compliance:()=>({name:g("mf-name"),auth:g("mf-auth"),due:g("mf-due"),resp:g("mf-resp"),penalty:g("mf-penalty"),status:g("mf-status")}),
     itc:()=>({supplier:g("mf-supplier"),inv:g("mf-inv"),date:g("mf-date"),igst:gn("mf-igst"),cgst:gn("mf-cgst"),sgst:gn("mf-sgst"),eligible:g("mf-eligible")}),
     future:()=>({plan:g("mf-plan"),cat:g("mf-cat"),timeline:g("mf-timeline"),invest:g("mf-invest"),ret:g("mf-ret"),status:g("mf-status")}),
+    accounts:()=>({issue:g("mf-issue"),cat:g("mf-cat"),pri:g("mf-pri"),party:g("mf-party"),amount:gn("mf-amount"),assignedTo:g("mf-assignedTo"),due:g("mf-due"),status:g("mf-status"),remarks:g("mf-remarks"),createdAt:ie?undefined:new Date().toISOString().slice(0,10)}),
     orders:()=>({party:g("mf-party"),inv:g("mf-inv"),invVal:gn("mf-invVal"),codAmt:gn("mf-codAmt"),dispatchDate:g("mf-dispatchDate"),courier:g("mf-courier"),trackNo:g("mf-trackNo"),agent:g("mf-agent"),chqNo:g("mf-chqNo"),chqDate:g("mf-chqDate"),bank:g("mf-bank"),clearedDate:g("mf-clearedDate"),status:g("mf-status")||"dispatched",remarks:g("mf-remarks")}),
     purchase:()=>({item:g("mf-item"),cat:g("mf-cat"),stock:gn("mf-stock"),minLevel:gn("mf-minLevel"),toOrder:gn("mf-toOrder"),supplier:g("mf-supplier"),lastPrice:gn("mf-lastPrice"),unit:g("mf-unit")||"pcs",status:g("mf-status")}),
     expenses:()=>({date:g("mf-date"),cat:g("mf-cat"),desc:g("mf-desc"),vendor:g("mf-vendor"),amount:g("mf-amount"),mode:g("mf-mode"),receipt:g("mf-receipt")}),
@@ -1768,6 +1853,67 @@ const R={
     </tr>`).join("");
   },
 
+
+  accounts(){
+    const sf = document.getElementById("acc-status-f")?.value||"";
+    const cf = document.getElementById("acc-cat-f")?.value||"";
+    const sq = (document.getElementById("acc-search")?.value||"").toLowerCase();
+    const list = D.accounts.filter(a=>
+      (!sf||a.status===sf) && (!cf||a.cat===cf) &&
+      (!sq||(a.issue+a.party+a.remarks).toLowerCase().includes(sq))
+    );
+
+    const open = D.accounts.filter(a=>a.status==="open").length;
+    const ip   = D.accounts.filter(a=>a.status==="in_progress").length;
+    const pi   = D.accounts.filter(a=>a.status==="pending_info").length;
+    const res  = D.accounts.filter(a=>a.status==="resolved").length;
+
+    document.getElementById("acc-stats").innerHTML =
+      sc("var(--red)",    "Open",         open)  +
+      sc("var(--ac)",     "In Progress",  ip)    +
+      sc("var(--gold)",   "Pending Info", pi)    +
+      sc("var(--green)",  "Resolved ✓",   res);
+
+    const b = document.getElementById("b-accounts");
+    if(b) b.textContent = open + ip + pi || 0;
+    document.getElementById("acc-count").textContent = `${list.length} of ${D.accounts.length}`;
+
+    const catIcons = {debit_note:"📋",statement:"📊",invoice:"🧾",gst:"📑",tds:"📄",bank:"🏦",ledger:"📒",other:"📌"};
+    const catColors = {debit_note:"var(--orange)",statement:"var(--ac)",invoice:"var(--gold)",gst:"var(--teal)",tds:"var(--a2)",bank:"var(--sky)",ledger:"var(--green)",other:"var(--muted)"};
+    const priP2 = {high:'<span class="pill pr">🔴 High</span>',medium:'<span class="pill py">🟡 Medium</span>',low:'<span class="pill pt2">🟢 Low</span>'};
+    const stP2 = {
+      open:         '<span class="pill pr">🔴 Open</span>',
+      in_progress:  '<span class="pill pb">🔄 In Progress</span>',
+      pending_info: '<span class="pill py">⏳ Pending Info</span>',
+      resolved:     '<span class="pill pg">✅ Resolved</span>',
+    };
+
+    const tbody = document.getElementById("acc-body");
+    const empty = document.getElementById("acc-empty");
+    if(!list.length){tbody.innerHTML="";empty.style.display="block";return;}
+    empty.style.display="none";
+
+    tbody.innerHTML = list.map(a=>`<tr class="${a.status==="resolved"?"dr":""}">
+      <td style="max-width:200px">
+        <div style="font-weight:600;font-size:13px">${a.issue}</div>
+        ${a.createdAt?`<div style="font-size:10px;color:var(--muted)">${fd(a.createdAt)}</div>`:""}
+      </td>
+      <td><span class="pill" style="background:${catColors[a.cat]||"var(--muted)"}20;color:${catColors[a.cat]||"var(--muted)"};font-size:10px">${catIcons[a.cat]||"📌"} ${a.cat.replace("_"," ")}</span></td>
+      <td style="font-size:12px">${a.party||"—"}</td>
+      <td class="amt neg">${a.amount?fa(a.amount):"—"}</td>
+      <td>${priP2[a.pri]||""}</td>
+      <td style="font-size:12px">${a.assignedTo||"—"}</td>
+      <td style="font-size:11px;${ddC(a.due)}">${a.due?fd(a.due):"—"}</td>
+      <td>${stP2[a.status]||sp(a.status)}</td>
+      <td style="font-size:11px;color:var(--muted);max-width:150px">${a.remarks||"—"}</td>
+      <td style="white-space:nowrap">
+        ${a.status!=="resolved"?`<button class="btn-u" style="font-size:10px;padding:3px 7px" onclick="markSt('accounts',${a.id},'resolved')">✅ Done</button>`:""}
+        ${a.status==="resolved"?`<button class="btn-u" style="font-size:10px;padding:3px 7px" onclick="markSt('accounts',${a.id},'open')">↩ Reopen</button>`:""}
+        <button class="btn-e" onclick="Mo.open('accounts',${a.id})">✏️</button>
+        <button class="btn-d" onclick="delItem('accounts',${a.id})">🗑</button>
+      </td>
+    </tr>`).join("");
+  },
   mustdo(){
     checkMustDoReset();
     const tasks = D.mustdo;
@@ -2693,7 +2839,7 @@ function loadAllFromFirebase() {
     "deadstock","rd","compliance","itax","tds","gst","itc","future",
     "dayData","healthHabits","healthGoals","bdmGames","bdmSkills",
     "bdmDrills","selfGoals","books","weeklyReviews","quotes","uid",
-    "mustdo","orders","purchase","production","prodStock","expenses","scanHistory"
+    "mustdo","accounts","orders","purchase","production","prodStock","expenses","scanHistory"
   ];
 
   let initialLoadDone = false;
@@ -2772,7 +2918,7 @@ function loadAllFromFirebase() {
 
           // Show which module updated
           const modNames = {
-            urgent:"🚨 Urgent Orders", orders:"📦 Order Tracker",
+            urgent:"🚨 Urgent Orders", orders:"📦 Order Tracker",accounts:"🧾 Accounting",
             payment:"💰 Payments", compliance:"✅ Compliance",
             purchase:"🛒 Purchase", production:"🏭 Production", expenses:"💸 Expenses",
             transport:"🚚 Transport", banking:"🏦 Banking", defaulter:"⚠️ Defaulters",
@@ -2811,7 +2957,7 @@ function loadAllFromFirebase() {
 // ── LOCALSTORAGE FALLBACK ──
 function saveToLocal() {
   try {
-    const save = {urgent:D.urgent,cod:D.cod,transport:D.transport,payment:D.payment,defaulter:D.defaulter,banking:D.banking,deadstock:D.deadstock,rd:D.rd,compliance:D.compliance,itax:D.itax,tds:D.tds,gst:D.gst,itc:D.itc,future:D.future,dayData:D.dayData,healthHabits:D.healthHabits,healthGoals:D.healthGoals,bdmGames:D.bdmGames,bdmSkills:D.bdmSkills,bdmDrills:D.bdmDrills,selfGoals:D.selfGoals,books:D.books,weeklyReviews:D.weeklyReviews,quotes:D.quotes,uid:D.uid,orders:D.orders,purchase:D.purchase,production:D.production,prodStock:D.prodStock,expenses:D.expenses,scanHistory:D.scanHistory,mustdo:D.mustdo};
+    const save = {urgent:D.urgent,cod:D.cod,transport:D.transport,payment:D.payment,defaulter:D.defaulter,banking:D.banking,deadstock:D.deadstock,rd:D.rd,compliance:D.compliance,itax:D.itax,tds:D.tds,gst:D.gst,itc:D.itc,future:D.future,dayData:D.dayData,healthHabits:D.healthHabits,healthGoals:D.healthGoals,bdmGames:D.bdmGames,bdmSkills:D.bdmSkills,bdmDrills:D.bdmDrills,selfGoals:D.selfGoals,books:D.books,weeklyReviews:D.weeklyReviews,quotes:D.quotes,uid:D.uid,orders:D.orders,purchase:D.purchase,production:D.production,prodStock:D.prodStock,expenses:D.expenses,scanHistory:D.scanHistory,mustdo:D.mustdo,accounts:D.accounts};
     localStorage.setItem("aman_walia_data", JSON.stringify(save));
   } catch(e) { console.warn("LocalStorage save failed:", e); }
 }
