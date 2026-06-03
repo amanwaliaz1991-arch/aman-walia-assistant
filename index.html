@@ -387,17 +387,32 @@ html,body{height:100%;background:var(--bg);color:var(--tx);font-family:"Plus Jak
   <!-- ROW 2: Must Do + Day Tasks (2 cols) -->
   <div class="g2" style="margin-bottom:14px">
     <!-- Must Do Daily -->
-    <div class="card" style="cursor:pointer" onclick="go('mustdo')">
+    <div class="card">
       <div class="card-hdr">✅ Must Do Daily
         <span id="dash-mustdo-badge" style="font-size:13px;color:var(--muted);font-weight:400;margin-left:8px"></span>
-        <button class="btn btn-sm" style="margin-left:auto" onclick="event.stopPropagation();go('mustdo')">View All →</button>
+        <button class="btn btn-p btn-sm" style="margin-left:auto;margin-right:4px" onclick="document.getElementById('dash-mustdo-form').style.display='block';setTimeout(()=>document.getElementById('dash-mustdo-inp')?.focus(),50)">+ Add</button>
+        <button class="btn btn-sm" onclick="go('mustdo')">View All →</button>
       </div>
       <div id="dash-mustdo-list"></div>
+      <div id="dash-mustdo-form" style="display:none;padding:10px 14px;border-top:1px solid var(--b1);background:var(--s2)">
+        <div style="display:flex;gap:8px">
+          <input class="inp" id="dash-mustdo-inp" placeholder="Add must-do task…" style="flex:1;font-size:13px" onkeydown="if(event.key==='Enter')dashAddMustDo()">
+          <select class="sel" id="dash-mustdo-cat" style="width:110px;font-size:12px">
+            <option value="health">❤️ Health</option>
+            <option value="business" selected>💼 Business</option>
+            <option value="personal">🧘 Personal</option>
+            <option value="fitness">🏃 Fitness</option>
+          </select>
+          <button class="btn btn-p btn-sm" onclick="dashAddMustDo()">Add</button>
+          <button class="btn btn-sm" onclick="document.getElementById('dash-mustdo-form').style.display='none'">✕</button>
+        </div>
+      </div>
     </div>
     <!-- Today Tasks -->
     <div class="card">
       <div class="card-hdr">🔥 Today's Tasks
-        <button class="btn btn-sm" style="margin-left:auto" onclick="go('tracker')">Full Tracker →</button>
+        <button class="btn btn-p btn-sm" style="margin-left:auto;margin-right:4px" onclick="document.getElementById('dash-task-form').style.display='block';setTimeout(()=>document.getElementById('dash-task-inp')?.focus(),50)">+ Add</button>
+        <button class="btn btn-sm" onclick="go('tracker')">Full →</button>
       </div>
       <div id="dash-tasks"></div>
     </div>
@@ -3395,6 +3410,30 @@ function scResaveEntry(id){
 }
 
 
+
+
+
+function dashAddMustDo() {
+  const text = document.getElementById("dash-mustdo-inp")?.value?.trim();
+  if(!text) return;
+  const cat = document.getElementById("dash-mustdo-cat")?.value || "business";
+  D.mustdo.push({id:++D.uid, text, cat, time:"", doneToday:false, streak:0, createdAt:new Date().toISOString().slice(0,10)});
+  document.getElementById("dash-mustdo-inp").value = "";
+  document.getElementById("dash-mustdo-form").style.display = "none";
+  autoSave("mustdo"); autoSave("uid");
+  R_home();
+}
+
+function dashAddTask(ds) {
+  const text = document.getElementById("dash-task-inp")?.value?.trim();
+  if(!text) return;
+  const pri = document.getElementById("dash-task-pri")?.value || "med";
+  if(!D.dayData[ds]) D.dayData[ds] = {tasks:[], notes:""};
+  D.dayData[ds].tasks.push({id:++D.uid, text, done:false, pri});
+  document.getElementById("dash-task-inp").value = "";
+  autoSave("dayData"); autoSave("uid");
+  R_home();
+}
 
 // ── INIT ──
 R_home();
