@@ -467,7 +467,15 @@ html,body{height:100%;background:var(--bg);color:var(--tx);font-family:"Plus Jak
     </div>
   </div>
 
-  <!-- ROW 5: Quick Stats (4 cols) -->
+  <!-- ROW 5: Purchase / Reorder -->
+  <div class="card" style="margin-bottom:14px">
+    <div class="card-hdr">🛒 Purchase / Reorder — Low Stock Items
+      <button class="btn btn-sm" style="margin-left:auto" onclick="go('purchase')">View All →</button>
+    </div>
+    <div id="dash-purchase"></div>
+  </div>
+
+  <!-- ROW 6: Quick Stats (4 cols) -->
   <div class="g4">
     <div class="card" style="cursor:pointer" onclick="go('transport')"><div class="card-body" style="text-align:center;padding:16px"><div style="font-size:28px">🚚</div><div style="font-weight:700;font-size:13.5px;margin-top:5px">Transport</div><div id="d-tr" style="font-family:'Bebas Neue';font-size:28px;color:var(--red)">0</div><div style="font-size:13px;color:var(--muted)">Open issues</div></div></div>
     <div class="card" style="cursor:pointer" onclick="go('purchase')"><div class="card-body" style="text-align:center;padding:16px"><div style="font-size:28px">🛒</div><div style="font-weight:700;font-size:13.5px;margin-top:5px">Low Stock</div><div id="d-ls" style="font-family:'Bebas Neue';font-size:28px;color:var(--orange)">0</div><div style="font-size:13px;color:var(--muted)">Items</div></div></div>
@@ -2507,6 +2515,28 @@ function R_home(){
       <div style="font-size:12px;color:${col};font-weight:600">${d<0?"OVERDUE":d+"d left"}</div></div>
     </div>`;
   }).join(""):`<div style="padding:14px;text-align:center;font-size:13px;color:var(--green)">✅ All GST filed!</div>`;
+
+  // ── PURCHASE / REORDER ──
+  const lowItems = D.purchase.filter(p=>p.status==="critical"||p.status==="low");
+  const purEl = document.getElementById("dash-purchase");
+  if(purEl){
+    if(lowItems.length){
+      purEl.innerHTML = `<div class="tbl-scroll"><table class="tbl">
+        <thead><tr><th>Item</th><th>Category</th><th>Stock</th><th>Min Level</th><th>To Order</th><th>Supplier</th><th>Priority</th></tr></thead>
+        <tbody>${lowItems.map(p=>`<tr style="cursor:pointer" onclick="go('purchase')">
+          <td><b>${p.item}</b></td>
+          <td><span class="pill pb" style="font-size:11px">${p.cat}</span></td>
+          <td style="font-family:'JetBrains Mono';font-size:13px;color:${p.status==="critical"?"var(--red)":"var(--orange)"}">${p.stock} ${p.unit}</td>
+          <td style="font-size:13px">${p.minLevel} ${p.unit}</td>
+          <td style="font-family:'JetBrains Mono';font-size:13px;color:var(--ac);font-weight:700">${p.toOrder} ${p.unit}</td>
+          <td style="font-size:13px">${p.supplier||"—"}</td>
+          <td>${p.status==="critical"?'<span class="pill pr">🔴 Critical</span>':'<span class="pill py">🟡 Low</span>'}</td>
+        </tr>`).join("")}</tbody>
+      </table></div>`;
+    } else {
+      purEl.innerHTML = `<div style="padding:14px;text-align:center;font-size:13px;color:var(--green)">✅ All stock levels OK!</div>`;
+    }
+  }
 
   // ── QUICK COUNTERS ──
   document.getElementById("d-tr").textContent=D.transport.length;
