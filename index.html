@@ -367,6 +367,7 @@ html,body{height:100%;background:var(--bg);color:var(--tx);font-family:"Plus Jak
   </div>
   <div class="sb-grp">
     <div class="sb-lbl">Daily Life</div>
+    <div class="sb-item" id="n-mustdo" onclick="go('mustdo')"><span class="sb-ico">✅</span>Must Do Daily<span class="sb-bdg g" id="b-mustdo">0</span></div>
     <div class="sb-item" id="n-tracker" onclick="go('tracker')"><span class="sb-ico">📅</span>Day Tracker</div>
     <div class="sb-item" id="n-health" onclick="go('health')"><span class="sb-ico">❤️</span>Health & Fitness</div>
     <div class="sb-item" id="n-badminton" onclick="go('badminton')"><span class="sb-ico">🏸</span>Badminton</div>
@@ -393,7 +394,12 @@ html,body{height:100%;background:var(--bg);color:var(--tx);font-family:"Plus Jak
   <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:14px">
     <div class="card"><div class="card-hdr">🚨 Urgent Orders<button class="btn btn-sm" style="margin-left:auto" onclick="go('urgent')">→</button></div><div id="dash-urgent"></div></div>
     <div class="card"><div class="card-hdr">💰 Overdue Payments<button class="btn btn-sm" style="margin-left:auto" onclick="go('payment')">→</button></div><div id="dash-pay"></div></div>
-    <div class="card"><div class="card-hdr">❤️ Health Habits</div><div id="dash-habits" style="padding:6px 8px;"></div></div>
+    <div class="card" style="cursor:pointer" onclick="go('mustdo')">
+  <div class="card-hdr">✅ Must Do Daily
+    <span id="dash-mustdo-badge" style="font-size:11px;color:var(--muted);font-weight:400;margin-left:6px"></span>
+  </div>
+  <div id="dash-mustdo-list" style="padding:4px 0"></div>
+</div>
   </div>
   <div class="g4">
     <div class="card" style="cursor:pointer" onclick="go('transport')"><div class="card-body" style="text-align:center;padding:14px"><div style="font-size:26px">🚚</div><div style="font-weight:700;font-size:12.5px;margin-top:4px">Transport</div><div id="d-tr" style="font-family:'Bebas Neue';font-size:24px;color:var(--red)">0</div><div style="font-size:10px;color:var(--muted)">Open issues</div></div></div>
@@ -919,6 +925,65 @@ html,body{height:100%;background:var(--bg);color:var(--tx);font-family:"Plus Jak
   </div>
 </div>
 
+
+<!-- ████ MUST DO DAILY ████ -->
+<div class="mod" id="mod-mustdo">
+  <div class="ph">
+    <div>
+      <div class="pt">MUST DO <span>DAILY</span></div>
+      <div class="pt-sub">Your non-negotiables — reset every day at midnight</div>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center">
+      <button class="btn" onclick="resetMustDo()" title="Reset all checkmarks for today">🔄 Reset All</button>
+      <button class="btn btn-p" onclick="addMustDo()">+ Add Task</button>
+    </div>
+  </div>
+
+  <!-- Progress banner -->
+  <div style="background:linear-gradient(135deg,#2563eb,#7c3aed);border-radius:14px;padding:16px 20px;margin-bottom:14px;color:#fff;display:flex;align-items:center;gap:16px">
+    <div style="flex:1">
+      <div style="font-family:'Bebas Neue';font-size:15px;letter-spacing:2px;opacity:.8">TODAY'S PROGRESS</div>
+      <div style="font-family:'Bebas Neue';font-size:36px;letter-spacing:2px;line-height:1.1" id="md-progress-text">0 / 0</div>
+      <div style="margin-top:8px;background:rgba(255,255,255,.25);height:6px;border-radius:6px;overflow:hidden">
+        <div id="md-progress-bar" style="height:100%;background:#fff;border-radius:6px;width:0%;transition:width .4s"></div>
+      </div>
+    </div>
+    <div style="font-size:48px" id="md-emoji">📋</div>
+  </div>
+
+  <!-- Task list -->
+  <div class="card">
+    <div class="card-hdr">
+      <span>Daily Non-Negotiables</span>
+      <span id="md-count" style="font-size:11px;color:var(--muted);font-weight:400;margin-left:8px"></span>
+    </div>
+    <div id="md-list" style="padding:4px 0"></div>
+    <div id="md-empty" class="es" style="display:none">
+      <div class="em">✅</div>
+      <div>No tasks yet. Add your daily non-negotiables.</div>
+      <button class="btn btn-p" style="margin-top:12px" onclick="addMustDo()">+ Add First Task</button>
+    </div>
+
+    <!-- Add task inline form -->
+    <div id="md-add-form" style="display:none;padding:12px 16px;border-top:1px solid var(--b1);background:var(--s2)">
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <input class="inp" id="md-inp" placeholder="Task name e.g. Morning walk 30 mins" style="flex:1;min-width:180px" onkeydown="if(event.key==='Enter')saveMustDo()">
+        <select class="sel" id="md-cat" style="width:130px">
+          <option value="health">❤️ Health</option>
+          <option value="business">💼 Business</option>
+          <option value="personal">🧘 Personal</option>
+          <option value="fitness">🏃 Fitness</option>
+          <option value="learning">📚 Learning</option>
+          <option value="spiritual">🙏 Spiritual</option>
+        </select>
+        <input class="inp" id="md-time" placeholder="Time (e.g. 6:00 AM)" style="width:130px">
+        <button class="btn btn-p" onclick="saveMustDo()">Add</button>
+        <button class="btn" onclick="cancelMustDo()">✕</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 </div><!-- /main -->
 
 </div><!-- /body -->
@@ -985,14 +1050,14 @@ function go(id){
   document.getElementById("mod-"+id)?.classList.add("on");
   document.getElementById("n-"+id)?.classList.add("on");
   // bottom nav highlight
-  const bnMap={home:"bn-home",urgent:"bn-urgent",compliance:"bn-compliance",tracker:"bn-tracker"};
+  const bnMap={home:"bn-home",urgent:"bn-urgent",compliance:"bn-compliance",tracker:"bn-tracker",mustdo:"bn-tracker"};
   if(bnMap[id])document.getElementById(bnMap[id])?.classList.add("on");
   closeSB();closeScan();
   const rmap={home:R_home,urgent:R.urgent,cod:R.cod,transport:R.transport,payment:R.payment,
     defaulter:R.defaulter,banking:R.banking,deadstock:R.deadstock,rd:R.rd,compliance:R.compliance,
     itax:R.itax,tds:R.tds,gst:R.gst,itc:R.itc,future:R.future,tracker:initTracker,
     health:R.health,badminton:R.badminton,self:R.self,quotes:R.quotes,
-    orders:R.orders,purchase:R.purchase,production:R.production,
+    mustdo:R.mustdo,orders:R.orders,purchase:R.purchase,production:R.production,
     expenses:R.expenses,scanner:R.scanner};
   rmap[id]?.();
 }
@@ -1100,6 +1165,7 @@ const D={
   ],
   weeklyReviews:[],
   orders:[],
+  mustdo:[],
   scanHistory:[],
   purchase:[],
 
@@ -1701,6 +1767,73 @@ const R={
       </td>
     </tr>`).join("");
   },
+
+  mustdo(){
+    checkMustDoReset();
+    const tasks = D.mustdo;
+    const done = tasks.filter(t => t.doneToday).length;
+    const total = tasks.length;
+    const pct = total ? Math.round(done/total*100) : 0;
+
+    // Update progress
+    document.getElementById("md-progress-text").textContent = `${done} / ${total}`;
+    document.getElementById("md-progress-bar").style.width = pct + "%";
+    const emoji = pct === 100 ? "🏆" : pct >= 75 ? "🔥" : pct >= 50 ? "💪" : pct >= 25 ? "👊" : "📋";
+    document.getElementById("md-emoji").textContent = emoji;
+
+    // Badge
+    const b = document.getElementById("b-mustdo");
+    if(b) b.textContent = `${done}/${total}`;
+
+    // Count
+    document.getElementById("md-count").textContent = `${done} done · ${total-done} remaining`;
+
+    // Empty state
+    const empty = document.getElementById("md-empty");
+    const list = document.getElementById("md-list");
+    if(!tasks.length) {
+      empty.style.display = "block";
+      list.innerHTML = "";
+      return;
+    }
+    empty.style.display = "none";
+
+    const catIcons = {health:"❤️",business:"💼",personal:"🧘",fitness:"🏃",learning:"📚",spiritual:"🙏"};
+    const catColors = {health:"var(--red)",business:"var(--ac)",personal:"var(--a2)",fitness:"var(--green)",learning:"var(--gold)",spiritual:"var(--teal)"};
+
+    list.innerHTML = tasks.map((t,i) => `
+      <div class="task-item ${t.doneToday?"di":""}" style="padding:14px 16px;border-bottom:1px solid var(--b1);gap:12px;align-items:center">
+        <!-- Checkmark -->
+        <div class="chk ${t.doneToday?"done":""}" onclick="toggleMustDo(${t.id})" style="width:24px;height:24px;min-width:24px;border-radius:8px"></div>
+
+        <!-- Content -->
+        <div style="flex:1;min-width:0">
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+            <span style="font-size:16px">${catIcons[t.cat]||"✅"}</span>
+            <span style="font-size:14px;font-weight:600;${t.doneToday?"text-decoration:line-through;color:var(--dim)":""}">${t.text}</span>
+            ${t.time?`<span style="font-size:11px;background:var(--s2);border:1px solid var(--b1);padding:2px 8px;border-radius:10px;color:var(--muted)">⏰ ${t.time}</span>`:""}
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;margin-top:4px">
+            <span style="font-size:10px;padding:2px 8px;border-radius:10px;background:${catColors[t.cat]||"var(--ac)"}20;color:${catColors[t.cat]||"var(--ac)"};font-weight:600">${t.cat}</span>
+            ${t.streak>0?`<span style="font-size:10px;color:var(--orange)">🔥 ${t.streak} day streak</span>`:""}
+          </div>
+        </div>
+
+        <!-- Actions -->
+        <div style="display:flex;gap:4px;align-items:center;flex-shrink:0">
+          ${i>0?`<button onclick="moveMustDo(${t.id},-1)" style="background:none;border:none;cursor:pointer;color:var(--muted);padding:4px;font-size:14px" title="Move up">↑</button>`:"<span style='width:22px'></span>"}
+          ${i<tasks.length-1?`<button onclick="moveMustDo(${t.id},1)" style="background:none;border:none;cursor:pointer;color:var(--muted);padding:4px;font-size:14px" title="Move down">↓</button>`:"<span style='width:22px'></span>"}
+          <button class="btn-e" onclick="editMustDo(${t.id})">✏️</button>
+          <button class="btn-d" onclick="deleteMustDo(${t.id})">🗑</button>
+        </div>
+      </div>`).join("");
+
+    // Also update dashboard habits section badge
+    const dashHabits = document.getElementById("dash-habits");
+    if(dashHabits && document.querySelector("#mod-home.on")) {
+      // Re-render dashboard habit section too
+    }
+  },
   purchase(){
     const low=D.purchase.filter(p=>p.status==="critical"||p.status==="low");
     const critical=D.purchase.filter(p=>p.status==="critical");
@@ -2098,6 +2231,24 @@ function R_home(){
       <span style="font-size:13px;flex:1;${h.done?"text-decoration:line-through;color:var(--dim)":""}">${h.text}</span>
     </div>`).join("");
   // Counters
+  // Must Do Daily on dashboard
+  const mdDone = D.mustdo.filter(t=>t.doneToday).length;
+  const mdTotal = D.mustdo.length;
+  const mdBadge = document.getElementById("dash-mustdo-badge");
+  if(mdBadge) mdBadge.textContent = mdTotal ? `${mdDone}/${mdTotal} done` : "No tasks yet";
+  const mdList = document.getElementById("dash-mustdo-list");
+  if(mdList) {
+    const catIcons2 = {health:"❤️",business:"💼",personal:"🧘",fitness:"🏃",learning:"📚",spiritual:"🙏"};
+    mdList.innerHTML = D.mustdo.slice(0,5).map(t=>`
+      <div class="task-item ${t.doneToday?"di":""}" style="padding:8px 14px">
+        <div class="chk ${t.doneToday?"done":""}" onclick="toggleMustDo(${t.id});R_home()" style="width:20px;height:20px;min-width:20px"></div>
+        <span style="font-size:14px">${catIcons2[t.cat]||"✅"}</span>
+        <span style="font-size:13px;flex:1;${t.doneToday?"text-decoration:line-through;color:var(--dim)":""}">${t.text}</span>
+        ${t.time?`<span style="font-size:10px;color:var(--muted)">${t.time}</span>`:""}
+      </div>`).join("") || `<div style="padding:12px 14px;font-size:12.5px;color:var(--muted)">No tasks yet. <span style="color:var(--ac);cursor:pointer" onclick="go('mustdo')">+ Add tasks →</span></div>`;
+    if(D.mustdo.length > 5) mdList.innerHTML += `<div style="padding:6px 14px;font-size:11px;color:var(--muted)">+${D.mustdo.length-5} more →</div>`;
+  }
+
   document.getElementById("d-tr").textContent=D.transport.length;
   document.getElementById("d-ds").textContent=D.deadstock.length;
   const dr=D.bdmDrills,dd2=dr.filter(d=>d.done).length;
@@ -2528,7 +2679,7 @@ function reRenderCurrent() {
     itax:R.itax, tds:R.tds, gst:R.gst, itc:R.itc, future:R.future,
     tracker:()=>renderDT(document.getElementById("td")?.value||new Date().toISOString().slice(0,10)),
     health:R.health, badminton:R.badminton, self:R.self, quotes:R.quotes,
-    orders:R.orders, purchase:R.purchase, production:R.production, expenses:R.expenses, scanner:R.scanner
+    mustdo:R.mustdo, orders:R.orders, purchase:R.purchase, production:R.production, expenses:R.expenses, scanner:R.scanner
   };
   rmap[id]?.();
 }
@@ -2542,7 +2693,7 @@ function loadAllFromFirebase() {
     "deadstock","rd","compliance","itax","tds","gst","itc","future",
     "dayData","healthHabits","healthGoals","bdmGames","bdmSkills",
     "bdmDrills","selfGoals","books","weeklyReviews","quotes","uid",
-    "orders","purchase","production","prodStock","expenses","scanHistory"
+    "mustdo","orders","purchase","production","prodStock","expenses","scanHistory"
   ];
 
   let initialLoadDone = false;
@@ -3220,6 +3371,96 @@ async function saveAllToCloud() {
     r.textContent=`⚠️ ${saved} saved, ${failed} failed. Try again.`;
   }
   renderSavePanel();
+}
+
+
+// ══════════════════════════════════════════
+// MUST DO DAILY MODULE
+// ══════════════════════════════════════════
+
+// Check and reset daily at midnight
+function checkMustDoReset() {
+  const today = new Date().toISOString().slice(0,10);
+  const lastReset = localStorage.getItem("mustdo_last_reset");
+  if(lastReset !== today) {
+    // New day — reset all checkmarks
+    D.mustdo.forEach(t => t.doneToday = false);
+    localStorage.setItem("mustdo_last_reset", today);
+    autoSave("mustdo");
+  }
+}
+
+function resetMustDo() {
+  if(!confirm("Reset all checkmarks? This marks all tasks as not done for today.")) return;
+  D.mustdo.forEach(t => t.doneToday = false);
+  autoSave("mustdo");
+  R.mustdo();
+}
+
+function addMustDo() {
+  document.getElementById("md-add-form").style.display = "block";
+  document.getElementById("md-empty").style.display = "none";
+  setTimeout(() => document.getElementById("md-inp")?.focus(), 60);
+}
+
+function cancelMustDo() {
+  document.getElementById("md-add-form").style.display = "none";
+  document.getElementById("md-inp").value = "";
+  if(!D.mustdo.length) document.getElementById("md-empty").style.display = "block";
+}
+
+function saveMustDo() {
+  const text = document.getElementById("md-inp")?.value?.trim();
+  if(!text) return;
+  const cat = document.getElementById("md-cat")?.value || "personal";
+  const time = document.getElementById("md-time")?.value?.trim() || "";
+  D.mustdo.push({id:++D.uid, text, cat, time, doneToday:false, streak:0, createdAt:new Date().toISOString().slice(0,10)});
+  document.getElementById("md-inp").value = "";
+  document.getElementById("md-time").value = "";
+  autoSave("mustdo");
+  autoSave("uid");
+  R.mustdo();
+  // Keep form open for adding more
+}
+
+function toggleMustDo(id) {
+  const t = D.mustdo.find(x => x.id === id);
+  if(!t) return;
+  t.doneToday = !t.doneToday;
+  if(t.doneToday) t.streak = (t.streak||0) + 1;
+  autoSave("mustdo");
+  R.mustdo();
+}
+
+function editMustDo(id) {
+  const t = D.mustdo.find(x => x.id === id);
+  if(!t) return;
+  const newText = prompt("Edit task:", t.text);
+  if(newText === null) return;
+  if(newText.trim()) t.text = newText.trim();
+  const newTime = prompt("Time (e.g. 6:00 AM):", t.time||"");
+  if(newTime !== null) t.time = newTime.trim();
+  autoSave("mustdo");
+  R.mustdo();
+}
+
+function deleteMustDo(id) {
+  const t = D.mustdo.find(x => x.id === id);
+  if(!t) return;
+  if(!confirm(`Delete "${t.text}"?`)) return;
+  D.mustdo = D.mustdo.filter(x => x.id !== id);
+  autoSave("mustdo");
+  R.mustdo();
+}
+
+function moveMustDo(id, dir) {
+  const idx = D.mustdo.findIndex(x => x.id === id);
+  if(idx === -1) return;
+  const newIdx = idx + dir;
+  if(newIdx < 0 || newIdx >= D.mustdo.length) return;
+  [D.mustdo[idx], D.mustdo[newIdx]] = [D.mustdo[newIdx], D.mustdo[idx]];
+  autoSave("mustdo");
+  R.mustdo();
 }
 
 // ── INIT ──
