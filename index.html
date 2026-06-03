@@ -2896,6 +2896,9 @@ function loadAllFromFirebase() {
             // All collections loaded for first time
             initialLoadDone = true;
             showSyncStatus("connected");
+            // Always re-render home dashboard after full load
+            // so widgets like Must Do Daily show correct data
+            R_home();
             reRenderCurrent();
             updateAllBadges();
             console.log("Firebase initial load complete ✅");
