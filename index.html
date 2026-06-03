@@ -383,28 +383,98 @@ html,body{height:100%;background:var(--bg);color:var(--tx);font-family:"Plus Jak
 
 <!-- HOME DASHBOARD -->
 <div class="mod on" id="mod-home">
-  <div class="ph"><div><div class="pt">GOOD <span>MORNING, AMAN</span> ☀️</div><div class="pt-sub" id="dash-date">Loading…</div></div>
-  <div id="dash-q" style="font-size:13.5px;font-style:italic;color:var(--muted);max-width:200px;text-align:right;line-height:1.4;display:none"></div></div>
+  <!-- HEADER ROW -->
+  <div class="ph">
+    <div>
+      <div class="pt" id="dash-greeting">GOOD <span>MORNING, AMAN</span> ☀️</div>
+      <div class="pt-sub" id="dash-date">Loading…</div>
+    </div>
+    <div id="dash-q" style="font-size:13px;font-style:italic;color:var(--muted);max-width:220px;text-align:right;line-height:1.5;display:none"></div>
+  </div>
+
+  <!-- ALERT STRIP -->
   <div class="al-strip" id="dash-al"></div>
+
+  <!-- ROW 1: KPI STATS (4 cols) -->
   <div class="g4" id="dash-kpi" style="margin-bottom:14px"></div>
+
+  <!-- ROW 2: Must Do + Day Tasks (2 cols) -->
   <div class="g2" style="margin-bottom:14px">
-    <div class="card"><div class="card-hdr">🔥 Today's Tasks<span id="dash-pending-badge" style="display:none;background:var(--orange);color:#fff;font-size:13.5px;border-radius:10px;padding:2px 7px;margin-left:6px;font-family:'JetBrains Mono'"></span><button class="btn btn-sm" style="margin-left:auto" onclick="go('tracker')">Full Tracker →</button></div><div id="dash-tasks"></div></div>
-    <div class="card"><div class="card-hdr">📋 Compliance Deadlines<button class="btn btn-sm" style="margin-left:auto" onclick="go('compliance')">View All →</button></div>
-      <div class="tbl-scroll"><table class="tbl"><thead><tr><th>Filing</th><th>Due</th><th>Days</th><th>Status</th></tr></thead><tbody id="dash-comp"></tbody></table></div></div>
+    <!-- Must Do Daily -->
+    <div class="card" style="cursor:pointer" onclick="go('mustdo')">
+      <div class="card-hdr">✅ Must Do Daily
+        <span id="dash-mustdo-badge" style="font-size:13px;color:var(--muted);font-weight:400;margin-left:8px"></span>
+        <button class="btn btn-sm" style="margin-left:auto" onclick="event.stopPropagation();go('mustdo')">View All →</button>
+      </div>
+      <div id="dash-mustdo-list"></div>
+    </div>
+    <!-- Today Tasks -->
+    <div class="card">
+      <div class="card-hdr">🔥 Today's Tasks
+        <button class="btn btn-sm" style="margin-left:auto" onclick="go('tracker')">Full Tracker →</button>
+      </div>
+      <div id="dash-tasks"></div>
+    </div>
   </div>
+
+  <!-- ROW 3: Orders + Payments + Defaulters (3 cols) -->
   <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:14px">
-    <div class="card"><div class="card-hdr">🚨 Urgent Orders<button class="btn btn-sm" style="margin-left:auto" onclick="go('urgent')">→</button></div><div id="dash-urgent"></div></div>
-    <div class="card"><div class="card-hdr">💰 Overdue Payments<button class="btn btn-sm" style="margin-left:auto" onclick="go('payment')">→</button></div><div id="dash-pay"></div></div>
-    <div class="card" style="cursor:pointer" onclick="go('mustdo')"><div class="card-hdr">✅ Must Do Daily<span id="dash-mustdo-badge" style="font-size:13px;color:var(--muted);font-weight:400;margin-left:8px"></span></div><div id="dash-mustdo-list"></div></div>
+    <!-- Urgent Orders -->
+    <div class="card">
+      <div class="card-hdr">🚨 Urgent Orders
+        <button class="btn btn-sm" style="margin-left:auto" onclick="go('urgent')">→</button>
+      </div>
+      <div id="dash-urgent"></div>
+    </div>
+    <!-- Payments Overdue -->
+    <div class="card">
+      <div class="card-hdr">💰 Overdue Payments
+        <button class="btn btn-sm" style="margin-left:auto" onclick="go('payment')">→</button>
+      </div>
+      <div id="dash-pay"></div>
+    </div>
+    <!-- Order Tracker -->
+    <div class="card">
+      <div class="card-hdr">📦 Order Tracker
+        <button class="btn btn-sm" style="margin-left:auto" onclick="go('orders')">→</button>
+      </div>
+      <div id="dash-orders"></div>
+    </div>
   </div>
+
+  <!-- ROW 4: Compliance + Accounting + GST (3 cols) -->
+  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:14px">
+    <!-- Compliance -->
+    <div class="card">
+      <div class="card-hdr">📋 Compliance Deadlines
+        <button class="btn btn-sm" style="margin-left:auto" onclick="go('compliance')">→</button>
+      </div>
+      <div class="tbl-scroll"><table class="tbl"><thead><tr><th>Filing</th><th>Due</th><th>Days</th></tr></thead><tbody id="dash-comp"></tbody></table></div>
+    </div>
+    <!-- Accounting Issues -->
+    <div class="card">
+      <div class="card-hdr">🧾 Accounting Issues
+        <button class="btn btn-sm" style="margin-left:auto" onclick="go('accounts')">→</button>
+      </div>
+      <div id="dash-accounts"></div>
+    </div>
+    <!-- GST -->
+    <div class="card">
+      <div class="card-hdr">📑 GST Dates
+        <button class="btn btn-sm" style="margin-left:auto" onclick="go('gst')">→</button>
+      </div>
+      <div id="dash-gst"></div>
+    </div>
+  </div>
+
+  <!-- ROW 5: Quick Stats (4 cols) -->
   <div class="g4">
-    <div class="card" style="cursor:pointer" onclick="go('transport')"><div class="card-body" style="text-align:center;padding:14px"><div style="font-size:26px">🚚</div><div style="font-weight:700;font-size:13.5px;margin-top:4px">Transport</div><div id="d-tr" style="font-family:'Bebas Neue';font-size:24px;color:var(--red)">0</div><div style="font-size:13.5px;color:var(--muted)">Open issues</div></div></div>
-    <div class="card" style="cursor:pointer" onclick="go('deadstock')"><div class="card-body" style="text-align:center;padding:14px"><div style="font-size:26px">📦</div><div style="font-weight:700;font-size:13.5px;margin-top:4px">Dead Stock</div><div id="d-ds" style="font-family:'Bebas Neue';font-size:24px;color:var(--orange)">0</div><div style="font-size:13.5px;color:var(--muted)">Items</div></div></div>
-    <div class="card" style="cursor:pointer" onclick="go('badminton')"><div class="card-body" style="text-align:center;padding:14px"><div style="font-size:26px">🏸</div><div style="font-weight:700;font-size:13.5px;margin-top:4px">Badminton</div><div id="d-bdm" style="font-family:'Bebas Neue';font-size:24px;color:var(--green)">0%</div><div style="font-size:13.5px;color:var(--muted)">Drills done</div></div></div>
-    <div class="card" style="cursor:pointer" onclick="go('rd')"><div class="card-body" style="text-align:center;padding:14px"><div style="font-size:26px">🔬</div><div style="font-weight:700;font-size:13.5px;margin-top:4px">R&D</div><div id="d-rd" style="font-family:'Bebas Neue';font-size:24px;color:var(--ac)">0</div><div style="font-size:13.5px;color:var(--muted)">In progress</div></div></div>
+    <div class="card" style="cursor:pointer" onclick="go('transport')"><div class="card-body" style="text-align:center;padding:16px"><div style="font-size:28px">🚚</div><div style="font-weight:700;font-size:13.5px;margin-top:5px">Transport</div><div id="d-tr" style="font-family:'Bebas Neue';font-size:28px;color:var(--red)">0</div><div style="font-size:13px;color:var(--muted)">Open issues</div></div></div>
+    <div class="card" style="cursor:pointer" onclick="go('purchase')"><div class="card-body" style="text-align:center;padding:16px"><div style="font-size:28px">🛒</div><div style="font-weight:700;font-size:13.5px;margin-top:5px">Low Stock</div><div id="d-ls" style="font-family:'Bebas Neue';font-size:28px;color:var(--orange)">0</div><div style="font-size:13px;color:var(--muted)">Items</div></div></div>
+    <div class="card" style="cursor:pointer" onclick="go('defaulter')"><div class="card-body" style="text-align:center;padding:16px"><div style="font-size:28px">⚠️</div><div style="font-weight:700;font-size:13.5px;margin-top:5px">Defaulters</div><div id="d-def" style="font-family:'Bebas Neue';font-size:28px;color:var(--red)">0</div><div style="font-size:13px;color:var(--muted)">Active</div></div></div>
+    <div class="card" style="cursor:pointer" onclick="go('banking')"><div class="card-body" style="text-align:center;padding:16px"><div style="font-size:28px">🏦</div><div style="font-weight:700;font-size:13.5px;margin-top:5px">Banking</div><div id="d-bank" style="font-family:'Bebas Neue';font-size:28px;color:var(--gold)">0</div><div style="font-size:13px;color:var(--muted)">Issues</div></div></div>
   </div>
 </div>
-
 <!-- URGENT ORDERS -->
 <div class="mod" id="mod-urgent">
   <div class="ph"><div><div class="pt">URGENT <span>ORDERS</span></div><div class="pt-sub">Tap ✏️ edit · 🗑 delete</div></div>
@@ -2284,283 +2354,173 @@ function addWR(){const text=prompt("Weekly review summary:");if(!text)return;con
 // ── DASHBOARD ──
 const motivations=["Success is not final, failure is not fatal. — Churchill","Jo kal karna hai woh aaj karo! 🚀","Build the business of your dreams, one day at a time.","Small daily improvements lead to stunning results.","Your consistency today is your success tomorrow.","Champions are made in the moments they want to quit.","A great business is built on great habits."];
 function R_home(){
-  const now=new Date(),h=now.getHours();
-  const gl=["Good Morning","Good Morning","Good Afternoon","Good Evening"];const gi=h<12?0:h<14?1:h<17?2:3;
+  const now=new Date(), h=now.getHours();
+  const gl=["Good Morning","Good Morning","Good Afternoon","Good Evening"];
+  const gi=h<12?0:h<14?1:h<17?2:3;
   const em=["☀️","☀️","🌤️","🌙"];
-  const ptEl=document.querySelector("#mod-home .pt");
-  if(ptEl)ptEl.innerHTML=gl[gi].toUpperCase().replace(" ","&nbsp;<span>")+", AMAN</span> "+em[gi];
-  const dl=document.getElementById("dash-date");if(dl)dl.textContent=now.toLocaleDateString("en-IN",{weekday:"long",day:"numeric",month:"long",year:"numeric"});
-  const ql=document.getElementById("dash-q");if(ql){ql.textContent="\u201C"+motivations[now.getDay()%motivations.length]+"\u201D";ql.style.display="block";}
-  // Alerts
+  const grEl=document.getElementById("dash-greeting");
+  if(grEl) grEl.innerHTML=gl[gi].toUpperCase().replace(" ","&nbsp;<span>")+", AMAN</span> "+em[gi];
+  const dl=document.getElementById("dash-date");
+  if(dl) dl.textContent=now.toLocaleDateString("en-IN",{weekday:"long",day:"numeric",month:"long",year:"numeric"});
+  const ql=document.getElementById("dash-q");
+  if(ql){ql.textContent="“"+motivations[now.getDay()%motivations.length]+"”";ql.style.display="block";}
+
+  // ── ALERTS ──
   const alerts=[];
-  D.gst.filter(g=>g.status==="pending").forEach(g=>{const d=Math.floor((new Date(g.due)-now)/86400000);if(d<=5)alerts.push({cls:d<=2?"red":"yel",msg:`${d<=2?"🔴":"🟡"} ${g.ret} (${g.period}) due ${d<=0?"TODAY":"in "+d+"d"}`});});
-  D.compliance.filter(c=>c.status==="pending").forEach(c=>{const d=Math.floor((new Date(c.due)-now)/86400000);if(d<=7)alerts.push({cls:d<=2?"red":"yel",msg:`${d<=2?"🔴":"🟡"} ${c.name} due ${d<=0?"TODAY/OVERDUE":"in "+d+"d"} →`,link:"compliance"});});
-  D.payment.filter(p=>p.status!=="collected"&&dOvr(p.due)>30).forEach(p=>alerts.push({cls:"yel",msg:`🟡 ${p.party} — ${fa(p.amt)} overdue ${dOvr(p.due)}d`}));
-  if(D.defaulter.length)alerts.push({cls:"red",msg:`⚠️ ${D.defaulter.length} defaulter(s) need attention →`,link:"defaulter"});
-  document.getElementById("dash-al").innerHTML=alerts.slice(0,4).map(a=>`<div class="al ${a.cls}" ${a.link?`onclick="go('${a.link}')" style="cursor:pointer" title="Tap to open"`:""}>${a.msg}</div>`).join("");
-  // KPIs
+  D.gst.filter(g=>g.status==="pending").forEach(g=>{
+    const d=Math.floor((new Date(g.due)-now)/86400000);
+    if(d<=5) alerts.push({cls:d<=2?"red":"yel",msg:`${d<=2?"🔴":"🟡"} ${g.ret} (${g.period}) due ${d<=0?"TODAY":d+"d left"}`,link:"gst"});
+  });
+  D.compliance.filter(c=>c.status==="pending").forEach(c=>{
+    const d=Math.floor((new Date(c.due)-now)/86400000);
+    if(d<=7) alerts.push({cls:d<=2?"red":"yel",msg:`${d<=2?"🔴":"🟡"} ${c.name} due ${d<=0?"TODAY":d+"d"}`,link:"compliance"});
+  });
+  D.payment.filter(p=>p.status!=="collected"&&dOvr(p.due)>30).forEach(p=>
+    alerts.push({cls:"yel",msg:`🟡 ${p.party} — ${fa(p.amt)} overdue ${dOvr(p.due)}d →`,link:"payment"}));
+  if(D.defaulter.length) alerts.push({cls:"red",msg:`⚠️ ${D.defaulter.length} defaulter(s) need attention →`,link:"defaulter"});
+  const accOpen=D.accounts.filter(a=>a.status==="open").length;
+  if(accOpen>0) alerts.push({cls:"yel",msg:`🧾 ${accOpen} accounting issue(s) open →`,link:"accounts"});
+  const lowStock=D.purchase.filter(p=>p.status==="critical"||p.status==="low").length;
+  if(lowStock>0) alerts.push({cls:"yel",msg:`🛒 ${lowStock} item(s) low/critical stock →`,link:"purchase"});
+  document.getElementById("dash-al").innerHTML=alerts.slice(0,5).map(a=>
+    `<div class="al ${a.cls}" ${a.link?`onclick="go('${a.link}')" style="cursor:pointer"`:""}>${a.msg}</div>`
+  ).join("");
+
+  // ── KPI STATS ──
   const pendOrd=D.urgent.filter(x=>x.status!=="done").length;
   const overAmt=D.payment.filter(p=>p.status!=="collected").reduce((s,p)=>s+parseInt((p.amt||0).toString().replace(/[₹,]/g,"")),0);
   const pendComp=D.compliance.filter(c=>c.status==="pending").length;
-  const habDone=D.healthHabits.filter(h=>h.done).length;
+  const ordPend=D.orders.filter(o=>o.status!=="done").length;
   document.getElementById("dash-kpi").innerHTML=
-    sc("var(--red)","Urgent Orders",pendOrd,"Pending")+sc("var(--orange)","Overdue Payments",fa(overAmt),"To collect")+
-    sc("var(--gold)","Compliance Due",pendComp,"Filings")+sc("var(--green)","Habits Done",`${habDone}/${D.healthHabits.length}`,"Today");
-  // Today tasks
-  const today=now.toISOString().slice(0,10);
-  if(!D.dayData[today])D.dayData[today]={tasks:[],notes:""};
-  const tasks=D.dayData[today].tasks;
-  const pc={high:"var(--red)",med:"var(--gold)",low:"var(--green)"};
-  // Get pending tasks from previous days
-  const pendingTasks = typeof getPendingTasks === "function" ? getPendingTasks(today) : [];
-  const pendingBadge = document.getElementById("dash-pending-badge");
-  if(pendingBadge){
-    if(pendingTasks.length){
-      pendingBadge.style.display="inline";
-      pendingBadge.textContent=pendingTasks.length+" pending";
-    } else {
-      pendingBadge.style.display="none";
-    }
-  }
-  const pendingHtml = pendingTasks.length ? `
-    <div style="background:#fff7ed;border-bottom:2px dashed var(--orange);padding:8px 12px">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
-        <div style="font-size:13.5px;font-weight:700;color:var(--orange)">⚠️ ${pendingTasks.length} pending from previous days</div>
-        <button class="btn btn-sm" style="font-size:13.5px;border-color:var(--orange);color:var(--orange)" onclick="carryForwardAll();R_home()">↩ Carry All</button>
-      </div>
-      ${pendingTasks.slice(0,3).map(t=>`
-        <div style="display:flex;align-items:center;gap:8px;padding:4px 0;border-bottom:1px solid #fed7aa">
-          <span style="width:7px;height:7px;border-radius:50%;background:${pc[t.pri||"med"]};flex-shrink:0"></span>
-          <div style="flex:1;font-size:12px">${t.text}</div>
-          <span style="font-size:13.5px;color:var(--orange)">${t.fromDateLabel}</span>
-          <button class="btn-u" style="font-size:13.5px;padding:2px 7px" onclick="carryForwardTask('${t.fromDate}',${t.id},'${today}');R_home()">↩</button>
-          <button class="btn-e" style="font-size:13.5px;padding:2px 7px" onclick="markDoneFromPending('${t.fromDate}',${t.id},'${today}');R_home()">✅</button>
-        </div>`).join("")}
-      ${pendingTasks.length>3?`<div style="font-size:13px;color:var(--orange);padding-top:4px;cursor:pointer" onclick="go('tracker')">+${pendingTasks.length-3} more — tap to view all →</div>`:""}
-    </div>` : "";
+    sc("var(--red)","Urgent Orders",pendOrd,"Pending")+
+    sc("var(--orange)","Overdue Payments",fa(overAmt),"To collect")+
+    sc("var(--gold)","Compliance Due",pendComp,"Filings")+
+    sc("var(--ac)","Orders in Pipeline",ordPend,"Active");
 
-  document.getElementById("dash-tasks").innerHTML = pendingHtml + (tasks.length?tasks.slice(0,4).map(t=>`
-    <div class="task-item ${t.done?"di":""}">
+  // ── MUST DO DAILY ──
+  const mdDone=D.mustdo.filter(t=>t.doneToday).length;
+  const mdTotal=D.mustdo.length;
+  const mdBadge=document.getElementById("dash-mustdo-badge");
+  if(mdBadge) mdBadge.textContent=mdTotal?`${mdDone}/${mdTotal} done`:"No tasks yet";
+  const mdList=document.getElementById("dash-mustdo-list");
+  if(mdList){
+    const catIcons2={health:"❤️",business:"💼",personal:"🧘",fitness:"🏃",learning:"📚",spiritual:"🙏"};
+    mdList.innerHTML=D.mustdo.slice(0,6).map(t=>`
+      <div class="task-item ${t.doneToday?"di":""}" style="padding:10px 14px">
+        <div class="chk ${t.doneToday?"done":""}" onclick="toggleMustDo(${t.id});R_home()" style="width:22px;height:22px;min-width:22px"></div>
+        <span style="font-size:16px">${catIcons2[t.cat]||"✅"}</span>
+        <span style="font-size:13.5px;flex:1;${t.doneToday?"text-decoration:line-through;color:var(--dim)":""}">${t.text}</span>
+        ${t.time?`<span style="font-size:12px;color:var(--muted)">${t.time}</span>`:""}
+      </div>`).join("")||
+      `<div style="padding:14px;font-size:13px;color:var(--muted)">No tasks yet. <span style="color:var(--ac);cursor:pointer" onclick="go('mustdo')">+ Add tasks →</span></div>`;
+    if(D.mustdo.length>6) mdList.innerHTML+=`<div style="padding:6px 14px;font-size:12px;color:var(--muted)">+${D.mustdo.length-6} more →</div>`;
+  }
+
+  // ── TODAY TASKS ──
+  const today=now.toISOString().slice(0,10);
+  if(!D.dayData[today]) D.dayData[today]={tasks:[],notes:""};
+  const tasks=D.dayData[today].tasks;
+  const pendingTasks2=typeof getPendingTasks==="function"?getPendingTasks(today):[];
+  const pc={high:"var(--red)",med:"var(--gold)",low:"var(--green)"};
+  let tasksHtml="";
+  if(pendingTasks2.length){
+    tasksHtml+=`<div style="background:#fff7ed;padding:8px 14px;border-bottom:1px dashed var(--orange)">
+      <div style="display:flex;align-items:center;justify-content:space-between">
+        <span style="font-size:12.5px;font-weight:700;color:var(--orange)">⚠️ ${pendingTasks2.length} pending from prev days</span>
+        <button class="btn btn-sm" style="font-size:11px;border-color:var(--orange);color:var(--orange)" onclick="carryForwardAll();R_home()">↩ Carry All</button>
+      </div></div>`;
+  }
+  tasksHtml+=tasks.length?tasks.slice(0,5).map(t=>`
+    <div class="task-item ${t.done?"di":""}" style="padding:10px 14px">
       <div class="chk ${t.done?"done":""}" onclick="tgDT('${today}',${t.id});R_home()"></div>
-      <div style="flex:1">
-        <div style="font-size:13px;${t.done?"text-decoration:line-through;color:var(--dim)":""}">${t.text}</div>
-        ${t.carriedFrom?`<div style="font-size:13.5px;color:var(--orange)">↩ Carried from ${new Date(t.carriedFrom).toLocaleDateString("en-IN",{day:"numeric",month:"short"})}</div>`:""}
-      </div>
-      <span style="width:8px;height:8px;border-radius:50%;background:${pc[t.pri||"med"]};flex-shrink:0"></span>
-    </div>`).join("")+(tasks.length>4?`<div style="padding:6px 14px;font-size:13px;color:var(--muted);cursor:pointer" onclick="go('tracker')">+${tasks.length-4} more today →</div>`:""):
-    `<div style="padding:10px 14px"><div style="font-size:13.5px;color:var(--muted);margin-bottom:8px">No tasks for today yet.</div><button class="btn btn-p btn-sm" onclick="go('tracker')">+ Add Tasks</button></div>`);
-  // Compliance
+      <span style="font-size:13.5px;flex:1;${t.done?"text-decoration:line-through;color:var(--dim)":""}">${t.text}</span>
+      <span style="width:9px;height:9px;border-radius:50%;background:${pc[t.pri||"med"]};flex-shrink:0"></span>
+    </div>`).join("")+(tasks.length>5?`<div style="padding:6px 14px;font-size:12px;color:var(--muted)">+${tasks.length-5} more…</div>`:""):
+    `<div style="padding:14px"><div style="font-size:13px;color:var(--muted);margin-bottom:8px">No tasks for today.</div><button class="btn btn-p btn-sm" onclick="go('tracker')">+ Add Tasks</button></div>`;
+  document.getElementById("dash-tasks").innerHTML=tasksHtml;
+
+  // ── URGENT ORDERS ──
+  const up=D.urgent.filter(x=>x.status!=="done").slice(0,4);
+  document.getElementById("dash-urgent").innerHTML=up.length?up.map(u=>`
+    <div style="padding:10px 14px;border-bottom:1px solid var(--b1);display:flex;align-items:center;gap:8px;cursor:pointer" onclick="go('urgent')">
+      <div style="flex:1"><div style="font-size:13.5px;font-weight:600">${u.party}</div>
+      <div style="font-size:12px;color:var(--muted)">${(u.items||"").substring(0,30)}</div></div>
+      ${priP[u.pri]||""}
+    </div>`).join(""):
+    `<div style="padding:14px;text-align:center;font-size:13px;color:var(--green)">✅ No urgent orders!</div>`;
+
+  // ── OVERDUE PAYMENTS ──
+  const op=D.payment.filter(p=>p.status!=="collected").slice(0,4);
+  document.getElementById("dash-pay").innerHTML=op.length?op.map(p=>`
+    <div style="padding:10px 14px;border-bottom:1px solid var(--b1);display:flex;align-items:center;gap:8px;cursor:pointer" onclick="go('payment')">
+      <div style="flex:1"><div style="font-size:13.5px;font-weight:600">${p.party}</div>
+      <div style="font-size:12px;color:var(--muted)">${dOvr(p.due)}d overdue</div></div>
+      <span style="font-family:'JetBrains Mono';font-size:13px;color:var(--red);font-weight:600">${fa(p.amt)}</span>
+    </div>`).join(""):
+    `<div style="padding:14px;text-align:center;font-size:13px;color:var(--green)">✅ All payments clear!</div>`;
+
+  // ── ORDER TRACKER ──
+  const stColors={dispatched:"var(--ac)",cod_pending:"var(--orange)",chq_received:"var(--gold)",chq_cleared:"var(--teal)",done:"var(--green)"};
+  const stLabels={dispatched:"Dispatched",cod_pending:"COD Pending",chq_received:"Chq Rcvd",chq_cleared:"Cleared",done:"Done"};
+  const ordActive=D.orders.filter(o=>o.status!=="done").slice(0,4);
+  document.getElementById("dash-orders").innerHTML=ordActive.length?ordActive.map(o=>`
+    <div style="padding:10px 14px;border-bottom:1px solid var(--b1);display:flex;align-items:center;gap:8px;cursor:pointer" onclick="go('orders')">
+      <div style="flex:1"><div style="font-size:13.5px;font-weight:600">${o.party}</div>
+      <div style="font-size:12px;color:var(--muted)">${o.inv||""}</div></div>
+      <span style="font-size:11px;padding:3px 8px;border-radius:10px;background:${stColors[o.status]||"var(--ac)"}20;color:${stColors[o.status]||"var(--ac)"};font-weight:600;white-space:nowrap">${stLabels[o.status]||o.status}</span>
+    </div>`).join(""):
+    `<div style="padding:14px;text-align:center;font-size:13px;color:var(--green)">✅ No active orders!</div>`;
+
+  // ── COMPLIANCE ──
   const compRows=D.compliance.filter(c=>c.status!=="filed").sort((a,b)=>new Date(a.due)-new Date(b.due)).slice(0,4);
   document.getElementById("dash-comp").innerHTML=compRows.map(c=>{
     const d=Math.floor((new Date(c.due)-now)/86400000);
     const col=d<0?"var(--red)":d<=3?"var(--red)":d<=7?"var(--orange)":"var(--tx)";
-    return`<tr><td style="font-size:13.5px"><b>${c.name}</b></td><td style="font-size:13px">${fd(c.due)}</td><td style="font-size:13px;color:${col};font-weight:600">${d<0?"Overdue":d+"d"}</td><td>${sp(c.status)}</td></tr>`;
-  }).join("")||`<tr><td colspan="4" style="text-align:center;padding:14px;color:var(--green);font-size:12px">✅ All compliances clear!</td></tr>`;
-  // Urgent
-  const up=D.urgent.filter(x=>x.status!=="done").slice(0,4);
-  document.getElementById("dash-urgent").innerHTML=up.length?up.map(u=>`<div style="padding:9px 14px;border-bottom:1px solid var(--b1);display:flex;align-items:center;gap:8px;cursor:pointer" onclick="go('urgent')"><div style="flex:1"><div style="font-size:13.5px;font-weight:600">${u.party}</div><div style="font-size:13.5px;color:var(--muted)">${(u.items||"").substring(0,30)}…</div></div>${priP[u.pri]||""}</div>`).join(""):
-    `<div style="padding:14px;text-align:center;font-size:13.5px;color:var(--green)">✅ No urgent orders!</div>`;
-  // Payments
-  const op=D.payment.filter(p=>p.status!=="collected").slice(0,4);
-  document.getElementById("dash-pay").innerHTML=op.length?op.map(p=>`<div style="padding:9px 14px;border-bottom:1px solid var(--b1);display:flex;align-items:center;gap:8px;cursor:pointer" onclick="go('payment')"><div style="flex:1"><div style="font-size:13.5px;font-weight:600">${p.party}</div><div style="font-size:13.5px;color:var(--muted)">${p.inv} · ${dOvr(p.due)}d over</div></div><span style="font-family:'JetBrains Mono';font-size:13.5px;color:var(--red);font-weight:600">${fa(p.amt)}</span></div>`).join(""):
-    `<div style="padding:14px;text-align:center;font-size:13.5px;color:var(--green)">✅ All payments collected!</div>`;
-  // Habits
-  document.getElementById("dash-habits").innerHTML=D.healthHabits.slice(0,5).map(h=>`
-    <div class="task-item ${h.done?"di":""}">
-      <div class="chk ${h.done?"done":""}" onclick="tgHabit(${h.id});R_home()"></div>
-      <span style="font-size:16px;flex-shrink:0">${h.icon}</span>
-      <span style="font-size:13px;flex:1;${h.done?"text-decoration:line-through;color:var(--dim)":""}">${h.text}</span>
-    </div>`).join("");
-  // Counters
-  // Must Do Daily on dashboard
-  const mdDone = D.mustdo.filter(t=>t.doneToday).length;
-  const mdTotal = D.mustdo.length;
-  const mdBadge = document.getElementById("dash-mustdo-badge");
-  if(mdBadge) mdBadge.textContent = mdTotal ? `${mdDone}/${mdTotal} done` : "No tasks yet";
-  const mdList = document.getElementById("dash-mustdo-list");
-  if(mdList) {
-    const catIcons2 = {health:"❤️",business:"💼",personal:"🧘",fitness:"🏃",learning:"📚",spiritual:"🙏"};
-    mdList.innerHTML = D.mustdo.slice(0,5).map(t=>`
-      <div class="task-item ${t.doneToday?"di":""}" style="padding:8px 14px">
-        <div class="chk ${t.doneToday?"done":""}" onclick="toggleMustDo(${t.id});R_home()" style="width:20px;height:20px;min-width:20px"></div>
-        <span style="font-size:14px">${catIcons2[t.cat]||"✅"}</span>
-        <span style="font-size:13px;flex:1;${t.doneToday?"text-decoration:line-through;color:var(--dim)":""}">${t.text}</span>
-        ${t.time?`<span style="font-size:13.5px;color:var(--muted)">${t.time}</span>`:""}
-      </div>`).join("") || `<div style="padding:12px 14px;font-size:13.5px;color:var(--muted)">No tasks yet. <span style="color:var(--ac);cursor:pointer" onclick="go('mustdo')">+ Add tasks →</span></div>`;
-    if(D.mustdo.length > 5) mdList.innerHTML += `<div style="padding:6px 14px;font-size:13px;color:var(--muted)">+${D.mustdo.length-5} more →</div>`;
-  }
+    return`<tr style="cursor:pointer" onclick="go('compliance')">
+      <td style="font-size:13px"><b>${c.name}</b></td>
+      <td style="font-size:12px">${fd(c.due)}</td>
+      <td style="font-size:13px;color:${col};font-weight:700">${d<0?"Overdue":d+"d"}</td>
+    </tr>`;
+  }).join("")||`<tr><td colspan="3" style="text-align:center;padding:14px;color:var(--green);font-size:13px">✅ All clear!</td></tr>`;
 
+  // ── ACCOUNTING ISSUES ──
+  const accOpen2=D.accounts.filter(a=>a.status!=="resolved").slice(0,4);
+  const catIcons3={debit_note:"📋",statement:"📊",invoice:"🧾",gst:"📑",tds:"📄",bank:"🏦",ledger:"📒",other:"📌"};
+  document.getElementById("dash-accounts").innerHTML=accOpen2.length?accOpen2.map(a=>`
+    <div style="padding:10px 14px;border-bottom:1px solid var(--b1);display:flex;align-items:center;gap:8px;cursor:pointer" onclick="go('accounts')">
+      <span style="font-size:18px">${catIcons3[a.cat]||"📌"}</span>
+      <div style="flex:1"><div style="font-size:13.5px;font-weight:500">${a.issue.substring(0,35)}${a.issue.length>35?"…":""}</div>
+      <div style="font-size:12px;color:var(--muted)">${a.party||""} ${a.due?"· Due "+fd(a.due):""}</div></div>
+      ${a.pri==="high"?'<span class="pill pr" style="font-size:11px">High</span>':""}
+    </div>`).join(""):
+    `<div style="padding:14px;text-align:center;font-size:13px;color:var(--green)">✅ No open issues!</div>`;
+
+  // ── GST DATES ──
+  const gstDue=D.gst.filter(g=>g.status==="pending").sort((a,b)=>new Date(a.due)-new Date(b.due)).slice(0,4);
+  document.getElementById("dash-gst").innerHTML=gstDue.length?gstDue.map(g=>{
+    const d=Math.floor((new Date(g.due)-now)/86400000);
+    const col=d<=3?"var(--red)":d<=7?"var(--orange)":"var(--tx)";
+    return`<div style="padding:10px 14px;border-bottom:1px solid var(--b1);display:flex;align-items:center;justify-content:space-between;cursor:pointer" onclick="go('gst')">
+      <div><div style="font-size:13.5px;font-weight:600">${g.ret}</div>
+      <div style="font-size:12px;color:var(--muted)">${g.period}</div></div>
+      <div style="text-align:right"><div style="font-size:13px;${ddC(g.due)}">${fd(g.due)}</div>
+      <div style="font-size:12px;color:${col};font-weight:600">${d<0?"OVERDUE":d+"d left"}</div></div>
+    </div>`;
+  }).join(""):`<div style="padding:14px;text-align:center;font-size:13px;color:var(--green)">✅ All GST filed!</div>`;
+
+  // ── QUICK COUNTERS ──
   document.getElementById("d-tr").textContent=D.transport.length;
-  document.getElementById("d-ds").textContent=D.deadstock.length;
-  const dr=D.bdmDrills,dd2=dr.filter(d=>d.done).length;
-  document.getElementById("d-bdm").textContent=dr.length?Math.round(dd2/dr.length*100)+"%":"0%";
-  document.getElementById("d-rd").textContent=D.rd.filter(r=>r.status==="testing"||r.status==="approved").length;
-  // Purchase low stock alert on dashboard
-  const lowStock=D.purchase.filter(p=>p.status==="critical"||p.status==="low").length;
-  if(lowStock>0){const al=document.getElementById("dash-al");if(al)al.innerHTML+=`<div class="al yel" onclick="go('purchase')" style="cursor:pointer" title="Click to open Purchase module">🟡 ${lowStock} item(s) low/critical stock — <u>tap to view Purchase module</u> →</div>`;}
+  document.getElementById("d-ls").textContent=D.purchase.filter(p=>p.status==="critical"||p.status==="low").length;
+  document.getElementById("d-def").textContent=D.defaulter.length;
+  document.getElementById("d-bank").textContent=D.banking.filter(b=>b.status!=="resolved").length;
 
-  // Update all sidebar badges
+  // ── ALL BADGES ──
   const bu=document.getElementById("b-urgent");if(bu)bu.textContent=D.urgent.filter(x=>x.pri==="critical"&&x.status!=="done").length||0;
   const bp=document.getElementById("b-pay");if(bp)bp.textContent=D.payment.filter(x=>x.status!=="collected").length||0;
   const bc=document.getElementById("b-comp");if(bc)bc.textContent=D.compliance.filter(c=>c.status==="pending").length||0;
   const bg=document.getElementById("b-gst");if(bg)bg.textContent=D.gst.filter(g=>g.status==="pending").length||0;
-  // Bottom nav badge
   const bn=document.getElementById("bn-badge");if(bn)bn.textContent=D.urgent.filter(x=>x.status!=="done").length||0;
-}
-
-
-// ── API KEY MANAGEMENT ──
-function getApiKey(){
-  return localStorage.getItem("anthropic_api_key")||"";
-}
-function saveApiKey(key){
-  localStorage.setItem("anthropic_api_key",key.trim());
-}
-function openApiKeySettings(){
-  const current=getApiKey();
-  const key=prompt(
-    "Enter your Anthropic API Key\n\nGet it from: console.anthropic.com → API Keys\n\nKey starts with sk-ant-...",
-    current
-  );
-  if(key!==null){
-    saveApiKey(key);
-    if(key){
-      const el=document.getElementById("sync-status");
-      if(el){el.innerHTML="✅ <span>AI Key Saved</span>";setTimeout(()=>showSyncStatus(firebaseReady?"connected":"local"),2000);}
-    }
-  }
-}
-function getAuthHeaders(){
-  const key=getApiKey();
-  const h={"Content-Type":"application/json","anthropic-dangerous-direct-browser-access":"true"};
-  if(key)h["x-api-key"]=key;
-  return h;
-}
-
-
-function moveOrder(id, newStatus) {
-  const o = D.orders.find(x=>x.id===id);
-  if(!o) return;
-  const today = new Date().toISOString().slice(0,10);
-  const now = new Date().toISOString();
-  // Track timeline
-  if(!o.timeline) o.timeline = [];
-  o.timeline.push({status: newStatus, date: today, time: now});
-  o.status = newStatus;
-  // Auto-fill dates
-  if(newStatus==="cod_pending"   && !o.codDate)     o.codDate = today;
-  if(newStatus==="chq_received"  && !o.chqDate)     o.chqDate = today;
-  if(newStatus==="chq_cleared"   && !o.clearedDate) o.clearedDate = today;
-  if(newStatus==="done"          && !o.doneDate)    o.doneDate = today;
-  autoSave("orders");
-  R.orders();
-}
-
-// Open order chain/timeline view
-function openOrderChain(id) {
-  const o = D.orders.find(x=>x.id===id);
-  if(!o) return;
-
-  const stages = [
-    {key:"dispatched",   label:"🚚 Dispatched",    dateField:"dispatchDate",  color:"var(--ac)"},
-    {key:"cod_pending",  label:"💳 COD Pending",    dateField:"codDate",       color:"var(--orange)"},
-    {key:"chq_received", label:"📬 Cheque Received",dateField:"chqDate",       color:"var(--gold)"},
-    {key:"chq_cleared",  label:"✅ Cheque Cleared", dateField:"clearedDate",   color:"var(--teal)"},
-    {key:"done",         label:"🏁 Done",           dateField:"doneDate",      color:"var(--green)"},
-  ];
-
-  const stageOrder = stages.map(s=>s.key);
-  const currentIdx = stageOrder.indexOf(o.status);
-
-  // Build chain HTML
-  const chainHtml = stages.map((s,i) => {
-    const done = i <= currentIdx;
-    const current = i === currentIdx;
-    const date = o[s.dateField] || (o.timeline||[]).find(t=>t.status===s.key)?.date || "";
-    const days = date ? Math.floor((new Date() - new Date(date))/86400000) : null;
-
-    return `
-      <div style="display:flex;align-items:flex-start;gap:12px;margin-bottom:${i<stages.length-1?"0":"0"}">
-        <!-- Left: circle + line -->
-        <div style="display:flex;flex-direction:column;align-items:center;flex-shrink:0">
-          <div style="width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;
-            background:${done?s.color:"var(--b1)"};
-            color:${done?"#fff":"var(--muted)"};
-            border:2px solid ${done?s.color:"var(--b2)"};
-            box-shadow:${current?"0 0 0 4px "+s.color+"30":"none"}">
-            ${done?"✓":""}
-          </div>
-          ${i<stages.length-1?`<div style="width:2px;height:40px;background:${i<currentIdx?"var(--green)":"var(--b1)"};margin:4px 0"></div>`:""}
-        </div>
-        <!-- Right: content -->
-        <div style="padding-bottom:${i<stages.length-1?"28px":"0"};flex:1">
-          <div style="font-weight:700;font-size:13px;color:${done?s.color:"var(--muted)"}">${s.label}</div>
-          ${date?`<div style="font-size:13.5px;color:var(--muted);margin-top:2px">📅 ${fd(date)} ${days!==null&&days>=0?"("+days+" days ago)":""}</div>`
-                :done?`<div style="font-size:13px;color:var(--muted);font-style:italic">Date not recorded</div>`
-                     :`<div style="font-size:13px;color:var(--dim);font-style:italic">Pending</div>`}
-          ${current?`<div style="margin-top:6px"><span style="font-size:13.5px;background:${s.color};color:#fff;padding:2px 8px;border-radius:10px;font-weight:700">CURRENT STAGE</span></div>`:""}
-          <!-- Stage specific details -->
-          ${s.key==="dispatched"&&o.courier?`<div style="font-size:13px;color:var(--muted);margin-top:3px">🚚 ${o.courier} ${o.trackNo?"· "+o.trackNo:""}</div>`:""}
-          ${s.key==="cod_pending"&&o.codAmt?`<div style="font-size:13px;color:var(--muted);margin-top:3px">💰 COD: ${fa(o.codAmt)}</div>`:""}
-          ${s.key==="chq_received"&&o.chqNo?`<div style="font-size:13px;color:var(--muted);margin-top:3px">📄 Chq #${o.chqNo} · ${o.bank||""}</div>`:""}
-          ${s.key==="chq_cleared"&&o.clearedDate?`<div style="font-size:13px;color:var(--green);margin-top:3px">✅ Cleared on ${fd(o.clearedDate)}</div>`:""}
-        </div>
-      </div>`;
-  }).join("");
-
-  // Total days calculation
-  const startDate = o.dispatchDate ? new Date(o.dispatchDate) : null;
-  const totalDays = startDate ? Math.floor((new Date()-startDate)/86400000) : null;
-
-  // Show in a modal
-  document.getElementById("mo-t").textContent = "📦 Order Chain — "+o.party;
-  document.getElementById("mo-b").innerHTML = `
-    <!-- Order summary -->
-    <div style="background:var(--s2);border:1px solid var(--b1);border-radius:10px;padding:12px 14px;margin-bottom:16px;display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:12.5px">
-      <div><span style="color:var(--muted);font-size:13.5px;display:block">PARTY</span><b>${o.party}</b></div>
-      <div><span style="color:var(--muted);font-size:13.5px;display:block">INVOICE</span>${o.inv||"—"}</div>
-      <div><span style="color:var(--muted);font-size:13.5px;display:block">VALUE</span><span class="amt pos">${o.invVal?fa(o.invVal):"—"}</span></div>
-      <div><span style="color:var(--muted);font-size:13.5px;display:block">COD AMOUNT</span><span class="amt neg">${o.codAmt?fa(o.codAmt):"—"}</span></div>
-      <div><span style="color:var(--muted);font-size:13.5px;display:block">AGENT</span>${o.agent||"—"}</div>
-      <div><span style="color:var(--muted);font-size:13.5px;display:block">DAYS IN PROCESS</span><b style="color:${totalDays>30?"var(--red)":"var(--tx)"}">${totalDays!==null?totalDays+"d":"—"}</b></div>
-    </div>
-
-    <!-- Timeline chain -->
-    <div style="font-size:13px;font-weight:700;color:var(--muted);letter-spacing:1px;text-transform:uppercase;margin-bottom:14px">ORDER JOURNEY</div>
-    <div style="padding:4px 0">
-      ${chainHtml}
-    </div>
-
-    <!-- Next action -->
-    ${o.status!=="done"?`
-    <div style="margin-top:16px;padding-top:14px;border-top:1px solid var(--b1)">
-      <div style="font-size:13px;font-weight:700;color:var(--muted);letter-spacing:1px;margin-bottom:8px">NEXT ACTION</div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap">
-        ${o.status==="dispatched"  ?`<button class="btn btn-p" onclick="moveOrder(${o.id},'cod_pending');closeMo()">💳 Mark COD Pending</button>`:""}
-        ${o.status==="cod_pending" ?`<button class="btn btn-p" onclick="moveOrder(${o.id},'chq_received');closeMo()">📬 Mark Cheque Received</button>`:""}
-        ${o.status==="chq_received"?`<button class="btn btn-p" onclick="moveOrder(${o.id},'chq_cleared');closeMo()">✅ Mark Cheque Cleared</button>`:""}
-        ${o.status==="chq_cleared" ?`<button class="btn btn-p" onclick="moveOrder(${o.id},'done');closeMo()">🏁 Mark Done</button>`:""}
-        <button class="btn" onclick="closeMo();Mo.open('orders',${o.id})">✏️ Edit Details</button>
-      </div>
-    </div>`:""}
-
-    ${o.remarks?`<div style="margin-top:12px;font-size:13.5px;color:var(--muted);background:var(--s2);padding:8px 12px;border-radius:8px">📝 ${o.remarks}</div>`:""}
-  `;
-  document.getElementById("mo-sv").style.display="none";
-  document.getElementById("mo").style.display="flex";
-}
-
-
-function manualRefresh() {
-  const btn = document.getElementById("refresh-btn");
-  if(btn) { btn.style.animation="spin 1s linear infinite"; btn.style.pointerEvents="none"; }
-  showSyncStatus("saving");
-  // Reload all data from Firebase
-  loadAllFromFirebase();
-  setTimeout(() => {
-    if(btn) { btn.style.animation=""; btn.style.pointerEvents=""; }
-    showSyncStatus("connected");
-  }, 2000);
+  const bacc=document.getElementById("b-accounts");if(bacc)bacc.textContent=D.accounts.filter(a=>a.status!=="resolved").length||0;
 }
 
 // ── SMART SCAN ──
