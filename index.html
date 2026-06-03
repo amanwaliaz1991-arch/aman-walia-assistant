@@ -3413,6 +3413,97 @@ function scResaveEntry(id){
 
 
 
+
+// ══════════════════════════════════════════
+// MUST DO DAILY — ALL FUNCTIONS
+// ══════════════════════════════════════════
+
+function checkMustDoReset() {
+  const today = new Date().toISOString().slice(0,10);
+  const lastReset = localStorage.getItem("mustdo_last_reset");
+  if(lastReset !== today) {
+    D.mustdo.forEach(t => t.doneToday = false);
+    localStorage.setItem("mustdo_last_reset", today);
+    autoSave("mustdo");
+  }
+}
+
+function toggleMustDo(id) {
+  const t = D.mustdo.find(x => x.id === id);
+  if(!t) return;
+  t.doneToday = !t.doneToday;
+  if(t.doneToday) t.streak = (t.streak||0) + 1;
+  autoSave("mustdo");
+  // Re-render current screen
+  const active = document.querySelector(".mod.on");
+  const activeId = active ? active.id.replace("mod-","") : "";
+  if(activeId === "mustdo") R.mustdo();
+  else if(activeId === "home") R_home();
+}
+
+function resetMustDo() {
+  if(!confirm("Reset all checkmarks for today?")) return;
+  D.mustdo.forEach(t => t.doneToday = false);
+  autoSave("mustdo");
+  R.mustdo();
+}
+
+function addMustDo() {
+  document.getElementById("md-add-form").style.display = "block";
+  document.getElementById("md-empty").style.display = "none";
+  setTimeout(() => document.getElementById("md-inp")?.focus(), 60);
+}
+
+function cancelMustDo() {
+  document.getElementById("md-add-form").style.display = "none";
+  document.getElementById("md-inp").value = "";
+  if(!D.mustdo.length) document.getElementById("md-empty").style.display = "block";
+}
+
+function saveMustDo() {
+  const text = document.getElementById("md-inp")?.value?.trim();
+  if(!text) return;
+  const cat = document.getElementById("md-cat")?.value || "personal";
+  const time = document.getElementById("md-time")?.value?.trim() || "";
+  D.mustdo.push({id:++D.uid, text, cat, time, doneToday:false, streak:0, createdAt:new Date().toISOString().slice(0,10)});
+  document.getElementById("md-inp").value = "";
+  document.getElementById("md-time").value = "";
+  autoSave("mustdo");
+  autoSave("uid");
+  R.mustdo();
+}
+
+function editMustDo(id) {
+  const t = D.mustdo.find(x => x.id === id);
+  if(!t) return;
+  const newText = prompt("Edit task:", t.text);
+  if(newText === null) return;
+  if(newText.trim()) t.text = newText.trim();
+  const newTime = prompt("Time (e.g. 6:00 AM):", t.time||"");
+  if(newTime !== null) t.time = newTime.trim();
+  autoSave("mustdo");
+  R.mustdo();
+}
+
+function deleteMustDo(id) {
+  const t = D.mustdo.find(x => x.id === id);
+  if(!t) return;
+  if(!confirm("Delete \""+t.text+"\"?")) return;
+  D.mustdo = D.mustdo.filter(x => x.id !== id);
+  autoSave("mustdo");
+  R.mustdo();
+}
+
+function moveMustDo(id, dir) {
+  const idx = D.mustdo.findIndex(x => x.id === id);
+  if(idx === -1) return;
+  const newIdx = idx + dir;
+  if(newIdx < 0 || newIdx >= D.mustdo.length) return;
+  [D.mustdo[idx], D.mustdo[newIdx]] = [D.mustdo[newIdx], D.mustdo[idx]];
+  autoSave("mustdo");
+  R.mustdo();
+}
+
 function dashAddMustDo() {
   const text = document.getElementById("dash-mustdo-inp")?.value?.trim();
   if(!text) return;
@@ -3420,7 +3511,8 @@ function dashAddMustDo() {
   D.mustdo.push({id:++D.uid, text, cat, time:"", doneToday:false, streak:0, createdAt:new Date().toISOString().slice(0,10)});
   document.getElementById("dash-mustdo-inp").value = "";
   document.getElementById("dash-mustdo-form").style.display = "none";
-  autoSave("mustdo"); autoSave("uid");
+  autoSave("mustdo");
+  autoSave("uid");
   R_home();
 }
 
@@ -3431,7 +3523,8 @@ function dashAddTask(ds) {
   if(!D.dayData[ds]) D.dayData[ds] = {tasks:[], notes:""};
   D.dayData[ds].tasks.push({id:++D.uid, text, done:false, pri});
   document.getElementById("dash-task-inp").value = "";
-  autoSave("dayData"); autoSave("uid");
+  autoSave("dayData");
+  autoSave("uid");
   R_home();
 }
 
