@@ -2880,6 +2880,96 @@ function addItemToCategory(catName) {
   setTimeout(()=>document.getElementById("mf-name")?.focus(),100);
 }
 
+
+function moveOrder(id, newStatus) {
+  const o = D.orders.find(x=>x.id===id);
+  if(!o) return;
+  const today = new Date().toISOString().slice(0,10);
+  const now = new Date().toISOString();
+  if(!o.timeline) o.timeline = [];
+  o.timeline.push({status:newStatus, date:today, time:now});
+  o.status = newStatus;
+  if(newStatus==="cod_pending"   && !o.codDate)     o.codDate = today;
+  if(newStatus==="chq_received"  && !o.chqDate)     o.chqDate = today;
+  if(newStatus==="chq_cleared"   && !o.clearedDate) o.clearedDate = today;
+  if(newStatus==="done"          && !o.doneDate)    o.doneDate = today;
+  autoSave("orders");
+  R.orders();
+}
+
+function openOrderChain(id) {
+  const o = D.orders.find(x=>x.id===id);
+  if(!o) return;
+  const stages = [
+    {key:"dispatched",   label:"🚚 Dispatched",     dateField:"dispatchDate",  color:"var(--ac)"},
+    {key:"cod_pending",  label:"💳 COD Pending",     dateField:"codDate",       color:"var(--orange)"},
+    {key:"chq_received", label:"📬 Cheque Received", dateField:"chqDate",       color:"var(--gold)"},
+    {key:"chq_cleared",  label:"✅ Cheque Cleared",  dateField:"clearedDate",   color:"var(--teal)"},
+    {key:"done",         label:"🏁 Done",            dateField:"doneDate",      color:"var(--green)"},
+  ];
+  const stageOrder = stages.map(s=>s.key);
+  const currentIdx = stageOrder.indexOf(o.status);
+  const chainHtml = stages.map((s,i) => {
+    const done = i <= currentIdx;
+    const current = i === currentIdx;
+    const date = o[s.dateField] || (o.timeline||[]).find(t=>t.status===s.key)?.date || "";
+    const days = date ? Math.floor((new Date()-new Date(date))/86400000) : null;
+    return `<div style="display:flex;align-items:flex-start;gap:12px;margin-bottom:0">
+      <div style="display:flex;flex-direction:column;align-items:center;flex-shrink:0">
+        <div style="width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;
+          background:${done?s.color:"var(--b1)"};color:${done?"#fff":"var(--muted)"};
+          border:2px solid ${done?s.color:"var(--b2)"};
+          box-shadow:${current?"0 0 0 4px "+s.color+"30":"none"}">
+          ${done?"✓":""}
+        </div>
+        ${i<stages.length-1?`<div style="width:2px;height:36px;background:${i<currentIdx?"var(--green)":"var(--b1)"};margin:4px 0"></div>`:""}
+      </div>
+      <div style="padding-bottom:${i<stages.length-1?"28px":"0"};flex:1">
+        <div style="font-weight:700;font-size:13px;color:${done?s.color:"var(--muted)"}">${s.label}</div>
+        ${date?`<div style="font-size:12px;color:var(--muted);margin-top:2px">📅 ${fd(date)} ${days!==null&&days>=0?"("+days+"d ago)":""}</div>`:
+              done?`<div style="font-size:11px;color:var(--muted);font-style:italic">Date not recorded</div>`:
+                   `<div style="font-size:11px;color:var(--dim);font-style:italic">Pending</div>`}
+        ${current?`<div style="margin-top:6px"><span style="font-size:10px;background:${s.color};color:#fff;padding:2px 8px;border-radius:10px;font-weight:700">CURRENT</span></div>`:""}
+      </div>
+    </div>`;
+  }).join("");
+  const startDate = o.dispatchDate ? new Date(o.dispatchDate) : null;
+  const totalDays = startDate ? Math.floor((new Date()-startDate)/86400000) : null;
+  document.getElementById("mo-t").textContent = "📦 "+o.party;
+  document.getElementById("mo-b").innerHTML = `
+    <div style="background:var(--s2);border:1px solid var(--b1);border-radius:10px;padding:12px 14px;margin-bottom:16px;display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:12.5px">
+      <div><div style="font-size:10px;color:var(--muted);text-transform:uppercase">Party</div><b>${o.party}</b></div>
+      <div><div style="font-size:10px;color:var(--muted);text-transform:uppercase">Invoice</div>${o.inv||"—"}</div>
+      <div><div style="font-size:10px;color:var(--muted);text-transform:uppercase">Value</div><span class="amt pos">${o.invVal?fa(o.invVal):"—"}</span></div>
+      <div><div style="font-size:10px;color:var(--muted);text-transform:uppercase">Days in process</div><b style="color:${totalDays>30?"var(--red)":"var(--tx)"}">${totalDays!==null?totalDays+"d":"—"}</b></div>
+    </div>
+    <div style="font-size:11px;font-weight:700;color:var(--muted);letter-spacing:1px;text-transform:uppercase;margin-bottom:14px">ORDER JOURNEY</div>
+    ${chainHtml}
+    ${o.status!=="done"?`<div style="margin-top:16px;padding-top:14px;border-top:1px solid var(--b1)">
+      <div style="font-size:11px;font-weight:700;color:var(--muted);letter-spacing:1px;margin-bottom:8px">NEXT ACTION</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        ${o.status==="dispatched"  ?`<button class="btn btn-p" onclick="moveOrder(${o.id},'cod_pending');closeMo()">💳 Mark COD Pending</button>`:""}
+        ${o.status==="cod_pending" ?`<button class="btn btn-p" onclick="moveOrder(${o.id},'chq_received');closeMo()">📬 Mark Cheque Received</button>`:""}
+        ${o.status==="chq_received"?`<button class="btn btn-p" onclick="moveOrder(${o.id},'chq_cleared');closeMo()">✅ Mark Cheque Cleared</button>`:""}
+        ${o.status==="chq_cleared" ?`<button class="btn btn-p" onclick="moveOrder(${o.id},'done');closeMo()">🏁 Mark Done</button>`:""}
+        <button class="btn" onclick="closeMo();Mo.open('orders',${o.id})">✏️ Edit</button>
+      </div>
+    </div>`:""}`;
+  document.getElementById("mo-sv").style.display="none";
+  document.getElementById("mo").style.display="flex";
+}
+
+function manualRefresh() {
+  const btn = document.getElementById("refresh-btn");
+  if(btn){btn.style.animation="spin 1s linear infinite";btn.style.pointerEvents="none";}
+  showSyncStatus("saving");
+  loadAllFromFirebase();
+  setTimeout(()=>{
+    if(btn){btn.style.animation="";btn.style.pointerEvents="";}
+    showSyncStatus("connected");
+  }, 2000);
+}
+
 // ── SMART SCAN ──
 function openScan(){
   document.getElementById("scan-mo").classList.add("show");
@@ -3137,7 +3227,9 @@ function reRenderCurrent() {
     itax:R.itax, tds:R.tds, gst:R.gst, itc:R.itc, future:R.future,
     tracker:()=>renderDT(document.getElementById("td")?.value||new Date().toISOString().slice(0,10)),
     health:R.health, badminton:R.badminton, self:R.self, quotes:R.quotes,
-    mustdo:R.mustdo, orders:R.orders, purchase:R.purchase, production:R.production, expenses:R.expenses, scanner:R.scanner
+    mustdo:R.mustdo, accounts:R.accounts, costing:R.costing,
+    orders:R.orders, purchase:R.purchase, production:R.production,
+    expenses:R.expenses, scanner:R.scanner
   };
   rmap[id]?.();
 }
@@ -3233,12 +3325,15 @@ function loadAllFromFirebase() {
 
           // Show which module updated
           const modNames = {
-            urgent:"🚨 Urgent Orders", orders:"📦 Order Tracker",accounts:"🧾 Accounting",costing:"💹 Costing",costCats:"💹 Costing",
+            urgent:"🚨 Urgent Orders", orders:"📦 Order Tracker",
+            accounts:"🧾 Accounting", costing:"💹 Costing",
             payment:"💰 Payments", compliance:"✅ Compliance",
-            purchase:"🛒 Purchase", production:"🏭 Production", expenses:"💸 Expenses",
-            transport:"🚚 Transport", banking:"🏦 Banking", defaulter:"⚠️ Defaulters",
+            purchase:"🛒 Purchase", production:"🏭 Production",
+            expenses:"💸 Expenses", transport:"🚚 Transport",
+            banking:"🏦 Banking", defaulter:"⚠️ Defaulters",
             cod:"💳 COD", deadstock:"📦 Dead Stock", itc:"🔁 ITC",
-            healthHabits:"❤️ Habits", bdmDrills:"🏸 Drills", dayData:"📅 Tasks",
+            healthHabits:"❤️ Habits", bdmDrills:"🏸 Drills",
+            dayData:"📅 Tasks", mustdo:"✅ Must Do",
             scanHistory:"📷 Scanner", quotes:"💡 Quotes", future:"🚀 Plans"
           };
           const modName = modNames[col] || col;
