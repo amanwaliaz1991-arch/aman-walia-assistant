@@ -1119,16 +1119,12 @@ html,body{height:100%;background:var(--bg);color:var(--tx);font-family:"Plus Jak
 <div class="mod" id="mod-costing">
   <div class="ph">
     <div><div class="pt">COST <span>& PRICING</span></div>
-    <div class="pt-sub">Raw materials · Finished goods · Vendor comparison · Price history</div></div>
+    <div class="pt-sub">All items — CP · SP · Margin</div></div>
     <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
-      <select class="sel" id="cst-type-f" onchange="R.costing()" style="width:140px">
-        <option value="">All Types</option>
-        <option value="raw_material">Raw Material</option>
-        <option value="finished">Finished Product</option>
-        <option value="packaging">Packaging</option>
-        <option value="consumable">Consumable</option>
+      <select class="sel" id="cst-cat-f" onchange="R.costing()" style="width:160px">
+        <option value="">All Categories</option>
       </select>
-      <input class="inp" id="cst-search" placeholder="🔍 Item / Vendor…" oninput="R.costing()" style="width:160px">
+      <input class="inp" id="cst-search" placeholder="🔍 Search item…" oninput="R.costing()" style="width:150px">
       <button class="btn btn-p" onclick="Mo.open('costing')">+ Add Item</button>
     </div>
   </div>
@@ -1136,10 +1132,21 @@ html,body{height:100%;background:var(--bg);color:var(--tx);font-family:"Plus Jak
   <!-- Stats -->
   <div class="g4" id="cst-stats" style="margin-bottom:14px"></div>
 
-  <!-- Items with price history -->
-  <div id="cst-items"></div>
-  <div id="cst-empty" class="es" style="display:none">
-    <div class="em">💹</div>No items yet. Add raw materials or finished products.
+  <!-- Table -->
+  <div class="card">
+    <div class="tbl-scroll">
+      <table class="tbl">
+        <thead><tr>
+          <th>Item Name</th><th>Category</th><th>Unit</th>
+          <th>Cost Price (CP)</th><th>Selling Price (SP)</th>
+          <th>Margin ₹</th><th>Margin %</th><th>Actions</th>
+        </tr></thead>
+        <tbody id="cst-body"></tbody>
+      </table>
+    </div>
+    <div id="cst-empty" class="es" style="display:none">
+      <div class="em">💹</div>No items yet.
+    </div>
   </div>
 </div>
 
@@ -1441,34 +1448,20 @@ const Mo={
         <div class="fr one"><div class="fg"><label>Title *</label><input class="inp" id="mf-title" style="width:100%"></div></div>
         <div class="fr"><div class="fg"><label>Author</label><input class="inp" id="mf-author" style="width:100%"></div><div class="fg"><label>Status</label><select class="sel" id="mf-status" style="width:100%"><option value="to-read">To Read</option><option value="reading">Reading</option><option value="done">Done ✓</option></select></div></div>`},
       costing:{t:ie?"EDIT ITEM":"ADD COST ITEM",h:`
-        <div style="background:var(--s2);border:1px solid var(--b1);border-radius:8px;padding:10px 14px;margin-bottom:12px;font-size:12.5px;color:var(--muted)">
-          💡 Add item once, then add multiple vendor price entries to compare costs and track price changes over time.
-        </div>
-        <div class="fr"><div class="fg"><label>Item Name *</label><input class="inp" id="mf-name" value="${v('name')}" placeholder="e.g. Natural Rubber, Chevron Grip" style="width:100%"></div>
-        <div class="fg"><label>Type</label><select class="sel" id="mf-type" style="width:100%">
-          <option value="raw_material" ${!ie||item.type==="raw_material"?"selected":""}>🧱 Raw Material</option>
-          <option value="finished" ${ie&&item.type==="finished"?"selected":""}>🏏 Finished Product</option>
-          <option value="packaging" ${ie&&item.type==="packaging"?"selected":""}>📦 Packaging</option>
-          <option value="consumable" ${ie&&item.type==="consumable"?"selected":""}>🔧 Consumable</option>
-        </select></div></div>
-        <div class="fr"><div class="fg"><label>Unit</label><input class="inp" id="mf-unit" value="${v('unit','kg')}" placeholder="kg / pcs / box / set" style="width:100%"></div>
-        <div class="fg"><label>HSN / SKU</label><input class="inp" id="mf-sku" value="${v('sku')}" placeholder="HSN code or SKU" style="width:100%"></div></div>
-        <div class="fr one"><div class="fg"><label>Description / Notes</label><input class="inp" id="mf-desc" value="${v('desc')}" placeholder="Specs, grade, quality notes…" style="width:100%"></div></div>
-        <div style="border-top:1px solid var(--b1);margin:12px 0 10px;padding-top:10px;font-size:12px;font-weight:700;color:var(--muted);letter-spacing:1px;text-transform:uppercase">ADD PURCHASE ENTRY (VENDOR + PRICE)</div>
-        <div class="fr"><div class="fg"><label>Vendor / Supplier</label><input class="inp" id="mf-vendor" value="" placeholder="Rubber World, Local Supplier…" style="width:100%"></div>
-        <div class="fg"><label>Invoice No</label><input class="inp" id="mf-invNo" value="" style="width:100%"></div></div>
-        <div class="fr"><div class="fg"><label>Date Received</label><input class="inp" id="mf-date" type="date" value="${new Date().toISOString().slice(0,10)}" style="width:100%"></div>
-        <div class="fg"><label>Qty Received</label><input class="inp" id="mf-qty" type="number" value="" placeholder="Quantity" style="width:100%"></div></div>
-        <div class="fr"><div class="fg"><label>Rate per Unit (₹) *</label><input class="inp" id="mf-rate" type="number" value="" placeholder="Cost per kg/pcs" style="width:100%"></div>
-        <div class="fg"><label>GST %</label><select class="sel" id="mf-gst" style="width:100%">
-          <option value="0">0%</option><option value="5">5%</option><option value="12">12%</option>
-          <option value="18" selected>18%</option><option value="28">28%</option>
-        </select></div></div>
-        <div class="fr"><div class="fg"><label>Transport / Other Cost (₹)</label><input class="inp" id="mf-transport" type="number" value="0" style="width:100%"></div>
-        <div class="fg"><label>Payment Mode</label><select class="sel" id="mf-paymode" style="width:100%">
-          <option value="cash">Cash</option><option value="cheque">Cheque</option>
-          <option value="online" selected>Online/UPI</option><option value="bank">Bank Transfer</option>
-        </select></div></div>`},
+        <div class="fr"><div class="fg"><label>Item Name *</label>
+          <input class="inp" id="mf-name" value="${v('name')}" placeholder="e.g. EW Cleft Super Best, Chevron Grip" style="width:100%"></div>
+        <div class="fg"><label>Category / Batch</label>
+          <input class="inp" id="mf-cat" value="${v('cat')}" placeholder="e.g. Anglian Clefts, Marigold Grips, Raw Rubber" list="mf-cat-list" style="width:100%">
+          <datalist id="mf-cat-list">${[...new Set(D.costing.map(c=>c.cat).filter(Boolean))].map(c=>`<option value="${c}">`).join("")}</datalist>
+        </div></div>
+        <div class="fr"><div class="fg"><label>Unit</label>
+          <input class="inp" id="mf-unit" value="${v('unit','pcs')}" placeholder="pcs / kg / set" style="width:100%"></div>
+        <div class="fg"><label>Cost Price — CP (₹) *</label>
+          <input class="inp" id="mf-cp" type="number" value="${vn('cp')}" placeholder="Your cost price" style="width:100%"></div>
+        <div class="fg"><label>Selling Price — SP (₹) *</label>
+          <input class="inp" id="mf-sp" type="number" value="${vn('sp')}" placeholder="Your selling price" style="width:100%"></div></div>
+        <div class="fr"><div class="fg"><label>Notes / Specs</label>
+          <input class="inp" id="mf-notes" value="${v('notes')}" placeholder="Grade, quality, vendor info…" style="width:100%"></div></div>`},
       accounts:{t:ie?"EDIT ISSUE":"ADD ACCOUNTING ISSUE",h:`
         <div class="fr one"><div class="fg"><label>Issue Description *</label><input class="inp" id="mf-issue" value="${v('issue')}" placeholder="e.g. Customer debit note pending from Sharma Traders" style="width:100%"></div></div>
         <div class="fr"><div class="fg"><label>Category</label><select class="sel" id="mf-cat" style="width:100%">
@@ -1999,102 +1992,56 @@ const R={
 
 
   costing(){
-    const tf = document.getElementById("cst-type-f")?.value||"";
+    const cf = document.getElementById("cst-cat-f")?.value||"";
     const sq = (document.getElementById("cst-search")?.value||"").toLowerCase();
     const list = D.costing.filter(c=>
-      (!tf||c.type===tf) &&
-      (!sq||(c.name+(c.entries||[]).map(e=>e.vendor).join(" ")).toLowerCase().includes(sq))
+      (!cf||c.cat===cf) &&
+      (!sq||c.name.toLowerCase().includes(sq)||(c.cat||"").toLowerCase().includes(sq))
     );
 
-    const typeIcons = {raw_material:"🧱",finished:"🏏",packaging:"📦",consumable:"🔧"};
-    const typeColors = {raw_material:"var(--orange)",finished:"var(--ac)",packaging:"var(--teal)",consumable:"var(--gold)"};
+    // Populate category dropdown
+    const catF = document.getElementById("cst-cat-f");
+    if(catF){
+      const cats = [...new Set(D.costing.map(c=>c.cat).filter(Boolean))].sort();
+      const curVal = catF.value;
+      catF.innerHTML = '<option value="">All Categories</option>' +
+        cats.map(c=>`<option value="${c}" ${c===curVal?"selected":""}>${c}</option>`).join("");
+    }
 
     // Stats
     const totalItems = D.costing.length;
-    const totalEntries = D.costing.reduce((s,c)=>(s+(c.entries||[]).length),0);
-    const totalSpend = D.costing.reduce((s,c)=>(s+(c.entries||[]).reduce((s2,e)=>s2+(e.total||0),0)),0);
-    const rawMat = D.costing.filter(c=>c.type==="raw_material").length;
+    const cats2 = [...new Set(D.costing.map(c=>c.cat).filter(Boolean))].length;
+    const avgMargin = D.costing.length ?
+      Math.round(D.costing.filter(c=>c.cp).reduce((s,c)=>s+((c.sp-c.cp)/c.cp*100),0)/D.costing.filter(c=>c.cp).length) : 0;
+    const totalCP = D.costing.reduce((s,c)=>s+(c.cp||0),0);
     document.getElementById("cst-stats").innerHTML =
-      sc("var(--ac)",    "Total Items",    totalItems)  +
-      sc("var(--orange)","Raw Materials",  rawMat)      +
-      sc("var(--green)", "Price Entries",  totalEntries,"Bills recorded") +
-      sc("var(--red)",   "Total Spend",    fa(totalSpend),"All time");
+      sc("var(--ac)",    "Total Items",    totalItems) +
+      sc("var(--orange)","Categories",     cats2)      +
+      sc("var(--green)", "Avg Margin",     avgMargin+"%") +
+      sc("var(--red)",   "Items Listed",   list.length);
 
     const empty = document.getElementById("cst-empty");
-    const container = document.getElementById("cst-items");
-
-    if(!list.length){empty.style.display="block";container.innerHTML="";return;}
+    const tbody = document.getElementById("cst-body");
+    if(!list.length){empty.style.display="block";tbody.innerHTML="";return;}
     empty.style.display="none";
 
-    container.innerHTML = list.map(item => {
-      const entries = (item.entries||[]).sort((a,b)=>new Date(b.date)-new Date(a.date));
-      const latestRate = entries.length ? entries[0].effectiveRate||entries[0].rate : 0;
-      const lowestRate = entries.length ? Math.min(...entries.map(e=>e.effectiveRate||e.rate)) : 0;
-      const highestRate = entries.length ? Math.max(...entries.map(e=>e.effectiveRate||e.rate)) : 0;
-      const vendors = [...new Set(entries.map(e=>e.vendor).filter(Boolean))];
-
-      return `<div class="card" style="margin-bottom:14px">
-        <!-- Item header -->
-        <div style="padding:14px 16px;background:var(--s2);border-bottom:1px solid var(--b1);display:flex;align-items:center;gap:12px;flex-wrap:wrap">
-          <span style="font-size:24px">${typeIcons[item.type]||"📦"}</span>
-          <div style="flex:1">
-            <div style="font-size:15px;font-weight:700">${item.name}
-              ${item.sku?`<span style="font-size:12px;color:var(--muted);font-weight:400;margin-left:8px">${item.sku}</span>`:""}
-            </div>
-            <div style="display:flex;gap:8px;margin-top:4px;flex-wrap:wrap">
-              <span class="pill" style="background:${typeColors[item.type]||"var(--ac)"}20;color:${typeColors[item.type]||"var(--ac)"}">${typeIcons[item.type]} ${item.type.replace("_"," ")}</span>
-              <span style="font-size:12px;color:var(--muted)">Unit: ${item.unit}</span>
-              ${item.desc?`<span style="font-size:12px;color:var(--muted)">${item.desc}</span>`:""}
-            </div>
-          </div>
-          <!-- Current rate box -->
-          ${latestRate?`<div style="text-align:center;background:#fff;border:1px solid var(--b1);border-radius:10px;padding:8px 16px">
-            <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:1px">Latest Rate</div>
-            <div style="font-family:'JetBrains Mono';font-size:18px;font-weight:700;color:var(--ac)">${fa(latestRate)}</div>
-            <div style="font-size:11px;color:var(--muted)">per ${item.unit}</div>
-          </div>`:""}
-          <div style="display:flex;gap:6px">
-            <button class="btn btn-p btn-sm" onclick="openAddEntry(${item.id})">+ Add Bill</button>
-            <button class="btn-e" onclick="Mo.open('costing',${item.id})">✏️</button>
-            <button class="btn-d" onclick="delItem('costing',${item.id})">🗑</button>
-          </div>
-        </div>
-
-        <!-- Rate summary if multiple entries -->
-        ${entries.length>1?`<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:1px;background:var(--b1)">
-          <div style="padding:10px 14px;background:#fff;text-align:center">
-            <div style="font-size:11px;color:var(--muted)">LOWEST RATE</div>
-            <div style="font-family:'JetBrains Mono';font-size:15px;color:var(--green);font-weight:700">${fa(lowestRate)}/${item.unit}</div>
-          </div>
-          <div style="padding:10px 14px;background:#fff;text-align:center">
-            <div style="font-size:11px;color:var(--muted)">HIGHEST RATE</div>
-            <div style="font-family:'JetBrains Mono';font-size:15px;color:var(--red);font-weight:700">${fa(highestRate)}/${item.unit}</div>
-          </div>
-          <div style="padding:10px 14px;background:#fff;text-align:center">
-            <div style="font-size:11px;color:var(--muted)">VENDORS</div>
-            <div style="font-size:13px;font-weight:600">${vendors.slice(0,2).join(", ")}${vendors.length>2?" +"+( vendors.length-2):""}</div>
-          </div>
-        </div>`:""}
-
-        <!-- Price entries table -->
-        ${entries.length?`<div class="tbl-scroll"><table class="tbl">
-          <thead><tr><th>Date</th><th>Vendor</th><th>Invoice</th><th>Qty</th><th>Rate/Unit</th><th>GST%</th><th>Transport</th><th>Total</th><th>Eff. Rate</th><th>Mode</th><th></th></tr></thead>
-          <tbody>${entries.map(e=>`<tr>
-            <td style="font-size:13px">${fd(e.date)}</td>
-            <td><b>${e.vendor||"—"}</b></td>
-            <td style="font-size:12px;font-family:'JetBrains Mono'">${e.invNo||"—"}</td>
-            <td style="font-size:13px">${e.qty||"—"} ${item.unit}</td>
-            <td class="amt">${e.rate?fa(e.rate):""}</td>
-            <td style="font-size:13px">${e.gst||0}%</td>
-            <td class="amt">${e.transport?fa(e.transport):"—"}</td>
-            <td class="amt neg">${e.total?fa(e.total):""}</td>
-            <td class="amt pos" style="font-weight:700">${e.effectiveRate?fa(e.effectiveRate)+"/${item.unit}":""}</td>
-            <td><span class="pill pb" style="font-size:11px">${e.paymode||""}</span></td>
-            <td><button class="btn-d" onclick="delCostEntry(${item.id},${e.id})">🗑</button></td>
-          </tr>`).join("")}</tbody>
-        </table></div>`:
-        `<div style="padding:14px;font-size:13px;color:var(--muted);text-align:center">No price entries yet. Click <b>+ Add Bill</b> to add vendor purchase details.</div>`}
-      </div>`;
+    tbody.innerHTML = list.map(c=>{
+      const margin = (c.sp||0)-(c.cp||0);
+      const marginPct = c.cp ? Math.round(margin/c.cp*100) : 0;
+      const marginColor = marginPct>=40?"var(--green)":marginPct>=20?"var(--gold)":"var(--red)";
+      return `<tr>
+        <td><b>${c.name}</b>${c.notes?`<div style="font-size:12px;color:var(--muted)">${c.notes}</div>`:""}</td>
+        <td><span class="pill pb" style="font-size:12px">${c.cat||"—"}</span></td>
+        <td style="font-size:13px">${c.unit||"pcs"}</td>
+        <td class="amt pos" style="font-size:14px;font-weight:700">${c.cp?fa(c.cp):"—"}</td>
+        <td class="amt" style="font-size:14px;font-weight:700;color:var(--ac)">${c.sp?fa(c.sp):"—"}</td>
+        <td class="amt" style="color:${marginColor};font-weight:700">${margin?fa(margin):"—"}</td>
+        <td><span style="font-family:'JetBrains Mono';font-size:13px;font-weight:700;color:${marginColor}">${marginPct?marginPct+"%":"—"}</span></td>
+        <td style="white-space:nowrap">
+          <button class="btn-e" onclick="Mo.open('costing',${c.id})">✏️</button>
+          <button class="btn-d" onclick="delItem('costing',${c.id})">🗑</button>
+        </td>
+      </tr>`;
     }).join("");
   },
   accounts(){
