@@ -245,6 +245,18 @@ html,body{height:100%;background:var(--bg);color:var(--tx);font-family:"Plus Jak
 @keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
 
 
+
+/* ── GLOBAL SEARCH ── */
+.gs-item{padding:10px 18px;cursor:pointer;display:flex;align-items:center;gap:12px;border-bottom:1px solid var(--b1);transition:background .1s;}
+.gs-item:hover,.gs-item.active{background:var(--s2);}
+.gs-item:last-child{border-bottom:none;}
+.gs-icon{font-size:20px;flex-shrink:0;width:32px;text-align:center;}
+.gs-main{flex:1;min-width:0;}
+.gs-title{font-size:13.5px;font-weight:600;color:var(--tx);}
+.gs-sub{font-size:12px;color:var(--muted);margin-top:2px;}
+.gs-tag{font-size:11px;background:var(--s2);border:1px solid var(--b1);padding:2px 8px;border-radius:10px;color:var(--muted);flex-shrink:0;}
+.gs-section{padding:6px 18px;font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);background:var(--s2);border-bottom:1px solid var(--b1);}
+mark{background:#fef08a;border-radius:2px;padding:0 2px;}
 </style>
   <!-- Firebase SDK -->
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
@@ -258,6 +270,7 @@ html,body{height:100%;background:var(--bg);color:var(--tx);font-family:"Plus Jak
   <button class="hdr-menu" id="menu-btn" onclick="toggleSB()">☰</button>
   <div class="hdr-logo">Aman Walia<span>Personal Assistant</span></div>
   <div class="hdr-r">
+    <button onclick="toggleGlobalSearch()" title="Search everything" id="gs-btn" style="background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.25);color:#fff;width:34px;height:34px;border-radius:8px;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;">🔍</button>
     <button onclick="manualRefresh()" title="Refresh data from Firebase" style="background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.25);color:#fff;width:34px;height:34px;border-radius:8px;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;" id="refresh-btn">🔄</button>
     <div id="sync-status" style="font-size:13px;color:rgba(255,255,255,.7);display:flex;align-items:center;gap:4px;">💾 <span>Local Only</span></div>
     <button class="btn" onclick="exportBackup()" style="background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.2);color:#fff;font-size:13px;padding:5px 10px;">📥 Backup</button><button class="btn" onclick="openApiKeySettings()" style="background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.2);color:#fff;font-size:13px;padding:5px 10px;" title="Set Anthropic API Key">⚙️ AI Key</button><button class="hdr-scan" onclick="openScan()"><span class="scan-ico">📷</span><span class="scan-txt">Scan / Upload</span></button>
@@ -3838,6 +3851,164 @@ function dashAddTask(ds) {
   autoSave("dayData");
   autoSave("uid");
   R_home();
+}
+
+
+// ══════════════════════════════════════════
+// GLOBAL SEARCH
+// ══════════════════════════════════════════
+let gsActiveIdx = -1;
+
+function toggleGlobalSearch() {
+  const ov = document.getElementById("gs-overlay");
+  if(ov.style.display === "none" || !ov.style.display) {
+    openGlobalSearch();
+  } else {
+    closeGlobalSearch();
+  }
+}
+
+function openGlobalSearch() {
+  const ov = document.getElementById("gs-overlay");
+  ov.style.display = "block";
+  gsActiveIdx = -1;
+  setTimeout(() => document.getElementById("gs-inp")?.focus(), 80);
+}
+
+function closeGlobalSearch() {
+  document.getElementById("gs-overlay").style.display = "none";
+  document.getElementById("gs-inp").value = "";
+  document.getElementById("gs-results").innerHTML = `<div style="padding:24px;text-align:center;color:var(--muted);font-size:13px">Start typing to search across all modules…</div>`;
+  gsActiveIdx = -1;
+}
+
+// Keyboard shortcut: Ctrl+K or Cmd+K
+document.addEventListener("keydown", e => {
+  if((e.ctrlKey||e.metaKey) && e.key==="k") { e.preventDefault(); openGlobalSearch(); }
+  if(e.key==="Escape") closeGlobalSearch();
+});
+
+function hl(text, q) {
+  if(!q||!text) return text||"";
+  const re = new RegExp("("+q.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")+")", "gi");
+  return String(text).replace(re, "<mark>$1</mark>");
+}
+
+function gsKeyNav(e) {
+  const items = document.querySelectorAll(".gs-item");
+  if(e.key==="ArrowDown") { e.preventDefault(); gsActiveIdx=Math.min(gsActiveIdx+1,items.length-1); gsHighlight(items); }
+  else if(e.key==="ArrowUp") { e.preventDefault(); gsActiveIdx=Math.max(gsActiveIdx-1,0); gsHighlight(items); }
+  else if(e.key==="Enter") { e.preventDefault(); if(gsActiveIdx>=0&&items[gsActiveIdx]) items[gsActiveIdx].click(); }
+}
+
+function gsHighlight(items) {
+  items.forEach((el,i)=>el.classList.toggle("active",i===gsActiveIdx));
+  if(gsActiveIdx>=0) items[gsActiveIdx]?.scrollIntoView({block:"nearest"});
+}
+
+function runGlobalSearch() {
+  const q = document.getElementById("gs-inp")?.value?.trim().toLowerCase();
+  const res = document.getElementById("gs-results");
+  gsActiveIdx = -1;
+
+  if(!q || q.length < 2) {
+    res.innerHTML = `<div style="padding:24px;text-align:center;color:var(--muted);font-size:13px">Type at least 2 characters to search…</div>`;
+    return;
+  }
+
+  const results = [];
+
+  // Search config: [collection, icon, module, labelFn, subFn, badgeFn]
+  const searchDefs = [
+    { col:"payment",    icon:"💰", mod:"payment",    label:o=>o.party,                  sub:o=>`₹${o.amt||""} · ${o.due||""} · ${o.agent||""}`,        badge:"Payments" },
+    { col:"orders",     icon:"📦", mod:"orders",     label:o=>o.party,                  sub:o=>`${o.inv||""} · ₹${o.codAmt||""} · ${o.status||""}`,    badge:"Orders" },
+    { col:"urgent",     icon:"🚨", mod:"urgent",     label:o=>o.party,                  sub:o=>`${o.items||""} · ${o.status||""}`,                      badge:"Urgent" },
+    { col:"defaulter",  icon:"⚠️", mod:"defaulter",  label:o=>o.party,                  sub:o=>`₹${o.amt||""} · ${o.legal||""}`,                        badge:"Defaulters" },
+    { col:"cod",        icon:"💳", mod:"cod",        label:o=>o.party,                  sub:o=>`₹${o.amt||""} · ${o.status||""}`,                      badge:"COD" },
+    { col:"transport",  icon:"🚚", mod:"transport",  label:o=>o.party||o.courier,       sub:o=>`${o.trackNo||""} · ${o.status||""}`,                    badge:"Transport" },
+    { col:"banking",    icon:"🏦", mod:"banking",    label:o=>o.issue||o.bank,          sub:o=>`₹${o.amt||""} · ${o.status||""}`,                      badge:"Banking" },
+    { col:"deadstock",  icon:"📦", mod:"deadstock",  label:o=>o.item,                   sub:o=>`Qty:${o.qty||""} · ₹${o.val||""}`,                      badge:"Dead Stock" },
+    { col:"costing",    icon:"💹", mod:"costing",    label:o=>o.name,                   sub:o=>`${o.cat||""} · CP:₹${o.cp||""} · SP:₹${o.sp||""}`,     badge:"Cost & Pricing" },
+    { col:"accounts",   icon:"🧾", mod:"accounts",   label:o=>o.issue,                  sub:o=>`${o.party||""} · ${o.status||""}`,                      badge:"Accounting" },
+    { col:"purchase",   icon:"🛒", mod:"purchase",   label:o=>o.item,                   sub:o=>`Stock:${o.stock||""} ${o.unit||""} · ${o.status||""}`,  badge:"Purchase" },
+    { col:"production", icon:"🏭", mod:"production", label:o=>o.product,                sub:o=>`Qty:${o.qty||""} · ${o.status||""}`,                    badge:"Production" },
+    { col:"expenses",   icon:"💸", mod:"expenses",   label:o=>o.desc||o.category,       sub:o=>`₹${o.amt||""} · ${o.date||""}`,                        badge:"Expenses" },
+    { col:"rd",         icon:"💡", mod:"rd",         label:o=>o.idea||o.title,          sub:o=>`${o.cat||""} · ${o.status||""}`,                        badge:"R&D" },
+    { col:"future",     icon:"🚀", mod:"future",     label:o=>o.plan||o.title,          sub:o=>`${o.cat||""} · ${o.priority||""}`,                      badge:"Future Plans" },
+    { col:"compliance", icon:"📋", mod:"compliance", label:o=>o.name,                   sub:o=>`Due: ${o.due||""} · ${o.status||""}`,                   badge:"Compliance" },
+    { col:"itc",        icon:"🔁", mod:"itc",        label:o=>o.vendor||o.desc,         sub:o=>`₹${o.amt||""} · ${o.month||""}`,                        badge:"ITC" },
+    { col:"mustdo",     icon:"✅", mod:"mustdo",     label:o=>o.text,                   sub:o=>`${o.cat||""} · ${o.time||""}`,                          badge:"Must Do" },
+    { col:"selfGoals",  icon:"🧘", mod:"self",       label:o=>o.goal||o.text,           sub:o=>`${o.cat||""} · ${o.status||""}`,                        badge:"Self Goals" },
+    { col:"books",      icon:"📚", mod:"self",       label:o=>o.title,                  sub:o=>`${o.author||""} · ${o.status||""}`,                     badge:"Books" },
+    { col:"quotes",     icon:"💬", mod:"quotes",     label:o=>o.text||o.quote,          sub:o=>`— ${o.author||""}`,                                      badge:"Quotes" },
+  ];
+
+  // Day tracker tasks
+  Object.entries(D.dayData||{}).forEach(([date, day]) => {
+    (day.tasks||[]).forEach(t => {
+      if((t.text||"").toLowerCase().includes(q)) {
+        results.push({ icon:"📅", mod:"tracker", label:t.text, sub:`Day Tracker · ${date}`, badge:"Tasks", action:()=>{go("tracker");document.getElementById("td").value=date;loadDay(date);} });
+      }
+    });
+  });
+
+  // Search all collections
+  searchDefs.forEach(def => {
+    const arr = Array.isArray(D[def.col]) ? D[def.col] : [];
+    arr.forEach(o => {
+      const labelText = String(def.label(o)||"");
+      const subText = String(def.sub(o)||"");
+      const searchText = (labelText+" "+subText).toLowerCase();
+      if(searchText.includes(q)) {
+        results.push({
+          icon: def.icon,
+          mod: def.mod,
+          label: hl(labelText, q),
+          sub: hl(subText, q),
+          badge: def.badge,
+          action: () => go(def.mod)
+        });
+      }
+    });
+  });
+
+  if(!results.length) {
+    res.innerHTML = `<div style="padding:24px;text-align:center;color:var(--muted);font-size:13px">😔 No results for "<b>${q}</b>"</div>`;
+    return;
+  }
+
+  // Group by badge
+  const grouped = {};
+  results.forEach(r => {
+    if(!grouped[r.badge]) grouped[r.badge] = [];
+    grouped[r.badge].push(r);
+  });
+
+  let html = "";
+  let totalShown = 0;
+  Object.entries(grouped).forEach(([section, items]) => {
+    html += `<div class="gs-section">${items[0].icon} ${section} <span style="font-weight:400">(${items.length})</span></div>`;
+    items.slice(0,5).forEach(item => {
+      html += `<div class="gs-item" onclick="closeGlobalSearch();${item.action ? "" : `go('${item.mod}')`}" ${item.action ? `data-action="${section}"` : ""}>
+        <div class="gs-icon">${item.icon}</div>
+        <div class="gs-main">
+          <div class="gs-title">${item.label}</div>
+          ${item.sub ? `<div class="gs-sub">${item.sub}</div>` : ""}
+        </div>
+        <span class="gs-tag">${item.badge}</span>
+      </div>`;
+      totalShown++;
+    });
+    if(items.length > 5) html += `<div style="padding:6px 18px;font-size:12px;color:var(--muted);cursor:pointer" onclick="closeGlobalSearch();go('${items[0].mod}')">+${items.length-5} more in ${section} →</div>`;
+  });
+
+  res.innerHTML = `<div style="padding:6px 18px 4px;font-size:12px;color:var(--muted)">${totalShown} result${totalShown!==1?"s":""} for "<b>${q}</b>"</div>` + html;
+
+  // Re-attach action handlers for items with custom actions
+  document.querySelectorAll(".gs-item[data-action]").forEach((el, i) => {
+    const result = results.filter(r=>r.action)[i];
+    if(result?.action) el.addEventListener("click", result.action);
+  });
 }
 
 // ── INIT ──
