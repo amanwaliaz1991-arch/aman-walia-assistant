@@ -1478,7 +1478,7 @@ const Mo={
           <input class="inp" id="mf-name" value="${v('name')}" placeholder="e.g. Super Best, Chevron Grip" style="width:100%"></div>
         <div class="fg"><label>Category</label>
           <select class="sel" id="mf-cat" style="width:100%">
-            ${D.costCats.map(c=>`<option value="${c.name}" ${ie&&item.cat===c.name?"selected":""}>${c.icon||"📦"} ${c.name}</option>`).join("")}
+            ${(D.costCats||[]).map(c=>`<option value="${c.name}" ${ie&&item&&item.cat===c.name?"selected":""}>${c.icon||"📦"} ${c.name}</option>`).join("")}
             ${!D.costCats.find(c=>c.name===item.cat)&&ie?`<option value="${item.cat}" selected>${item.cat}</option>`:""}
             ${!D.costCats.length?`<option value="">— No categories yet —</option>`:""}
           </select></div></div>
@@ -2041,7 +2041,7 @@ const R={
     // Render category chips in form
     const catList = document.getElementById("cst-cat-list");
     if(catList){
-      catList.innerHTML = D.costCats.map(cat=>`
+      catList.innerHTML = (D||[]).map(cat=>`
         <div style="display:flex;align-items:center;gap:6px;background:var(--s2);border:1px solid var(--b1);border-radius:20px;padding:5px 12px">
           <span>${cat.icon||"📦"}</span>
           <span style="font-size:13px;font-weight:600">${cat.name}</span>
@@ -2065,10 +2065,10 @@ const R={
 
     // Group items by category
     const cats = D.costCats.length ? D.costCats : 
-      [...new Set(D.costing.map(c=>c.cat||"Uncategorised"))].map(n=>({name:n,icon:"📦"}));
+      [...new Set((D||[]).map(c=>c.cat||"Uncategorised"))].map(n=>({name:n,icon:"📦"}));
     
     // Also get uncategorised items
-    const catNames = D.costCats.map(c=>c.name);
+    const catNames = (D||[]).map(c=>c.name);
     const uncatItems = D.costing.filter(c=>!c.cat||!catNames.includes(c.cat));
 
     const allGroups = [...cats];
@@ -2862,13 +2862,13 @@ function addItemToCategory(catName) {
   document.getElementById("mo-sv").style.display = "";
   document.getElementById("mo-sv").onclick = moSave;
   // Build form with cat pre-filled
-  const catIcons = Object.fromEntries(D.costCats.map(c=>[c.name,c.icon]));
+  const catIcons = Object.fromEntries((D||[]).map(c=>[c.name,c.icon]));
   document.getElementById("mo-b").innerHTML = `
     <div class="fr"><div class="fg"><label>Item Name *</label>
       <input class="inp" id="mf-name" placeholder="e.g. Super Best, Chevron Grip" style="width:100%"></div>
     <div class="fg"><label>Category</label>
       <select class="sel" id="mf-cat" style="width:100%">
-        ${D.costCats.map(c=>`<option value="${c.name}" ${c.name===catName?"selected":""}>${c.icon} ${c.name}</option>`).join("")}
+        ${(D||[]).map(c=>`<option value="${c.name}" ${c.name===catName?"selected":""}>${c.icon} ${c.name}</option>`).join("")}
         <option value="${catName}" ${!D.costCats.find(c=>c.name===catName)?"selected":""}>${catName}</option>
       </select></div></div>
     <div class="fr"><div class="fg"><label>Unit</label>
