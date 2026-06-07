@@ -1554,7 +1554,7 @@ const Mo={
     setTimeout(()=>document.querySelector("#mo-b input,#mo-b textarea")?.focus(),100);
   }
 };
-function closeMo(){document.getElementById("mo").style.display="none";MC={};document.getElementById("mo-sv").style.display="";}
+function closeMo(){document.getElementById("mo").style.display="none";MC={};const sv=document.getElementById("mo-sv");if(sv){sv.style.display="";sv.onclick=moSave;}}
 document.addEventListener("keydown",e=>{if(e.key==="Escape"){closeMo();closeScan();}});
 
 function moSave(){
@@ -2874,7 +2874,8 @@ function addItemToCategory(catName) {
       <input class="inp" id="mf-sp" type="number" placeholder="Your selling price" style="width:100%"></div></div>
     <div class="fr"><div class="fg"><label>Notes / Specs</label>
       <input class="inp" id="mf-notes" placeholder="Grade, quality, batch info…" style="width:100%"></div></div>`;
-  MC = {_type:"costing"};
+  MC = {type:"costing"};
+  document.getElementById("mo-sv").onclick = moSave;
   modal.style.display = "flex";
   setTimeout(()=>document.getElementById("mf-name")?.focus(),100);
 }
