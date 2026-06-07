@@ -1616,12 +1616,7 @@ function moSave(){
     compliance:()=>({name:g("mf-name"),auth:g("mf-auth"),due:g("mf-due"),resp:g("mf-resp"),penalty:g("mf-penalty"),status:g("mf-status")}),
     itc:()=>({supplier:g("mf-supplier"),inv:g("mf-inv"),date:g("mf-date"),igst:gn("mf-igst"),cgst:gn("mf-cgst"),sgst:gn("mf-sgst"),eligible:g("mf-eligible")}),
     future:()=>({plan:g("mf-plan"),cat:g("mf-cat"),timeline:g("mf-timeline"),invest:g("mf-invest"),ret:g("mf-ret"),status:g("mf-status")}),
-    costing:()=>({
-      name:g("mf-name"),type:g("mf-type"),unit:g("mf-unit")||"pcs",sku:g("mf-sku"),desc:g("mf-desc"),
-      // First entry if vendor details provided
-      _newEntry:{vendor:g("mf-vendor"),invNo:g("mf-invNo"),date:g("mf-date"),qty:gn("mf-qty"),
-        rate:gn("mf-rate"),gst:gn("mf-gst"),transport:gn("mf-transport"),paymode:g("mf-paymode")}
-    }),
+
     accounts:()=>({issue:g("mf-issue"),cat:g("mf-cat"),pri:g("mf-pri"),party:g("mf-party"),amount:gn("mf-amount"),assignedTo:g("mf-assignedTo"),due:g("mf-due"),status:g("mf-status"),remarks:g("mf-remarks"),createdAt:ie?undefined:new Date().toISOString().slice(0,10)}),
     orders:()=>({party:g("mf-party"),inv:g("mf-inv"),invVal:gn("mf-invVal"),codAmt:gn("mf-codAmt"),dispatchDate:g("mf-dispatchDate"),courier:g("mf-courier"),trackNo:g("mf-trackNo"),agent:g("mf-agent"),chqNo:g("mf-chqNo"),chqDate:g("mf-chqDate"),bank:g("mf-bank"),clearedDate:g("mf-clearedDate"),status:g("mf-status")||"dispatched",remarks:g("mf-remarks")}),
     purchase:()=>({item:g("mf-item"),cat:g("mf-cat"),stock:gn("mf-stock"),minLevel:gn("mf-minLevel"),toOrder:gn("mf-toOrder"),supplier:g("mf-supplier"),lastPrice:gn("mf-lastPrice"),unit:g("mf-unit")||"pcs",status:g("mf-status")}),
