@@ -384,34 +384,60 @@ mark{background:#fef08a;border-radius:2px;padding:0 2px;}
 
 <!-- HOME DASHBOARD -->
 <div class="mod on" id="mod-home">
-  <!-- HEADER ROW -->
-  <div class="ph">
+
+  <!-- ══ TOP ALERT BANNER (compliance/defaulters/overdue) ══ -->
+  <div id="dash-top-alerts"></div>
+
+  <!-- ══ ROW 0: HEADER + QUICK ACTIONS ══ -->
+  <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:14px">
     <div>
-      <div class="pt" id="dash-greeting">GOOD <span>MORNING, AMAN</span> ☀️</div>
-      <div class="pt-sub" id="dash-date">Loading…</div>
+      <div class="pt" id="dash-greeting">GOOD MORNING, <span>AMAN</span> ☀️</div>
+      <div style="font-size:13px;color:var(--muted);margin-top:2px" id="dash-date-full">Loading…</div>
+      <div style="font-size:12px;color:var(--dim);margin-top:1px" id="dash-month-info"></div>
     </div>
-    <div id="dash-q" style="font-size:13px;font-style:italic;color:var(--muted);max-width:220px;text-align:right;line-height:1.5;display:none"></div>
+    <!-- Quick Actions -->
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <button class="btn btn-p btn-sm" onclick="Mo.open('urgent')">🚨 Urgent Order</button>
+      <button class="btn btn-sm" style="border-color:var(--green);color:var(--green)" onclick="Mo.open('payment')">💰 Payment</button>
+      <button class="btn btn-sm" style="border-color:var(--ac);color:var(--ac)" onclick="dashQuickTask()">📋 Add Task</button>
+      <button class="btn btn-sm" style="border-color:var(--orange);color:var(--orange)" onclick="go('kb');setTimeout(()=>document.getElementById('kb-form').style.display='block',300)">🧠 KB Entry</button>
+    </div>
   </div>
 
-  <!-- ALERT STRIP -->
-  <div class="al-strip" id="dash-al"></div>
+  <!-- ══ ROW 1: COMPLIANCE COUNTDOWN (if due within 7 days) ══ -->
+  <div id="dash-compliance-urgent" style="display:none;margin-bottom:14px"></div>
 
-  <!-- ROW 1: KPI STATS (4 cols) -->
+  <!-- ══ ROW 2: KPI STATS (4 cols) ══ -->
   <div class="g4" id="dash-kpi" style="margin-bottom:14px"></div>
 
-  <!-- ROW 2: Must Do + Day Tasks (2 cols) -->
+  <!-- ══ ROW 3: FINANCIAL SUMMARY ══ -->
+  <div class="card" style="margin-bottom:14px">
+    <div class="card-hdr">💰 Financial Overview
+      <span style="font-size:12px;color:var(--muted);font-weight:400;margin-left:8px" id="dash-fin-date"></span>
+    </div>
+    <div id="dash-fin-summary" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:1px;background:var(--b1)"></div>
+  </div>
+
+  <!-- ══ ROW 4: ORDER PIPELINE FUNNEL ══ -->
+  <div class="card" style="margin-bottom:14px">
+    <div class="card-hdr">📦 Order Pipeline
+      <button class="btn btn-sm" style="margin-left:auto" onclick="go('orders')">View All →</button>
+    </div>
+    <div id="dash-pipeline" style="padding:14px 16px"></div>
+  </div>
+
+  <!-- ══ ROW 5: MUST DO + TODAY TASKS ══ -->
   <div class="g2" style="margin-bottom:14px">
-    <!-- Must Do Daily -->
     <div class="card">
       <div class="card-hdr">✅ Must Do Daily
-        <span id="dash-mustdo-badge" style="font-size:13px;color:var(--muted);font-weight:400;margin-left:8px"></span>
+        <span id="dash-mustdo-badge" style="font-size:12px;color:var(--muted);font-weight:400;margin-left:8px"></span>
         <button class="btn btn-p btn-sm" style="margin-left:auto;margin-right:4px" onclick="document.getElementById('dash-mustdo-form').style.display='block';setTimeout(()=>document.getElementById('dash-mustdo-inp')?.focus(),50)">+ Add</button>
-        <button class="btn btn-sm" onclick="go('mustdo')">View All →</button>
+        <button class="btn btn-sm" onclick="go('mustdo')">All →</button>
       </div>
       <div id="dash-mustdo-list"></div>
       <div id="dash-mustdo-form" style="display:none;padding:10px 14px;border-top:1px solid var(--b1);background:var(--s2)">
         <div style="display:flex;gap:8px">
-          <input class="inp" id="dash-mustdo-inp" placeholder="Add must-do task…" style="flex:1;font-size:13px" onkeydown="if(event.key==='Enter')dashAddMustDo()">
+          <input class="inp" id="dash-mustdo-inp" placeholder="Add must-do…" style="flex:1;font-size:13px" onkeydown="if(event.key==='Enter')dashAddMustDo()">
           <select class="sel" id="dash-mustdo-cat" style="width:110px;font-size:12px">
             <option value="health">❤️ Health</option>
             <option value="business" selected>💼 Business</option>
@@ -423,9 +449,9 @@ mark{background:#fef08a;border-radius:2px;padding:0 2px;}
         </div>
       </div>
     </div>
-    <!-- Today Tasks -->
     <div class="card">
       <div class="card-hdr">🔥 Today's Tasks
+        <span id="dash-pending-badge" style="display:none;background:var(--orange);color:#fff;font-size:10px;border-radius:10px;padding:2px 7px;margin-left:6px"></span>
         <button class="btn btn-p btn-sm" style="margin-left:auto;margin-right:4px" onclick="document.getElementById('dash-task-form').style.display='block';setTimeout(()=>document.getElementById('dash-task-inp')?.focus(),50)">+ Add</button>
         <button class="btn btn-sm" onclick="go('tracker')">Full →</button>
       </div>
@@ -433,48 +459,36 @@ mark{background:#fef08a;border-radius:2px;padding:0 2px;}
     </div>
   </div>
 
-  <!-- ROW 3: Orders + Payments + Defaulters (3 cols) -->
+  <!-- ══ ROW 6: PAYMENTS + ORDERS + ACCOUNTING ══ -->
   <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:14px">
-    <!-- Urgent Orders -->
-    <div class="card">
-      <div class="card-hdr">🚨 Urgent Orders
-        <button class="btn btn-sm" style="margin-left:auto" onclick="go('urgent')">→</button>
-      </div>
-      <div id="dash-urgent"></div>
-    </div>
-    <!-- Payments Overdue -->
     <div class="card">
       <div class="card-hdr">💰 Overdue Payments
         <button class="btn btn-sm" style="margin-left:auto" onclick="go('payment')">→</button>
       </div>
       <div id="dash-pay"></div>
     </div>
-    <!-- Order Tracker -->
     <div class="card">
-      <div class="card-hdr">📦 Order Tracker
+      <div class="card-hdr">📦 Active Orders
         <button class="btn btn-sm" style="margin-left:auto" onclick="go('orders')">→</button>
       </div>
       <div id="dash-orders"></div>
     </div>
-  </div>
-
-  <!-- ROW 4: Compliance + Accounting + GST (3 cols) -->
-  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:14px">
-    <!-- Compliance -->
-    <div class="card">
-      <div class="card-hdr">📋 Compliance Deadlines
-        <button class="btn btn-sm" style="margin-left:auto" onclick="go('compliance')">→</button>
-      </div>
-      <div class="tbl-scroll"><table class="tbl"><thead><tr><th>Filing</th><th>Due</th><th>Days</th></tr></thead><tbody id="dash-comp"></tbody></table></div>
-    </div>
-    <!-- Accounting Issues -->
     <div class="card">
       <div class="card-hdr">🧾 Accounting Issues
         <button class="btn btn-sm" style="margin-left:auto" onclick="go('accounts')">→</button>
       </div>
       <div id="dash-accounts"></div>
     </div>
-    <!-- GST -->
+  </div>
+
+  <!-- ══ ROW 7: COMPLIANCE + GST ══ -->
+  <div class="g2" style="margin-bottom:14px">
+    <div class="card">
+      <div class="card-hdr">📋 Compliance
+        <button class="btn btn-sm" style="margin-left:auto" onclick="go('compliance')">→</button>
+      </div>
+      <div class="tbl-scroll"><table class="tbl"><thead><tr><th>Filing</th><th>Due</th><th>Days</th></tr></thead><tbody id="dash-comp"></tbody></table></div>
+    </div>
     <div class="card">
       <div class="card-hdr">📑 GST Dates
         <button class="btn btn-sm" style="margin-left:auto" onclick="go('gst')">→</button>
@@ -483,23 +497,39 @@ mark{background:#fef08a;border-radius:2px;padding:0 2px;}
     </div>
   </div>
 
-  <!-- ROW 5: Purchase / Reorder -->
+  <!-- ══ ROW 8: PURCHASE/REORDER ══ -->
   <div class="card" style="margin-bottom:14px">
-    <div class="card-hdr">🛒 Purchase / Reorder — Low Stock Items
+    <div class="card-hdr">🛒 Purchase / Reorder — Low Stock
       <button class="btn btn-sm" style="margin-left:auto" onclick="go('purchase')">View All →</button>
     </div>
     <div id="dash-purchase"></div>
   </div>
 
-  <!-- ROW 6: Quick Stats (4 cols) -->
-  <div class="g4">
-    <div class="card" style="cursor:pointer" onclick="go('transport')"><div class="card-body" style="text-align:center;padding:16px"><div style="font-size:28px">🚚</div><div style="font-weight:700;font-size:13.5px;margin-top:5px">Transport</div><div id="d-tr" style="font-family:'Bebas Neue';font-size:28px;color:var(--red)">0</div><div style="font-size:13px;color:var(--muted)">Open issues</div></div></div>
-    <div class="card" style="cursor:pointer" onclick="go('purchase')"><div class="card-body" style="text-align:center;padding:16px"><div style="font-size:28px">🛒</div><div style="font-weight:700;font-size:13.5px;margin-top:5px">Low Stock</div><div id="d-ls" style="font-family:'Bebas Neue';font-size:28px;color:var(--orange)">0</div><div style="font-size:13px;color:var(--muted)">Items</div></div></div>
-    <div class="card" style="cursor:pointer" onclick="go('defaulter')"><div class="card-body" style="text-align:center;padding:16px"><div style="font-size:28px">⚠️</div><div style="font-weight:700;font-size:13.5px;margin-top:5px">Defaulters</div><div id="d-def" style="font-family:'Bebas Neue';font-size:28px;color:var(--red)">0</div><div style="font-size:13px;color:var(--muted)">Active</div></div></div>
-    <div class="card" style="cursor:pointer" onclick="go('banking')"><div class="card-body" style="text-align:center;padding:16px"><div style="font-size:28px">🏦</div><div style="font-weight:700;font-size:13.5px;margin-top:5px">Banking</div><div id="d-bank" style="font-family:'Bebas Neue';font-size:28px;color:var(--gold)">0</div><div style="font-size:13px;color:var(--muted)">Issues</div></div></div>
+  <!-- ══ ROW 9: RECENT ACTIVITY ══ -->
+  <div class="card" style="margin-bottom:14px">
+    <div class="card-hdr">🕐 Recent Activity</div>
+    <div id="dash-activity"></div>
   </div>
-</div>
-<!-- URGENT ORDERS -->
+
+  <!-- ══ ROW 10: QUICK COUNTERS ══ -->
+  <div class="g4" style="margin-bottom:14px">
+    <div class="card" style="cursor:pointer" onclick="go('transport')"><div class="card-body" style="text-align:center;padding:16px"><div style="font-size:28px">🚚</div><div style="font-weight:700;font-size:13px;margin-top:5px">Transport</div><div id="d-tr" style="font-family:'Bebas Neue';font-size:28px;color:var(--red)">0</div><div style="font-size:12px;color:var(--muted)">Open</div></div></div>
+    <div class="card" style="cursor:pointer" onclick="go('purchase')"><div class="card-body" style="text-align:center;padding:16px"><div style="font-size:28px">🛒</div><div style="font-weight:700;font-size:13px;margin-top:5px">Low Stock</div><div id="d-ls" style="font-family:'Bebas Neue';font-size:28px;color:var(--orange)">0</div><div style="font-size:12px;color:var(--muted)">Items</div></div></div>
+    <div class="card" style="cursor:pointer" onclick="go('defaulter')"><div class="card-body" style="text-align:center;padding:16px"><div style="font-size:28px">⚠️</div><div style="font-weight:700;font-size:13px;margin-top:5px">Defaulters</div><div id="d-def" style="font-family:'Bebas Neue';font-size:28px;color:var(--red)">0</div><div style="font-size:12px;color:var(--muted)">Active</div></div></div>
+    <div class="card" style="cursor:pointer" onclick="go('banking')"><div class="card-body" style="text-align:center;padding:16px"><div style="font-size:28px">🏦</div><div style="font-weight:700;font-size:13px;margin-top:5px">Banking</div><div id="d-bank" style="font-family:'Bebas Neue';font-size:28px;color:var(--gold)">0</div><div style="font-size:12px;color:var(--muted)">Issues</div></div></div>
+  </div>
+
+  <!-- ══ INLINE TASK ADD FORM ══ -->
+  <div id="dash-task-quick" style="display:none;position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:#fff;border:1px solid var(--b1);border-radius:14px;padding:14px;box-shadow:0 8px 32px rgba(0,0,0,.15);z-index:500;width:90%;max-width:400px">
+    <div style="font-size:13px;font-weight:700;margin-bottom:10px">📋 Add Today's Task</div>
+    <input class="inp" id="dash-task-q-inp" placeholder="What needs to be done today?" style="width:100%;margin-bottom:8px" onkeydown="if(event.key==='Enter')dashQuickTaskSave()">
+    <div style="display:flex;gap:8px;justify-content:flex-end">
+      <button class="btn btn-sm" onclick="document.getElementById('dash-task-quick').style.display='none'">Cancel</button>
+      <button class="btn btn-p btn-sm" onclick="dashQuickTaskSave()">Add Task</button>
+    </div>
+  </div>
+
+</div><!-- URGENT ORDERS -->
 <div class="mod" id="mod-urgent">
   <div class="ph"><div><div class="pt">URGENT <span>ORDERS</span></div><div class="pt-sub">Tap ✏️ edit · 🗑 delete</div></div>
   <div class="ph-actions">
@@ -2716,199 +2746,328 @@ function addWR(){const text=prompt("Weekly review summary:");if(!text)return;con
 // ── DASHBOARD ──
 const motivations=["Success is not final, failure is not fatal. — Churchill","Jo kal karna hai woh aaj karo! 🚀","Build the business of your dreams, one day at a time.","Small daily improvements lead to stunning results.","Your consistency today is your success tomorrow.","Champions are made in the moments they want to quit.","A great business is built on great habits."];
 function R_home(){
-  const now=new Date(), h=now.getHours();
-  const gl=["Good Morning","Good Morning","Good Afternoon","Good Evening"];
-  const gi=h<12?0:h<14?1:h<17?2:3;
-  const em=["☀️","☀️","🌤️","🌙"];
-  const grEl=document.getElementById("dash-greeting");
-  if(grEl) grEl.innerHTML=gl[gi].toUpperCase().replace(" ","&nbsp;<span>")+", AMAN</span> "+em[gi];
-  const dl=document.getElementById("dash-date");
-  if(dl) dl.textContent=now.toLocaleDateString("en-IN",{weekday:"long",day:"numeric",month:"long",year:"numeric"});
-  const ql=document.getElementById("dash-q");
-  if(ql){ql.textContent="“"+motivations[now.getDay()%motivations.length]+"”";ql.style.display="block";}
+  const now = new Date();
+  const h = now.getHours();
+  const today = now.toISOString().slice(0,10);
 
-  // ── ALERTS ──
-  const alerts=[];
-  D.gst.filter(g=>g.status==="pending").forEach(g=>{
-    const d=Math.floor((new Date(g.due)-now)/86400000);
-    if(d<=5) alerts.push({cls:d<=2?"red":"yel",msg:`${d<=2?"🔴":"🟡"} ${g.ret} (${g.period}) due ${d<=0?"TODAY":d+"d left"}`,link:"gst"});
+  // ── GREETING ──
+  const greetings = ["Good Night","Good Morning","Good Morning","Good Afternoon","Good Evening"];
+  const emojis    = ["🌙","🌅","☀️","🌤️","🌙"];
+  const gi = h<5?0:h<12?1:h<14?2:h<18?3:4;
+  const grEl = document.getElementById("dash-greeting");
+  if(grEl) grEl.innerHTML = greetings[gi].toUpperCase().replace(" ","&nbsp;<span>")+"AMAN</span> "+emojis[gi];
+
+  // Date + days left in month
+  const daysInMonth = new Date(now.getFullYear(), now.getMonth()+1, 0).getDate();
+  const daysLeft = daysInMonth - now.getDate();
+  const weekdays = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
+  const months = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+  const dateEl = document.getElementById("dash-date-full");
+  if(dateEl) dateEl.textContent = `${weekdays[now.getDay()]}, ${now.getDate()} ${months[now.getMonth()]} ${now.getFullYear()}`;
+  const miEl = document.getElementById("dash-month-info");
+  if(miEl) miEl.textContent = `${daysLeft} days left in ${months[now.getMonth()]} · Week ${Math.ceil(now.getDate()/7)} of month`;
+
+  // ── TOP ALERTS (compliance overdue / defaulters / accounting) ──
+  const alerts = [];
+  const urgCompl = (D.compliance||[]).filter(c=>c.status!=="filed"&&c.due).filter(c=>Math.floor((new Date(c.due)-now)/86400000)<=7);
+  urgCompl.forEach(c=>{
+    const d = Math.floor((new Date(c.due)-now)/86400000);
+    alerts.push({col:"var(--red)",msg:`🔴 ${c.name} — ${d<0?"OVERDUE by "+Math.abs(d)+"d":d===0?"DUE TODAY":d+"d left"}`,mod:"compliance"});
   });
-  D.compliance.filter(c=>c.status==="pending").forEach(c=>{
-    const d=Math.floor((new Date(c.due)-now)/86400000);
-    if(d<=7) alerts.push({cls:d<=2?"red":"yel",msg:`${d<=2?"🔴":"🟡"} ${c.name} due ${d<=0?"TODAY":d+"d"}`,link:"compliance"});
-  });
-  D.payment.filter(p=>p.status!=="collected"&&dOvr(p.due)>30).forEach(p=>
-    alerts.push({cls:"yel",msg:`🟡 ${p.party} — ${fa(p.amt)} overdue ${dOvr(p.due)}d →`,link:"payment"}));
-  if(D.defaulter.length) alerts.push({cls:"red",msg:`⚠️ ${D.defaulter.length} defaulter(s) need attention →`,link:"defaulter"});
-  const accOpen=D.accounts.filter(a=>a.status==="open").length;
-  if(accOpen>0) alerts.push({cls:"yel",msg:`🧾 ${accOpen} accounting issue(s) open →`,link:"accounts"});
-  const lowStock=D.purchase.filter(p=>p.status==="critical"||p.status==="low").length;
-  if(lowStock>0) alerts.push({cls:"yel",msg:`🛒 ${lowStock} item(s) low/critical stock →`,link:"purchase"});
-  document.getElementById("dash-al").innerHTML=alerts.slice(0,5).map(a=>
-    `<div class="al ${a.cls}" ${a.link?`onclick="go('${a.link}')" style="cursor:pointer"`:""}>${a.msg}</div>`
-  ).join("");
+  if((D.defaulter||[]).length) alerts.push({col:"var(--red)",msg:`⚠️ ${D.defaulter.length} defaulter(s) — immediate action needed`,mod:"defaulter"});
+  const openAcc = (D.accounts||[]).filter(a=>a.status==="open"&&a.pri==="high");
+  if(openAcc.length) alerts.push({col:"var(--orange)",msg:`🧾 ${openAcc.length} high-priority accounting issue(s) open`,mod:"accounts"});
+  const overduePay = (D.payment||[]).filter(p=>p.status!=="collected"&&p.due&&Math.floor((new Date(now)-new Date(p.due))/86400000)>30);
+  if(overduePay.length>0){
+    const tot = overduePay.reduce((s,p)=>s+(parseInt((p.amt||"0").toString().replace(/[^\d]/g,""))||0),0);
+    alerts.push({col:"var(--orange)",msg:`💰 ${overduePay.length} payments overdue >30 days — ₹${fa(tot)} pending`,mod:"payment"});
+  }
+  const critStock = (D.purchase||[]).filter(p=>p.status==="critical");
+  if(critStock.length) alerts.push({col:"var(--red)",msg:`🛒 ${critStock.length} item(s) CRITICAL stock — reorder immediately`,mod:"purchase"});
+
+  const alertEl = document.getElementById("dash-top-alerts");
+  if(alertEl){
+    alertEl.innerHTML = alerts.length
+      ? alerts.map(a=>`<div onclick="go('${a.mod}')" style="background:${a.col}15;border-left:4px solid ${a.col};padding:10px 16px;margin-bottom:6px;border-radius:0 8px 8px 0;cursor:pointer;display:flex;align-items:center;justify-content:space-between;font-size:13px;font-weight:600;color:${a.col}">
+          <span>${a.msg}</span><span style="font-size:12px;opacity:.7">Tap to view →</span>
+        </div>`).join("")
+      : "";
+    alertEl.style.marginBottom = alerts.length ? "14px" : "0";
+  }
+
+  // ── COMPLIANCE URGENT COUNTDOWN ──
+  const compUrgEl = document.getElementById("dash-compliance-urgent");
+  if(compUrgEl){
+    if(urgCompl.length){
+      compUrgEl.style.display = "block";
+      compUrgEl.innerHTML = `<div style="background:linear-gradient(135deg,#fef2f2,#fff7ed);border:1px solid #fecaca;border-radius:12px;padding:12px 16px">
+        <div style="font-size:12px;font-weight:700;color:var(--red);letter-spacing:1px;text-transform:uppercase;margin-bottom:8px">⚡ Compliance Due Soon</div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap">
+          ${urgCompl.map(c=>{
+            const d = Math.floor((new Date(c.due)-now)/86400000);
+            const col = d<0?"var(--red)":d<=2?"var(--red)":"var(--orange)";
+            return `<div style="background:#fff;border:1px solid ${col}30;border-radius:8px;padding:8px 14px;text-align:center;cursor:pointer" onclick="go('compliance')">
+              <div style="font-size:12px;font-weight:700">${c.name}</div>
+              <div style="font-family:'Bebas Neue';font-size:22px;color:${col}">${d<0?"OVERDUE":d===0?"TODAY":d+"D"}</div>
+              <div style="font-size:11px;color:var(--muted)">${c.due}</div>
+            </div>`;
+          }).join("")}
+        </div>
+      </div>`;
+    } else { compUrgEl.style.display = "none"; }
+  }
 
   // ── KPI STATS ──
-  const pendOrd=D.urgent.filter(x=>x.status!=="done").length;
-  const overAmt=D.payment.filter(p=>p.status!=="collected").reduce((s,p)=>s+parseInt((p.amt||0).toString().replace(/[₹,]/g,"")),0);
-  const pendComp=D.compliance.filter(c=>c.status==="pending").length;
-  const ordPend=D.orders.filter(o=>o.status!=="done").length;
-  document.getElementById("dash-kpi").innerHTML=
-    sc("var(--red)","Urgent Orders",pendOrd,"Pending")+
-    sc("var(--orange)","Overdue Payments",fa(overAmt),"To collect")+
-    sc("var(--gold)","Compliance Due",pendComp,"Filings")+
-    sc("var(--ac)","Orders in Pipeline",ordPend,"Active");
+  const pendOrders  = (D.urgent||[]).filter(x=>x.status!=="done").length;
+  const totalPayOut = (D.payment||[]).filter(p=>p.status!=="collected").reduce((s,p)=>s+(parseInt((p.amt||"0").toString().replace(/[^\d]/g,""))||0),0);
+  const pendComp    = (D.compliance||[]).filter(c=>c.status==="pending").length;
+  const ordPend     = (D.orders||[]).filter(o=>o.status!=="done").length;
+  document.getElementById("dash-kpi").innerHTML =
+    sc("var(--red)",    "Urgent Orders",     pendOrders,  "Pending") +
+    sc("var(--orange)", "Overdue Payments",  fa(totalPayOut),"To collect") +
+    sc("var(--gold)",   "Compliance Due",    pendComp,   "Filings") +
+    sc("var(--ac)",     "Orders Active",     ordPend,    "In pipeline");
+
+  // ── FINANCIAL SUMMARY ──
+  const finEl = document.getElementById("dash-fin-summary");
+  const finDateEl = document.getElementById("dash-fin-date");
+  if(finDateEl) finDateEl.textContent = months[now.getMonth()]+" "+now.getFullYear();
+  // Agent-wise outstanding
+  const agents = ["Baba Ji","Aman","Raman"];
+  const agentTotals = agents.map(ag=>({
+    agent: ag,
+    total: (D.payment||[]).filter(p=>p.agent===ag&&p.status!=="collected")
+                          .reduce((s,p)=>s+(parseInt((p.amt||"0").toString().replace(/[^\d]/g,""))||0),0),
+    count: (D.payment||[]).filter(p=>p.agent===ag&&p.status!=="collected").length
+  }));
+  const totalOutstanding = agentTotals.reduce((s,a)=>s+a.total,0);
+  const thisMonthExp = (D.expenses||[]).filter(e=>(e.date||"").slice(0,7)===today.slice(0,7))
+                                       .reduce((s,e)=>s+(parseFloat(e.amt||0)||0),0);
+  const totalCOD = (D.orders||[]).filter(o=>o.status!=="done").reduce((s,o)=>s+(parseFloat(o.codAmt||0)||0),0);
+  if(finEl) finEl.innerHTML = [
+    {label:"Total Outstanding",val:fa(totalOutstanding),col:"var(--red)",sub:`${(D.payment||[]).filter(p=>p.status!=="collected").length} parties`},
+    ...agentTotals.map(a=>({label:a.agent+" Outstanding",val:fa(a.total),col:"var(--orange)",sub:a.count+" parties"})),
+    {label:"This Month Expenses",val:fa(thisMonthExp),col:"var(--gold)",sub:months[now.getMonth()]},
+    {label:"COD Pipeline",val:fa(totalCOD),col:"var(--ac)",sub:`${ordPend} active orders`},
+  ].map(f=>`<div style="padding:12px 16px;background:#fff;text-align:center">
+    <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:4px">${f.label}</div>
+    <div style="font-family:'Bebas Neue';font-size:22px;color:${f.col}">${f.val}</div>
+    <div style="font-size:11px;color:var(--dim)">${f.sub}</div>
+  </div>`).join("");
+
+  // ── ORDER PIPELINE FUNNEL ──
+  const pipeEl = document.getElementById("dash-pipeline");
+  const stages = [
+    {key:"dispatched",  label:"🚚 Dispatched",    col:"var(--ac)"},
+    {key:"cod_pending", label:"💳 COD Pending",   col:"var(--orange)"},
+    {key:"chq_received",label:"📬 Chq Received",  col:"var(--gold)"},
+    {key:"chq_cleared", label:"✅ Chq Cleared",   col:"var(--teal)"},
+    {key:"done",        label:"🏁 Done",           col:"var(--green)"},
+  ];
+  const stageData = stages.map(s=>({...s, count:(D.orders||[]).filter(o=>o.status===s.key).length}));
+  const totalOrd  = stageData.reduce((s,x)=>s+x.count,0)||1;
+  if(pipeEl) pipeEl.innerHTML = `
+    <div style="display:flex;align-items:stretch;gap:4px;flex-wrap:wrap">
+      ${stageData.map((s,i)=>`
+        <div style="flex:1;min-width:80px;cursor:pointer" onclick="go('orders')">
+          <div style="background:${s.col}20;border:1px solid ${s.col}40;border-radius:8px;padding:10px 8px;text-align:center">
+            <div style="font-size:12px;font-weight:700;color:${s.col}">${s.label}</div>
+            <div style="font-family:'Bebas Neue';font-size:30px;color:${s.col};line-height:1">${s.count}</div>
+            <div style="font-size:11px;color:var(--muted)">${Math.round(s.count/totalOrd*100)}%</div>
+          </div>
+          ${i<stages.length-1?`<div style="text-align:center;color:var(--dim);font-size:14px;padding:4px">→</div>`:""}
+        </div>`).join("")}
+    </div>`;
 
   // ── MUST DO DAILY ──
-  const mdDone=D.mustdo.filter(t=>t.doneToday).length;
-  const mdTotal=D.mustdo.length;
-  const mdBadge=document.getElementById("dash-mustdo-badge");
-  if(mdBadge) mdBadge.textContent=mdTotal?`${mdDone}/${mdTotal} done`:"No tasks yet";
-  const mdList=document.getElementById("dash-mustdo-list");
+  const mdDone  = (D.mustdo||[]).filter(t=>t.doneToday).length;
+  const mdTotal = (D.mustdo||[]).length;
+  const mdBadge = document.getElementById("dash-mustdo-badge");
+  if(mdBadge) mdBadge.textContent = mdTotal ? `${mdDone}/${mdTotal} done` : "No tasks yet";
+  const mdList = document.getElementById("dash-mustdo-list");
   if(mdList){
     const catIcons2={health:"❤️",business:"💼",personal:"🧘",fitness:"🏃",learning:"📚",spiritual:"🙏"};
-    mdList.innerHTML=D.mustdo.slice(0,6).map(t=>`
+    mdList.innerHTML = (D.mustdo||[]).slice(0,6).map(t=>`
       <div class="task-item ${t.doneToday?"di":""}" style="padding:10px 14px">
         <div class="chk ${t.doneToday?"done":""}" onclick="toggleMustDo(${t.id});R_home()" style="width:22px;height:22px;min-width:22px"></div>
-        <span style="font-size:16px">${catIcons2[t.cat]||"✅"}</span>
+        <span style="font-size:15px">${catIcons2[t.cat]||"✅"}</span>
         <span style="font-size:13.5px;flex:1;${t.doneToday?"text-decoration:line-through;color:var(--dim)":""}">${t.text}</span>
         ${t.time?`<span style="font-size:12px;color:var(--muted)">${t.time}</span>`:""}
-      </div>`).join("")||
-      `<div style="padding:14px;font-size:13px;color:var(--muted)">No tasks yet. <span style="color:var(--ac);cursor:pointer" onclick="go('mustdo')">+ Add tasks →</span></div>`;
-    if(D.mustdo.length>6) mdList.innerHTML+=`<div style="padding:6px 14px;font-size:12px;color:var(--muted)">+${D.mustdo.length-6} more →</div>`;
+      </div>`).join("")||`<div style="padding:14px;font-size:13px;color:var(--muted)">No tasks. <span style="color:var(--ac);cursor:pointer" onclick="go('mustdo')">+ Add →</span></div>`;
+    if((D.mustdo||[]).length>6) mdList.innerHTML += `<div style="padding:6px 14px;font-size:12px;color:var(--muted)">+${D.mustdo.length-6} more →</div>`;
   }
 
   // ── TODAY TASKS ──
-  const today=now.toISOString().slice(0,10);
   if(!D.dayData[today]) D.dayData[today]={tasks:[],notes:""};
-  const tasks=D.dayData[today].tasks;
-  const pendingTasks2=typeof getPendingTasks==="function"?getPendingTasks(today):[];
-  const pc={high:"var(--red)",med:"var(--gold)",low:"var(--green)"};
-  let tasksHtml="";
-  if(pendingTasks2.length){
-    tasksHtml+=`<div style="background:#fff7ed;padding:8px 14px;border-bottom:1px dashed var(--orange)">
-      <div style="display:flex;align-items:center;justify-content:space-between">
-        <span style="font-size:12.5px;font-weight:700;color:var(--orange)">⚠️ ${pendingTasks2.length} pending from prev days</span>
-        <button class="btn btn-sm" style="font-size:11px;border-color:var(--orange);color:var(--orange)" onclick="carryForwardAll();R_home()">↩ Carry All</button>
-      </div></div>`;
+  const tasks = D.dayData[today].tasks;
+  const pendingTasks2 = typeof getPendingTasks==="function" ? getPendingTasks(today) : [];
+  const pendBadge = document.getElementById("dash-pending-badge");
+  if(pendBadge){
+    if(pendingTasks2.length){pendBadge.style.display="inline";pendBadge.textContent=pendingTasks2.length+" pending";}
+    else pendBadge.style.display="none";
   }
-  tasksHtml+=tasks.length?tasks.slice(0,5).map(t=>`
+  const pc={high:"var(--red)",med:"var(--gold)",low:"var(--green)"};
+  let tasksHtml = pendingTasks2.length?`<div style="background:#fff7ed;padding:8px 14px;border-bottom:1px dashed var(--orange)">
+    <div style="display:flex;align-items:center;justify-content:space-between">
+      <span style="font-size:12.5px;font-weight:700;color:var(--orange)">⚠️ ${pendingTasks2.length} pending from prev days</span>
+      <button class="btn btn-sm" style="font-size:11px;border-color:var(--orange);color:var(--orange)" onclick="carryForwardAll();R_home()">↩ Carry All</button>
+    </div></div>`:"";
+  tasksHtml += tasks.length ? tasks.slice(0,5).map(t=>`
     <div class="task-item ${t.done?"di":""}" style="padding:10px 14px">
       <div class="chk ${t.done?"done":""}" onclick="tgDT('${today}',${t.id});R_home()"></div>
       <span style="font-size:13.5px;flex:1;${t.done?"text-decoration:line-through;color:var(--dim)":""}">${t.text}</span>
       <span style="width:9px;height:9px;border-radius:50%;background:${pc[t.pri||"med"]};flex-shrink:0"></span>
-    </div>`).join("")+(tasks.length>5?`<div style="padding:6px 14px;font-size:12px;color:var(--muted)">+${tasks.length-5} more…</div>`:""):
-    `<div style="padding:14px"><div style="font-size:13px;color:var(--muted);margin-bottom:8px">No tasks for today.</div><button class="btn btn-p btn-sm" onclick="go('tracker')">+ Add Tasks</button></div>`;
-  document.getElementById("dash-tasks").innerHTML=tasksHtml;
-
-  // ── URGENT ORDERS ──
-  const up=D.urgent.filter(x=>x.status!=="done").slice(0,4);
-  document.getElementById("dash-urgent").innerHTML=up.length?up.map(u=>`
-    <div style="padding:10px 14px;border-bottom:1px solid var(--b1);display:flex;align-items:center;gap:8px;cursor:pointer" onclick="go('urgent')">
-      <div style="flex:1"><div style="font-size:13.5px;font-weight:600">${u.party}</div>
-      <div style="font-size:12px;color:var(--muted)">${(u.items||"").substring(0,30)}</div></div>
-      ${priP[u.pri]||""}
-    </div>`).join(""):
-    `<div style="padding:14px;text-align:center;font-size:13px;color:var(--green)">✅ No urgent orders!</div>`;
+      <button class="btn-d" style="font-size:11px;padding:2px 6px" onclick="delDT('${today}',${t.id});R_home()">🗑</button>
+    </div>`).join("")+(tasks.length>5?`<div style="padding:6px 14px;font-size:12px;color:var(--muted)">+${tasks.length-5} more…</div>`:"")
+    : `<div style="padding:14px;font-size:13px;color:var(--muted)">No tasks today.</div>`;
+  tasksHtml += `<div id="dash-task-form" style="display:none;padding:10px 14px;border-top:1px solid var(--b1);background:var(--s2)">
+    <div style="display:flex;gap:8px">
+      <input class="inp" id="dash-task-inp" placeholder="Add task…" style="flex:1;font-size:13px" onkeydown="if(event.key==='Enter')dashAddTask('${today}')">
+      <select class="sel" id="dash-task-pri" style="width:90px;font-size:12px">
+        <option value="high">🔴 High</option><option value="med" selected>🟡 Med</option><option value="low">🟢 Low</option>
+      </select>
+      <button class="btn btn-p btn-sm" onclick="dashAddTask('${today}')">Add</button>
+      <button class="btn btn-sm" onclick="document.getElementById('dash-task-form').style.display='none'">✕</button>
+    </div></div>`;
+  document.getElementById("dash-tasks").innerHTML = tasksHtml;
 
   // ── OVERDUE PAYMENTS ──
-  const op=D.payment.filter(p=>p.status!=="collected").slice(0,4);
-  document.getElementById("dash-pay").innerHTML=op.length?op.map(p=>`
+  const op = (D.payment||[]).filter(p=>p.status!=="collected").sort((a,b)=>parseInt((b.amt||"0").replace(/[^\d]/g,""))-parseInt((a.amt||"0").replace(/[^\d]/g,""))).slice(0,5);
+  document.getElementById("dash-pay").innerHTML = op.length ? op.map(p=>`
     <div style="padding:10px 14px;border-bottom:1px solid var(--b1);display:flex;align-items:center;gap:8px;cursor:pointer" onclick="go('payment')">
       <div style="flex:1"><div style="font-size:13.5px;font-weight:600">${p.party}</div>
-      <div style="font-size:12px;color:var(--muted)">${dOvr(p.due)}d overdue</div></div>
-      <span style="font-family:'JetBrains Mono';font-size:13px;color:var(--red);font-weight:600">${fa(p.amt)}</span>
-    </div>`).join(""):
-    `<div style="padding:14px;text-align:center;font-size:13px;color:var(--green)">✅ All payments clear!</div>`;
+      <div style="font-size:12px;color:var(--muted)">${p.agent||""} · ${p.due?Math.floor((now-new Date(p.due))/86400000)+"d overdue":""}</div></div>
+      <span style="font-family:'JetBrains Mono';font-size:13px;color:var(--red);font-weight:700">${fa(p.amt)}</span>
+    </div>`).join("") : `<div style="padding:14px;text-align:center;font-size:13px;color:var(--green)">✅ All payments clear!</div>`;
 
-  // ── ORDER TRACKER ──
+  // ── ACTIVE ORDERS ──
+  const ordActive = (D.orders||[]).filter(o=>o.status!=="done").slice(0,5);
   const stColors={dispatched:"var(--ac)",cod_pending:"var(--orange)",chq_received:"var(--gold)",chq_cleared:"var(--teal)",done:"var(--green)"};
   const stLabels={dispatched:"Dispatched",cod_pending:"COD Pending",chq_received:"Chq Rcvd",chq_cleared:"Cleared",done:"Done"};
-  const ordActive=D.orders.filter(o=>o.status!=="done").slice(0,4);
-  document.getElementById("dash-orders").innerHTML=ordActive.length?ordActive.map(o=>`
-    <div style="padding:10px 14px;border-bottom:1px solid var(--b1);display:flex;align-items:center;gap:8px;cursor:pointer" onclick="go('orders')">
+  document.getElementById("dash-orders").innerHTML = ordActive.length ? ordActive.map(o=>`
+    <div style="padding:10px 14px;border-bottom:1px solid var(--b1);display:flex;align-items:center;gap:8px;cursor:pointer" onclick="openOrderChain(${o.id})">
       <div style="flex:1"><div style="font-size:13.5px;font-weight:600">${o.party}</div>
       <div style="font-size:12px;color:var(--muted)">${o.inv||""}</div></div>
       <span style="font-size:11px;padding:3px 8px;border-radius:10px;background:${stColors[o.status]||"var(--ac)"}20;color:${stColors[o.status]||"var(--ac)"};font-weight:600;white-space:nowrap">${stLabels[o.status]||o.status}</span>
-    </div>`).join(""):
-    `<div style="padding:14px;text-align:center;font-size:13px;color:var(--green)">✅ No active orders!</div>`;
+    </div>`).join("") : `<div style="padding:14px;text-align:center;font-size:13px;color:var(--green)">✅ No active orders!</div>`;
 
-  // ── COMPLIANCE ──
-  const compRows=D.compliance.filter(c=>c.status!=="filed").sort((a,b)=>new Date(a.due)-new Date(b.due)).slice(0,4);
-  document.getElementById("dash-comp").innerHTML=compRows.map(c=>{
-    const d=Math.floor((new Date(c.due)-now)/86400000);
-    const col=d<0?"var(--red)":d<=3?"var(--red)":d<=7?"var(--orange)":"var(--tx)";
+  // ── ACCOUNTING ISSUES ──
+  const accOpen2 = (D.accounts||[]).filter(a=>a.status!=="resolved").slice(0,4);
+  const catIcons3={debit_note:"📋",statement:"📊",invoice:"🧾",gst:"📑",tds:"📄",bank:"🏦",ledger:"📒",other:"📌"};
+  document.getElementById("dash-accounts").innerHTML = accOpen2.length ? accOpen2.map(a=>`
+    <div style="padding:10px 14px;border-bottom:1px solid var(--b1);display:flex;align-items:center;gap:8px;cursor:pointer" onclick="go('accounts')">
+      <span style="font-size:18px">${catIcons3[a.cat]||"📌"}</span>
+      <div style="flex:1"><div style="font-size:13px;font-weight:500">${(a.issue||"").substring(0,35)}${(a.issue||"").length>35?"…":""}</div>
+      <div style="font-size:12px;color:var(--muted)">${a.party||""}</div></div>
+      ${a.pri==="high"?'<span class="pill pr" style="font-size:11px">High</span>':""}
+    </div>`).join("") : `<div style="padding:14px;text-align:center;font-size:13px;color:var(--green)">✅ No open issues!</div>`;
+
+  // ── COMPLIANCE TABLE ──
+  const compRows = (D.compliance||[]).filter(c=>c.status!=="filed").sort((a,b)=>new Date(a.due)-new Date(b.due)).slice(0,5);
+  document.getElementById("dash-comp").innerHTML = compRows.map(c=>{
+    const d = Math.floor((new Date(c.due)-now)/86400000);
+    const col = d<0?"var(--red)":d<=3?"var(--red)":d<=7?"var(--orange)":"var(--tx)";
     return`<tr style="cursor:pointer" onclick="go('compliance')">
       <td style="font-size:13px"><b>${c.name}</b></td>
-      <td style="font-size:12px">${fd(c.due)}</td>
-      <td style="font-size:13px;color:${col};font-weight:700">${d<0?"Overdue":d+"d"}</td>
+      <td style="font-size:12px">${c.due||"—"}</td>
+      <td style="font-size:13px;color:${col};font-weight:700">${d<0?"Overdue":d===0?"Today":d+"d"}</td>
     </tr>`;
   }).join("")||`<tr><td colspan="3" style="text-align:center;padding:14px;color:var(--green);font-size:13px">✅ All clear!</td></tr>`;
 
-  // ── ACCOUNTING ISSUES ──
-  const accOpen2=D.accounts.filter(a=>a.status!=="resolved").slice(0,4);
-  const catIcons3={debit_note:"📋",statement:"📊",invoice:"🧾",gst:"📑",tds:"📄",bank:"🏦",ledger:"📒",other:"📌"};
-  document.getElementById("dash-accounts").innerHTML=accOpen2.length?accOpen2.map(a=>`
-    <div style="padding:10px 14px;border-bottom:1px solid var(--b1);display:flex;align-items:center;gap:8px;cursor:pointer" onclick="go('accounts')">
-      <span style="font-size:18px">${catIcons3[a.cat]||"📌"}</span>
-      <div style="flex:1"><div style="font-size:13.5px;font-weight:500">${a.issue.substring(0,35)}${a.issue.length>35?"…":""}</div>
-      <div style="font-size:12px;color:var(--muted)">${a.party||""} ${a.due?"· Due "+fd(a.due):""}</div></div>
-      ${a.pri==="high"?'<span class="pill pr" style="font-size:11px">High</span>':""}
-    </div>`).join(""):
-    `<div style="padding:14px;text-align:center;font-size:13px;color:var(--green)">✅ No open issues!</div>`;
-
   // ── GST DATES ──
-  const gstDue=D.gst.filter(g=>g.status==="pending").sort((a,b)=>new Date(a.due)-new Date(b.due)).slice(0,4);
-  document.getElementById("dash-gst").innerHTML=gstDue.length?gstDue.map(g=>{
-    const d=Math.floor((new Date(g.due)-now)/86400000);
-    const col=d<=3?"var(--red)":d<=7?"var(--orange)":"var(--tx)";
+  const gstDue = (D.gst||[]).filter(g=>g.status==="pending").sort((a,b)=>new Date(a.due)-new Date(b.due)).slice(0,4);
+  document.getElementById("dash-gst").innerHTML = gstDue.length ? gstDue.map(g=>{
+    const d = Math.floor((new Date(g.due)-now)/86400000);
+    const col = d<=3?"var(--red)":d<=7?"var(--orange)":"var(--tx)";
     return`<div style="padding:10px 14px;border-bottom:1px solid var(--b1);display:flex;align-items:center;justify-content:space-between;cursor:pointer" onclick="go('gst')">
-      <div><div style="font-size:13.5px;font-weight:600">${g.ret}</div>
-      <div style="font-size:12px;color:var(--muted)">${g.period}</div></div>
-      <div style="text-align:right"><div style="font-size:13px;${ddC(g.due)}">${fd(g.due)}</div>
-      <div style="font-size:12px;color:${col};font-weight:600">${d<0?"OVERDUE":d+"d left"}</div></div>
+      <div><div style="font-size:13.5px;font-weight:600">${g.ret||""}</div>
+      <div style="font-size:12px;color:var(--muted)">${g.period||""}</div></div>
+      <div style="text-align:right">
+        <div style="font-size:13px;color:${col};font-weight:700">${d<0?"OVERDUE":d===0?"TODAY":d+"d left"}</div>
+        <div style="font-size:11px;color:var(--muted)">${g.due||""}</div>
+      </div>
     </div>`;
-  }).join(""):`<div style="padding:14px;text-align:center;font-size:13px;color:var(--green)">✅ All GST filed!</div>`;
+  }).join("") : `<div style="padding:14px;text-align:center;font-size:13px;color:var(--green)">✅ All GST filed!</div>`;
 
-  // ── PURCHASE / REORDER ──
-  const lowItems = D.purchase.filter(p=>p.status==="critical"||p.status==="low");
+  // ── PURCHASE / LOW STOCK ──
+  const lowItems = (D.purchase||[]).filter(p=>p.status==="critical"||p.status==="low");
   const purEl = document.getElementById("dash-purchase");
   if(purEl){
-    if(lowItems.length){
-      purEl.innerHTML = `<div class="tbl-scroll"><table class="tbl">
-        <thead><tr><th>Item</th><th>Category</th><th>Stock</th><th>Min Level</th><th>To Order</th><th>Supplier</th><th>Priority</th></tr></thead>
-        <tbody>${lowItems.map(p=>`<tr style="cursor:pointer" onclick="go('purchase')">
-          <td><b>${p.item}</b></td>
-          <td><span class="pill pb" style="font-size:11px">${p.cat}</span></td>
-          <td style="font-family:'JetBrains Mono';font-size:13px;color:${p.status==="critical"?"var(--red)":"var(--orange)"}">${p.stock} ${p.unit}</td>
-          <td style="font-size:13px">${p.minLevel} ${p.unit}</td>
-          <td style="font-family:'JetBrains Mono';font-size:13px;color:var(--ac);font-weight:700">${p.toOrder} ${p.unit}</td>
-          <td style="font-size:13px">${p.supplier||"—"}</td>
-          <td>${p.status==="critical"?'<span class="pill pr">🔴 Critical</span>':'<span class="pill py">🟡 Low</span>'}</td>
-        </tr>`).join("")}</tbody>
-      </table></div>`;
-    } else {
-      purEl.innerHTML = `<div style="padding:14px;text-align:center;font-size:13px;color:var(--green)">✅ All stock levels OK!</div>`;
-    }
+    purEl.innerHTML = lowItems.length
+      ? `<div class="tbl-scroll"><table class="tbl"><thead><tr><th>Item</th><th>Stock</th><th>Min Level</th><th>To Order</th><th>Supplier</th><th>Priority</th></tr></thead>
+         <tbody>${lowItems.map(p=>`<tr onclick="go('purchase')" style="cursor:pointer">
+           <td><b>${p.item||""}</b></td>
+           <td style="font-family:'JetBrains Mono';color:${p.status==="critical"?"var(--red)":"var(--orange)"}">${p.stock||0} ${p.unit||""}</td>
+           <td>${p.minLevel||0} ${p.unit||""}</td>
+           <td style="font-family:'JetBrains Mono';color:var(--ac);font-weight:700">${p.toOrder||0} ${p.unit||""}</td>
+           <td>${p.supplier||"—"}</td>
+           <td>${p.status==="critical"?'<span class="pill pr">🔴 Critical</span>':'<span class="pill py">🟡 Low</span>'}</td>
+         </tr>`).join("")}</tbody></table></div>`
+      : `<div style="padding:14px;text-align:center;font-size:13px;color:var(--green)">✅ All stock levels OK!</div>`;
   }
 
-  // ── QUICK COUNTERS ──
-  document.getElementById("d-tr").textContent=D.transport.length;
-  document.getElementById("d-ls").textContent=D.purchase.filter(p=>p.status==="critical"||p.status==="low").length;
-  document.getElementById("d-def").textContent=D.defaulter.length;
-  document.getElementById("d-bank").textContent=D.banking.filter(b=>b.status!=="resolved").length;
+  // ── RECENT ACTIVITY ──
+  const actEl = document.getElementById("dash-activity");
+  if(actEl){
+    const activities = [];
+    const actDefs = [
+      {col:"urgent",  icon:"🚨", label:o=>o.party,        sub:"Urgent Order"},
+      {col:"payment", icon:"💰", label:o=>o.party,        sub:"Payment"},
+      {col:"orders",  icon:"📦", label:o=>o.party,        sub:"Order"},
+      {col:"accounts",icon:"🧾", label:o=>o.issue,        sub:"Accounting"},
+      {col:"kb",      icon:"🧠", label:o=>o.title,        sub:"Knowledge Base"},
+      {col:"costing", icon:"💹", label:o=>o.name,         sub:"Cost Item"},
+    ];
+    actDefs.forEach(def=>{
+      (D[def.col]||[]).forEach(o=>{
+        const dt = o.updatedAt||o.createdAt||o.date||"";
+        if(dt) activities.push({icon:def.icon,label:def.label(o)||"",sub:def.sub,date:dt});
+      });
+    });
+    activities.sort((a,b)=>new Date(b.date)-new Date(a.date));
+    actEl.innerHTML = activities.slice(0,6).map(a=>`
+      <div style="padding:10px 16px;border-bottom:1px solid var(--b1);display:flex;align-items:center;gap:12px">
+        <span style="font-size:20px">${a.icon}</span>
+        <div style="flex:1"><div style="font-size:13.5px;font-weight:600">${(a.label||"").substring(0,40)}</div>
+        <div style="font-size:12px;color:var(--muted)">${a.sub}</div></div>
+        <span style="font-size:12px;color:var(--dim)">${a.date}</span>
+      </div>`).join("")||`<div style="padding:14px;text-align:center;font-size:13px;color:var(--muted)">No recent activity</div>`;
+  }
 
-  // ── ALL BADGES ──
-  const bu=document.getElementById("b-urgent");if(bu)bu.textContent=D.urgent.filter(x=>x.pri==="critical"&&x.status!=="done").length||0;
-  const bp=document.getElementById("b-pay");if(bp)bp.textContent=D.payment.filter(x=>x.status!=="collected").length||0;
-  const bc=document.getElementById("b-comp");if(bc)bc.textContent=D.compliance.filter(c=>c.status==="pending").length||0;
-  const bg=document.getElementById("b-gst");if(bg)bg.textContent=D.gst.filter(g=>g.status==="pending").length||0;
-  const bn=document.getElementById("bn-badge");if(bn)bn.textContent=D.urgent.filter(x=>x.status!=="done").length||0;
-  const bacc=document.getElementById("b-accounts");if(bacc)bacc.textContent=D.accounts.filter(a=>a.status!=="resolved").length||0;
+  // ── COUNTERS ──
+  document.getElementById("d-tr").textContent = (D.transport||[]).length;
+  document.getElementById("d-ls").textContent = (D.purchase||[]).filter(p=>p.status==="critical"||p.status==="low").length;
+  document.getElementById("d-def").textContent = (D.defaulter||[]).length;
+  document.getElementById("d-bank").textContent = (D.banking||[]).filter(b=>b.status!=="resolved").length;
+
+  // ── BADGES ──
+  const bu=document.getElementById("b-urgent");if(bu)bu.textContent=(D.urgent||[]).filter(x=>x.pri==="critical"&&x.status!=="done").length||0;
+  const bp=document.getElementById("b-pay");if(bp)bp.textContent=(D.payment||[]).filter(x=>x.status!=="collected").length||0;
+  const bc=document.getElementById("b-comp");if(bc)bc.textContent=(D.compliance||[]).filter(c=>c.status==="pending").length||0;
+  const bg=document.getElementById("b-gst");if(bg)bg.textContent=(D.gst||[]).filter(g=>g.status==="pending").length||0;
+  const bn=document.getElementById("bn-badge");if(bn)bn.textContent=(D.urgent||[]).filter(x=>x.status!=="done").length||0;
+  const bacc=document.getElementById("b-accounts");if(bacc)bacc.textContent=(D.accounts||[]).filter(a=>a.status!=="resolved").length||0;
+  const bmd=document.getElementById("b-mustdo");if(bmd){const d=(D.mustdo||[]).filter(t=>t.doneToday).length,t=(D.mustdo||[]).length;bmd.textContent=t?d+"/"+t:"0";}
+}
+
+function dashQuickTask(){
+  const el = document.getElementById("dash-task-quick");
+  if(el){ el.style.display="block"; setTimeout(()=>document.getElementById("dash-task-q-inp")?.focus(),80); }
+}
+
+function dashQuickTaskSave(){
+  const today = new Date().toISOString().slice(0,10);
+  const text = document.getElementById("dash-task-q-inp")?.value?.trim();
+  if(!text) return;
+  if(!D.dayData[today]) D.dayData[today]={tasks:[],notes:""};
+  D.dayData[today].tasks.push({id:++D.uid, text, done:false, pri:"med"});
+  document.getElementById("dash-task-q-inp").value="";
+  document.getElementById("dash-task-quick").style.display="none";
+  autoSave("dayData"); autoSave("uid");
+  R_home();
 }
 
 
-// ── COSTING MODULE HELPERS ──
 function openAddEntry(itemId) {
   // Open modal for adding a new price entry to existing item
   const item = D.costing.find(x=>x.id===itemId);
