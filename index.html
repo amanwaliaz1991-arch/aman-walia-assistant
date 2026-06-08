@@ -1480,7 +1480,7 @@ const Mo={
           <select class="sel" id="mf-cat" style="width:100%">
             ${(D.costCats||[]).map(c=>`<option value="${c.name}" ${ie&&item&&item.cat===c.name?"selected":""}>${c.icon||"📦"} ${c.name}</option>`).join("")}
             ${!D.costCats.find(c=>c.name===item.cat)&&ie?`<option value="${item.cat}" selected>${item.cat}</option>`:""}
-            ${!D.costCats.length?`<option value="">— No categories yet —</option>`:""}
+            ${!(D.costCats||[]).length?`<option value="">— No categories yet —</option>`:""}
           </select></div></div>
         <div class="fr">
           <div class="fg"><label>Unit</label><input class="inp" id="mf-unit" value="${v('unit','pcs')}" placeholder="pcs / kg / set" style="width:100%"></div>
@@ -2028,7 +2028,7 @@ const R={
 
     // Stats
     const totalItems = D.costing.length;
-    const totalCats = D.costCats.length;
+    const totalCats = (D.costCats||[]).length;
     const avgMargin = D.costing.filter(c=>c.cp).length ?
       Math.round(D.costing.filter(c=>c.cp).reduce((s,c)=>s+((c.sp-c.cp)/c.cp*100),0)/D.costing.filter(c=>c.cp).length) : 0;
     const topMargin = D.costing.filter(c=>c.cp).reduce((best,c)=>{const m=(c.sp-c.cp)/c.cp*100;return m>best?m:best;},0);
@@ -2058,21 +2058,21 @@ const R={
       c.name.toLowerCase().includes(sq)||(c.cat||"").toLowerCase().includes(sq)||(c.notes||"").toLowerCase().includes(sq)
     ) : null;
 
-    if(!D.costing.length && !D.costCats.length){
+    if(!D.costing.length && !(D.costCats||[]).length){
       empty.style.display="block"; container.innerHTML=""; return;
     }
     empty.style.display="none";
 
     // Group items by category
-    const cats = D.costCats.length ? D.costCats : 
+    const cats = (D.costCats||[]).length ? D.costCats : 
       [...new Set((D||[]).map(c=>c.cat||"Uncategorised"))].map(n=>({name:n,icon:"📦"}));
     
     // Also get uncategorised items
     const catNames = (D||[]).map(c=>c.name);
-    const uncatItems = D.costing.filter(c=>!c.cat||!catNames.includes(c.cat));
+    const uncatItems = (D.costing||[]).filter(c=>!c.cat||!catNames.includes(c.cat));
 
-    const allGroups = [...cats];
-    if(uncatItems.length && D.costCats.length) allGroups.push({name:"Uncategorised",icon:"📦",_uncat:true});
+    const allGroups = [...(cats||[])];
+    if(uncatItems.length && (D.costCats||[]).length) allGroups.push({name:"Uncategorised",icon:"📦",_uncat:true});
 
     container.innerHTML = allGroups.map(cat => {
       const items = filteredItems ? 
