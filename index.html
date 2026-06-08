@@ -335,6 +335,7 @@ mark{background:#fef08a;border-radius:2px;padding:0 2px;}
   <div class="sb-grp">
     <div class="sb-lbl">Home</div>
     <div class="sb-item on" id="n-home" onclick="go('home')"><span class="sb-ico">🏠</span>Dashboard</div>
+    <div class="sb-item" id="n-kb" onclick="go('kb')"><span class="sb-ico">🧠</span>Knowledge Base</div>
     <div class="sb-item" id="n-scanner" onclick="go('scanner')"><span class="sb-ico">📷</span>Paper Scanner<span class="sb-bdg b" id="b-scanner">0</span></div>
   </div>
   <div class="sb-grp">
@@ -1175,6 +1176,96 @@ mark{background:#fef08a;border-radius:2px;padding:0 2px;}
   </div>
 </div>
 
+
+<!-- ████ KNOWLEDGE BASE ████ -->
+<div class="mod" id="mod-kb">
+  <div class="ph">
+    <div><div class="pt">KNOWLEDGE <span>BASE</span></div>
+    <div class="pt-sub">Formulations · Trade knowledge · Important data · Notes</div></div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+      <select class="sel" id="kb-cat-f" onchange="R.kb()" style="width:150px">
+        <option value="">All Categories</option>
+        <option value="formulation">🧪 Formulation</option>
+        <option value="trade">💼 Trade Knowledge</option>
+        <option value="supplier">🏭 Supplier Info</option>
+        <option value="process">⚙️ Process</option>
+        <option value="recipe">📋 Recipe/Formula</option>
+        <option value="contact">📞 Contact</option>
+        <option value="legal">⚖️ Legal/Compliance</option>
+        <option value="other">📌 Other</option>
+      </select>
+      <input class="inp" id="kb-search" placeholder="🔍 Search…" oninput="R.kb()" style="width:160px">
+      <button class="btn btn-p" onclick="openKbForm()">+ Add Entry</button>
+    </div>
+  </div>
+
+  <!-- Stats -->
+  <div class="g4" id="kb-stats" style="margin-bottom:14px"></div>
+
+  <!-- Add/Edit Form -->
+  <div id="kb-form" style="display:none;margin-bottom:16px">
+    <div class="card">
+      <div class="card-hdr" id="kb-form-title">➕ New Entry</div>
+      <div style="padding:16px">
+        <div class="fr">
+          <div class="fg" style="flex:2">
+            <label>Title *</label>
+            <input class="inp" id="kb-inp-title" placeholder="e.g. Grip Rubber Formulation Grade A" style="width:100%">
+          </div>
+          <div class="fg">
+            <label>Category</label>
+            <select class="sel" id="kb-inp-cat" style="width:100%">
+              <option value="formulation">🧪 Formulation</option>
+              <option value="trade">💼 Trade Knowledge</option>
+              <option value="supplier">🏭 Supplier Info</option>
+              <option value="process">⚙️ Process</option>
+              <option value="recipe">📋 Recipe/Formula</option>
+              <option value="contact">📞 Contact</option>
+              <option value="legal">⚖️ Legal/Compliance</option>
+              <option value="other">📌 Other</option>
+            </select>
+          </div>
+          <div class="fg">
+            <label>Tags (comma separated)</label>
+            <input class="inp" id="kb-inp-tags" placeholder="e.g. rubber, grade-a, formula" style="width:100%">
+          </div>
+        </div>
+        <div class="fg" style="margin-top:10px">
+          <label>Content *</label>
+          <textarea class="ta" id="kb-inp-content" rows="8" 
+            placeholder="Write everything here — formulations, ratios, steps, contact details, trade notes, anything important…"
+            style="width:100%;min-height:180px;line-height:1.7"></textarea>
+        </div>
+        <div class="fr" style="margin-top:10px">
+          <div class="fg">
+            <label>Attachments / References</label>
+            <input class="inp" id="kb-inp-ref" placeholder="e.g. See batch report Mar-2026, Supplier: Rubber World" style="width:100%">
+          </div>
+          <div class="fg">
+            <label>Confidential?</label>
+            <select class="sel" id="kb-inp-conf" style="width:100%">
+              <option value="no">🔓 No</option>
+              <option value="yes">🔒 Yes — Private</option>
+            </select>
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;margin-top:14px;justify-content:flex-end">
+          <button class="btn" onclick="closeKbForm()">Cancel</button>
+          <button class="btn btn-p" onclick="saveKbEntry()">💾 Save Entry</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Entries -->
+  <div id="kb-entries"></div>
+  <div id="kb-empty" class="es" style="display:none">
+    <div class="em">🧠</div>
+    No entries yet. Start saving your important knowledge.
+    <div style="margin-top:12px"><button class="btn btn-p" onclick="openKbForm()">+ Add First Entry</button></div>
+  </div>
+</div>
+
 </div><!-- /main -->
 
 </div><!-- /body -->
@@ -1251,7 +1342,7 @@ function go(id){
     defaulter:R.defaulter,banking:R.banking,deadstock:R.deadstock,rd:R.rd,compliance:R.compliance,
     itax:R.itax,tds:R.tds,gst:R.gst,itc:R.itc,future:R.future,tracker:initTracker,
     health:R.health,badminton:R.badminton,self:R.self,quotes:R.quotes,
-    mustdo:R.mustdo,accounts:R.accounts,costing:R.costing,orders:R.orders,purchase:R.purchase,production:R.production,
+    mustdo:R.mustdo,accounts:R.accounts,costing:R.costing,kb:R.kb,orders:R.orders,purchase:R.purchase,production:R.production,
     expenses:R.expenses,scanner:R.scanner};
   rmap[id]?.();
 }
@@ -1362,6 +1453,7 @@ const D={
   mustdo:[],
   accounts:[],
   costing:[],
+  kb:[],
   costCats:[],
   scanHistory:[],
   purchase:[],
@@ -2124,6 +2216,68 @@ const R={
         `<div style="padding:14px;text-align:center;font-size:13px;color:var(--muted)">
           No items yet. <span style="color:var(--ac);cursor:pointer;font-weight:600" onclick="addItemToCategory('${cat.name}')">+ Add first item →</span>
         </div>`}
+      </div>`;
+    }).join("");
+  },
+  kb(){
+    const cf = document.getElementById("kb-cat-f")?.value||"";
+    const sq = (document.getElementById("kb-search")?.value||"").toLowerCase();
+    const kb = D.kb||[];
+
+    // Filter
+    const list = kb.filter(e=>
+      (!cf || e.cat===cf) &&
+      (!sq || (e.title+e.content+e.tags).toLowerCase().includes(sq))
+    );
+
+    // Stats
+    const catIcons = {formulation:"🧪",trade:"💼",supplier:"🏭",process:"⚙️",recipe:"📋",contact:"📞",legal:"⚖️",other:"📌"};
+    const cats = [...new Set(kb.map(e=>e.cat))];
+    document.getElementById("kb-stats").innerHTML =
+      sc("var(--ac)",    "Total Entries",  kb.length) +
+      sc("var(--orange)","Categories",     cats.length) +
+      sc("var(--teal)",  "Confidential",   kb.filter(e=>e.conf==="yes").length,"Private entries") +
+      sc("var(--green)", "Results",        list.length,"Showing");
+
+    const empty = document.getElementById("kb-empty");
+    const container = document.getElementById("kb-entries");
+
+    if(!list.length){ empty.style.display="block"; container.innerHTML=""; return; }
+    empty.style.display="none";
+
+    container.innerHTML = list.sort((a,b)=>new Date(b.updatedAt||b.createdAt||0)-new Date(a.updatedAt||a.createdAt||0))
+    .map(e=>{
+      const icon = catIcons[e.cat]||"📌";
+      const tags = (e.tags||"").split(",").map(t=>t.trim()).filter(Boolean);
+      const isConf = e.conf==="yes";
+      const preview = (e.content||"").length>200 ? (e.content||"").slice(0,200)+"…" : (e.content||"");
+
+      return `<div class="card" style="margin-bottom:12px">
+        <div style="padding:14px 16px;border-bottom:1px solid var(--b1);display:flex;align-items:flex-start;gap:12px">
+          <span style="font-size:24px;flex-shrink:0">${icon}</span>
+          <div style="flex:1;min-width:0">
+            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+              <div style="font-size:15px;font-weight:700">${e.title}</div>
+              ${isConf?'<span class="pill" style="background:#fef2f2;color:var(--red);font-size:11px">🔒 Private</span>':""}
+              <span class="pill pb" style="font-size:11px">${icon} ${(e.cat||"other").replace("_"," ")}</span>
+              ${tags.map(t=>`<span class="pill" style="background:var(--s2);color:var(--muted);font-size:11px">#${t}</span>`).join("")}
+            </div>
+            <div style="font-size:11px;color:var(--dim);margin-top:3px">
+              ${e.updatedAt?"Updated "+fd(e.updatedAt):"Added "+fd(e.createdAt||"")}
+              ${e.ref?` · Ref: ${e.ref}`:""}
+            </div>
+          </div>
+          <div style="display:flex;gap:6px;flex-shrink:0">
+            <button class="btn-e" onclick="editKbEntry(${e.id})">✏️</button>
+            <button class="btn-d" onclick="delItem('kb',${e.id})">🗑</button>
+          </div>
+        </div>
+        <!-- Content - toggleable -->
+        <div id="kb-content-${e.id}" style="display:none;padding:16px;white-space:pre-wrap;font-size:14px;line-height:1.8;background:#fafcff;border-bottom:1px solid var(--b1)">${e.content||""}</div>
+        <div style="padding:10px 16px;display:flex;align-items:center;justify-content:space-between;cursor:pointer" onclick="toggleKbContent(${e.id})">
+          <div style="font-size:13px;color:var(--muted);flex:1;white-space:pre-wrap;line-height:1.6">${preview}</div>
+          <button class="btn btn-sm" id="kb-toggle-${e.id}" style="margin-left:12px;flex-shrink:0">▼ Expand</button>
+        </div>
       </div>`;
     }).join("");
   },
@@ -2975,6 +3129,76 @@ function manualRefresh() {
   }, 2000);
 }
 
+
+// ══════════════════════════════════════════
+// KNOWLEDGE BASE
+// ══════════════════════════════════════════
+let kbEditId = null;
+
+function openKbForm(id) {
+  kbEditId = id || null;
+  const e = id ? (D.kb||[]).find(x=>x.id===id) : null;
+  document.getElementById("kb-form-title").textContent = id ? "✏️ Edit Entry" : "➕ New Entry";
+  document.getElementById("kb-inp-title").value   = e ? e.title   : "";
+  document.getElementById("kb-inp-cat").value     = e ? e.cat     : "formulation";
+  document.getElementById("kb-inp-tags").value    = e ? e.tags    : "";
+  document.getElementById("kb-inp-content").value = e ? e.content : "";
+  document.getElementById("kb-inp-ref").value     = e ? e.ref     : "";
+  document.getElementById("kb-inp-conf").value    = e ? e.conf    : "no";
+  document.getElementById("kb-form").style.display = "block";
+  setTimeout(()=>document.getElementById("kb-inp-title")?.focus(), 60);
+  window.scrollTo({top:0, behavior:"smooth"});
+}
+
+function closeKbForm() {
+  document.getElementById("kb-form").style.display = "none";
+  kbEditId = null;
+}
+
+function saveKbEntry() {
+  const title   = document.getElementById("kb-inp-title")?.value?.trim();
+  const content = document.getElementById("kb-inp-content")?.value?.trim();
+  if(!title)   { alert("Title is required");   return; }
+  if(!content) { alert("Content is required"); return; }
+
+  const entry = {
+    title,
+    cat:     document.getElementById("kb-inp-cat")?.value   || "other",
+    tags:    document.getElementById("kb-inp-tags")?.value?.trim() || "",
+    content,
+    ref:     document.getElementById("kb-inp-ref")?.value?.trim() || "",
+    conf:    document.getElementById("kb-inp-conf")?.value  || "no",
+    updatedAt: new Date().toISOString().slice(0,10)
+  };
+
+  if(!D.kb) D.kb = [];
+  if(kbEditId) {
+    const i = D.kb.findIndex(x=>x.id===kbEditId);
+    if(i>-1) D.kb[i] = {...D.kb[i], ...entry};
+  } else {
+    entry.id = ++D.uid;
+    entry.createdAt = new Date().toISOString().slice(0,10);
+    D.kb.push(entry);
+  }
+  autoSave("kb");
+  autoSave("uid");
+  closeKbForm();
+  R.kb();
+}
+
+function editKbEntry(id) {
+  openKbForm(id);
+}
+
+function toggleKbContent(id) {
+  const el  = document.getElementById("kb-content-"+id);
+  const btn = document.getElementById("kb-toggle-"+id);
+  if(!el) return;
+  const open = el.style.display === "none";
+  el.style.display  = open ? "block" : "none";
+  btn.textContent   = open ? "▲ Collapse" : "▼ Expand";
+}
+
 // ── SMART SCAN ──
 function openScan(){
   document.getElementById("scan-mo").classList.add("show");
@@ -3248,7 +3472,7 @@ function loadAllFromFirebase() {
     "deadstock","rd","compliance","itax","tds","gst","itc","future",
     "dayData","healthHabits","healthGoals","bdmGames","bdmSkills",
     "bdmDrills","selfGoals","books","weeklyReviews","quotes","uid",
-    "mustdo","accounts","costing","costCats","orders","purchase","production","prodStock","expenses","scanHistory"
+    "mustdo","accounts","costing","costCats","kb","orders","purchase","production","prodStock","expenses","scanHistory"
   ];
 
   let initialLoadDone = false;
@@ -3372,7 +3596,7 @@ function loadAllFromFirebase() {
 // ── LOCALSTORAGE FALLBACK ──
 function saveToLocal() {
   try {
-    const save = {urgent:D.urgent,cod:D.cod,transport:D.transport,payment:D.payment,defaulter:D.defaulter,banking:D.banking,deadstock:D.deadstock,rd:D.rd,compliance:D.compliance,itax:D.itax,tds:D.tds,gst:D.gst,itc:D.itc,future:D.future,dayData:D.dayData,healthHabits:D.healthHabits,healthGoals:D.healthGoals,bdmGames:D.bdmGames,bdmSkills:D.bdmSkills,bdmDrills:D.bdmDrills,selfGoals:D.selfGoals,books:D.books,weeklyReviews:D.weeklyReviews,quotes:D.quotes,uid:D.uid,orders:D.orders,purchase:D.purchase,production:D.production,prodStock:D.prodStock,expenses:D.expenses,scanHistory:D.scanHistory,mustdo:D.mustdo,accounts:D.accounts,costing:D.costing,costCats:D.costCats};
+    const save = {urgent:D.urgent,cod:D.cod,transport:D.transport,payment:D.payment,defaulter:D.defaulter,banking:D.banking,deadstock:D.deadstock,rd:D.rd,compliance:D.compliance,itax:D.itax,tds:D.tds,gst:D.gst,itc:D.itc,future:D.future,dayData:D.dayData,healthHabits:D.healthHabits,healthGoals:D.healthGoals,bdmGames:D.bdmGames,bdmSkills:D.bdmSkills,bdmDrills:D.bdmDrills,selfGoals:D.selfGoals,books:D.books,weeklyReviews:D.weeklyReviews,quotes:D.quotes,uid:D.uid,orders:D.orders,purchase:D.purchase,production:D.production,prodStock:D.prodStock,expenses:D.expenses,scanHistory:D.scanHistory,mustdo:D.mustdo,accounts:D.accounts,costing:D.costing,costCats:D.costCats,kb:D.kb};
     localStorage.setItem("aman_walia_data", JSON.stringify(save));
   } catch(e) { console.warn("LocalStorage save failed:", e); }
 }
