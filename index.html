@@ -2041,7 +2041,7 @@ const R={
     // Render category chips in form
     const catList = document.getElementById("cst-cat-list");
     if(catList){
-      catList.innerHTML = (D||[]).map(cat=>`
+      catList.innerHTML = (D.costCats||[]).map(cat=>`
         <div style="display:flex;align-items:center;gap:6px;background:var(--s2);border:1px solid var(--b1);border-radius:20px;padding:5px 12px">
           <span>${cat.icon||"📦"}</span>
           <span style="font-size:13px;font-weight:600">${cat.name}</span>
@@ -2068,7 +2068,7 @@ const R={
       [...new Set((D.costing||[]).map(c=>c.cat||"Uncategorised"))].map(n=>({name:n,icon:"📦"}));
     
     // Also get uncategorised items
-    const catNames = (D||[]).map(c=>c.name);
+    const catNames = (D.costCats||[]).map(c=>c.name);
     const uncatItems = (D.costing||[]).filter(c=>!c.cat||!catNames.includes(c.cat));
 
     const allGroups = [...(cats||[])];
