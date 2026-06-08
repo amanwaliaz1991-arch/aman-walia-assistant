@@ -1479,7 +1479,7 @@ const Mo={
         <div class="fg"><label>Category</label>
           <select class="sel" id="mf-cat" style="width:100%">
             ${(D.costCats||[]).map(c=>`<option value="${c.name}" ${ie&&item&&item.cat===c.name?"selected":""}>${c.icon||"📦"} ${c.name}</option>`).join("")}
-            ${!D.costCats.find(c=>c.name===item.cat)&&ie?`<option value="${item.cat}" selected>${item.cat}</option>`:""}
+            ${!(D.costCats||[]).find(c=>c.name===(item&&item.cat))&&ie&&item&&item.cat?`<option value="${item.cat}" selected>${item.cat}</option>`:""}
             ${!(D.costCats||[]).length?`<option value="">— No categories yet —</option>`:""}
           </select></div></div>
         <div class="fr">
@@ -2064,8 +2064,8 @@ const R={
     empty.style.display="none";
 
     // Group items by category
-    const cats = (D.costCats||[]).length ? D.costCats : 
-      [...new Set((D||[]).map(c=>c.cat||"Uncategorised"))].map(n=>({name:n,icon:"📦"}));
+    const cats = (D.costCats||[]).length ? (D.costCats||[]) : 
+      [...new Set((D.costing||[]).map(c=>c.cat||"Uncategorised"))].map(n=>({name:n,icon:"📦"}));
     
     // Also get uncategorised items
     const catNames = (D||[]).map(c=>c.name);
