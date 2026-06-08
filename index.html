@@ -2862,13 +2862,13 @@ function addItemToCategory(catName) {
   document.getElementById("mo-sv").style.display = "";
   document.getElementById("mo-sv").onclick = moSave;
   // Build form with cat pre-filled
-  const catIcons = Object.fromEntries((D||[]).map(c=>[c.name,c.icon]));
+  const catIcons = Object.fromEntries((D.costCats||[]).map(c=>[c.name,c.icon]));
   document.getElementById("mo-b").innerHTML = `
     <div class="fr"><div class="fg"><label>Item Name *</label>
       <input class="inp" id="mf-name" placeholder="e.g. Super Best, Chevron Grip" style="width:100%"></div>
     <div class="fg"><label>Category</label>
       <select class="sel" id="mf-cat" style="width:100%">
-        ${(D||[]).map(c=>`<option value="${c.name}" ${c.name===catName?"selected":""}>${c.icon} ${c.name}</option>`).join("")}
+        ${(D.costCats||[]).map(c=>`<option value="${c.name}" ${c.name===catName?"selected":""}>${c.icon} ${c.name}</option>`).join("")}
         <option value="${catName}" ${!D.costCats.find(c=>c.name===catName)?"selected":""}>${catName}</option>
       </select></div></div>
     <div class="fr"><div class="fg"><label>Unit</label>
