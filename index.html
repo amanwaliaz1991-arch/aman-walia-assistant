@@ -395,6 +395,13 @@ mark{background:#fef08a;border-radius:2px;padding:0 2px;}
       <div style="font-size:13px;color:var(--muted);margin-top:2px" id="dash-date-full">Loading…</div>
       <div style="font-size:12px;color:var(--dim);margin-top:1px" id="dash-month-info"></div>
     </div>
+    <!-- Daily Quote -->
+    <div id="dash-quote-box" style="flex:1;max-width:340px;background:linear-gradient(135deg,#eff6ff,#f5f3ff);border:1px solid #c7d2fe;border-radius:12px;padding:12px 16px;cursor:pointer" onclick="fetchDailyQuote(true)">
+      <div style="font-size:10px;font-weight:700;color:var(--a2);letter-spacing:1px;text-transform:uppercase;margin-bottom:6px">✨ Daily Quote</div>
+      <div id="dash-quote-text" style="font-size:13px;font-style:italic;color:#3730a3;line-height:1.6">Loading quote…</div>
+      <div id="dash-quote-author" style="font-size:11px;color:var(--muted);margin-top:5px;text-align:right"></div>
+      <div style="font-size:10px;color:var(--dim);margin-top:4px">Tap to refresh 🔄</div>
+    </div>
     <!-- Quick Actions -->
     <div style="display:flex;gap:8px;flex-wrap:wrap">
       <button class="btn btn-p btn-sm" onclick="Mo.open('urgent')">🚨 Urgent Order</button>
@@ -3040,6 +3047,9 @@ function R_home(){
   document.getElementById("d-def").textContent = (D.defaulter||[]).length;
   document.getElementById("d-bank").textContent = (D.banking||[]).filter(b=>b.status!=="resolved").length;
 
+  // ── DAILY QUOTE ──
+  fetchDailyQuote();
+
   // ── BADGES ──
   const bu=document.getElementById("b-urgent");if(bu)bu.textContent=(D.urgent||[]).filter(x=>x.pri==="critical"&&x.status!=="done").length||0;
   const bp=document.getElementById("b-pay");if(bp)bp.textContent=(D.payment||[]).filter(x=>x.status!=="collected").length||0;
@@ -3356,6 +3366,77 @@ function toggleKbContent(id) {
   const open = el.style.display === "none";
   el.style.display  = open ? "block" : "none";
   btn.textContent   = open ? "▲ Collapse" : "▼ Expand";
+}
+
+
+// ══════════════════════════════════════════
+// DAILY QUOTE — AI Powered
+// ══════════════════════════════════════════
+let quoteLastFetched = null;
+
+async function fetchDailyQuote(force=false) {
+  const today = new Date().toISOString().slice(0,10);
+  const stored = localStorage.getItem("aman_daily_quote");
+  const storedDate = localStorage.getItem("aman_daily_quote_date");
+
+  // Use cached quote if same day and not forcing refresh
+  if(!force && stored && storedDate === today) {
+    renderQuote(JSON.parse(stored));
+    return;
+  }
+
+  const el = document.getElementById("dash-quote-text");
+  const au = document.getElementById("dash-quote-author");
+  if(el) el.textContent = "Fetching fresh quote…";
+  if(au) au.textContent = "";
+
+  try {
+    const resp = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({
+        model: "claude-sonnet-4-20250514",
+        max_tokens: 200,
+        messages: [{
+          role: "user",
+          content: `Give me 1 powerful business or motivational quote for an entrepreneur who runs a cricket equipment manufacturing business in India. 
+Make it inspiring, practical and relevant to business/trade/manufacturing/success.
+Reply ONLY with valid JSON in this exact format:
+{"quote": "the quote here", "author": "Author Name", "context": "brief 3-word context like: on persistence"}`
+        }]
+      })
+    });
+
+    const data = await resp.json();
+    const text = data.content?.[0]?.text || "";
+    const clean = text.replace(/\`\`\`json|\`\`\`/g,"").trim();
+    const q = JSON.parse(clean);
+
+    localStorage.setItem("aman_daily_quote", JSON.stringify(q));
+    localStorage.setItem("aman_daily_quote_date", today);
+    renderQuote(q);
+
+  } catch(e) {
+    // Fallback quotes if API fails
+    const fallbacks = [
+      {quote:"The secret of getting ahead is getting started.", author:"Mark Twain", context:"on action"},
+      {quote:"Your most unhappy customers are your greatest source of learning.", author:"Bill Gates", context:"on business"},
+      {quote:"Success is not final, failure is not fatal: it is the courage to continue that counts.", author:"Winston Churchill", context:"on persistence"},
+      {quote:"The harder you work for something, the greater you'll feel when you achieve it.", author:"Unknown", context:"on effort"},
+      {quote:"Don't watch the clock; do what it does. Keep going.", author:"Sam Levenson", context:"on time"},
+      {quote:"Quality is not an act, it is a habit.", author:"Aristotle", context:"on excellence"},
+      {quote:"Opportunities don't happen. You create them.", author:"Chris Grosser", context:"on opportunity"},
+    ];
+    const q = fallbacks[new Date().getDate() % fallbacks.length];
+    renderQuote(q);
+  }
+}
+
+function renderQuote(q) {
+  const el = document.getElementById("dash-quote-text");
+  const au = document.getElementById("dash-quote-author");
+  if(el) el.textContent = "“" + q.quote + "”";
+  if(au) au.textContent = "— " + q.author + (q.context ? " · " + q.context : "");
 }
 
 // ── SMART SCAN ──
@@ -4497,6 +4578,7 @@ function runGlobalSearch() {
 
 // ── INIT ──
 R_home();
+setTimeout(fetchDailyQuote, 2000); // fetch quote after app loads
 </script>
 <input type="file" id="import-file" accept=".json" style="display:none" onchange="importBackup(this)">
 
