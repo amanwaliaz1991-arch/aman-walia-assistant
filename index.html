@@ -849,7 +849,7 @@ mark{background:#fef08a;border-radius:2px;padding:0 2px;}
   <div class="g4" id="prod-stats"></div>
   <div class="g2">
     <div class="card"><div class="card-hdr">📊 Today's Production Log</div>
-    <div class="tbl-scroll"><table class="tbl"><thead><tr><th>Product</th><th>Type</th><th>Target</th><th>Produced</th><th>Rejected</th><th>Stickers Used</th><th>Variance</th><th>Actions</th></tr></thead>
+    <div class="tbl-scroll"><table class="tbl"><thead><tr><th>Product</th><th>Type</th><th>Target</th><th>Produced</th><th>Rejected</th><th>Stickers Used</th><th>Variance</th><th>Done By</th><th>Actions</th></tr></thead>
     <tbody id="prod-body"></tbody></table>
     <div id="prod-empty" class="es" style="display:none"><div class="em">🏭</div>No production logged for this date.</div></div></div>
     <div class="card"><div class="card-hdr">📦 Sticker & Grip Stock
@@ -1803,7 +1803,7 @@ function doUndo(){
 // ── NAV ──
 function go(id){
   // Employee access guard — only Stock allowed
-  if(typeof currentRole!=="undefined" && currentRole==="employee" && id!=="stock"){ id = "stock"; }
+  if(typeof currentRole!=="undefined" && currentRole==="employee" && id!=="stock" && id!=="production"){ id = "stock"; }
   document.querySelectorAll(".mod").forEach(m=>m.classList.remove("on"));
   document.querySelectorAll(".sb-item,.bnav-item").forEach(m=>m.classList.remove("on"));
   document.getElementById("mod-"+id)?.classList.add("on");
@@ -2104,6 +2104,7 @@ const Mo={
         <div class="fr"><div class="fg"><label>Date</label><input class="inp" id="mf-date" type="date" value="${new Date().toISOString().slice(0,10)}" style="width:100%"></div><div class="fg"><label>Product *</label><select class="sel" id="mf-product" style="width:100%"><option>Chevron Grips</option><option>Octopus Grips</option><option>Hex Grips</option><option>Rainbow Grips</option><option>Ring Chevron Grips</option><option>Pyramid Grips</option><option>Toe Guard Sets</option><option>Other</option></select></div></div>
         <div class="fr"><div class="fg"><label>Type</label><select class="sel" id="mf-type" style="width:100%"><option value="grips">Grips</option><option value="toe_guard">Toe Guard</option><option value="stickers">Stickers</option></select></div><div class="fg"><label>Target Qty</label><input class="inp" id="mf-target" type="number" value="1000" style="width:100%"></div></div>
         <div class="fr three"><div class="fg"><label>Produced</label><input class="inp" id="mf-produced" type="number" value="0" style="width:100%"></div><div class="fg"><label>Rejected</label><input class="inp" id="mf-rejected" type="number" value="0" style="width:100%"></div><div class="fg"><label>Stickers Used</label><input class="inp" id="mf-stickers" type="number" value="0" style="width:100%"></div></div>
+        <div class="fr"><div class="fg"><label>Done By / Worker</label><input class="inp" id="mf-doneby" value="" placeholder="Worker name / shift" style="width:100%"></div><div class="fg"><label>Shift</label><select class="sel" id="mf-shift" style="width:100%"><option value="">—</option><option value="Morning">Morning</option><option value="Afternoon">Afternoon</option><option value="Full Day">Full Day</option></select></div></div>
         <div class="fr one"><div class="fg"><label>Notes</label><input class="inp" id="mf-notes" value="" style="width:100%"></div></div>`},
       "prod-stock":{t:"UPDATE STICKER/GRIP STOCK",h:`
         <div class="fr one"><div class="fg"><label>Item *</label><select class="sel" id="mf-item" style="width:100%"><option>Chevron Stickers</option><option>Octopus Stickers</option><option>Hex Stickers</option><option>Rainbow Stickers</option><option>Toe Guard Stickers</option><option>Grip Blanks (Raw)</option></select></div></div>
@@ -2163,7 +2164,8 @@ function moSave(){
   if(type==="production"){
     D.production.push({id:++D.uid,date:g("mf-date"),product:g("mf-product"),type:g("mf-type"),
       target:gn("mf-target"),produced:gn("mf-produced"),rejected:gn("mf-rejected"),
-      stickers:gn("mf-stickers"),notes:g("mf-notes")});
+      stickers:gn("mf-stickers"),doneBy:g("mf-doneby"),shift:g("mf-shift"),notes:g("mf-notes"),
+      loggedBy:(typeof currentUser!=="undefined"?currentUser:"Owner")});
     autoSave("production");autoSave("uid");closeMo();R.production();return;
   }
   if(type==="prod-stock"){
@@ -3057,6 +3059,7 @@ const R={
         <td style="font-size:13.5px;color:var(--red)">${p.rejected}</td>
         <td style="font-size:13.5px">${p.stickers.toLocaleString("en-IN")}</td>
         <td style="font-family:'JetBrains Mono';font-size:13.5px;color:${variance>=0?"var(--green)":"var(--red)"}">${variance>=0?"+":""}${variance}</td>
+        <td style="font-size:12.5px">${p.doneBy||p.loggedBy||"—"}${p.shift?`<div style="font-size:11px;color:var(--muted)">${p.shift}</div>`:""}</td>
         <td style="white-space:nowrap">
           <button class="btn-e" onclick="Mo.open('production',${p.id})">✏️</button>
           <button class="btn-d" onclick="D.production=D.production.filter(x=>x.id!==${p.id});autoSave('production');R.production()">🗑</button>
@@ -5744,7 +5747,7 @@ function applyRole(){
   // Show/hide sidebar items — employee sees only Stock
   document.querySelectorAll(".sb-item").forEach(item=>{
     const id = item.id.replace("n-","");
-    item.style.display = (isEmp && id !== "stock") ? "none" : "";
+    item.style.display = (isEmp && id !== "stock" && id !== "production") ? "none" : "";
   });
   // Hide sidebar group labels for employee (only Stock's group should be visible)
   document.querySelectorAll(".sb-lbl").forEach(l=>{ l.style.display = isEmp ? "none" : ""; });
