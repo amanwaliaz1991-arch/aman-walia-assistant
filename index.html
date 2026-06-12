@@ -337,6 +337,25 @@ mark{background:#fef08a;border-radius:2px;padding:0 2px;}
 </div>
 
 
+
+<!-- ═══ CUSTOMIZE MENU ORDER ═══ -->
+<div id="customize-overlay" style="display:none;position:fixed;inset:0;z-index:8000;background:rgba(15,23,42,.5);backdrop-filter:blur(4px);align-items:center;justify-content:center;padding:16px" onclick="if(event.target===this)closeCustomizeMenu()">
+  <div style="background:#fff;border-radius:16px;width:100%;max-width:480px;max-height:86vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 24px 64px rgba(0,0,0,.3)">
+    <div style="padding:16px 18px;border-bottom:2px solid var(--b1);display:flex;align-items:center;justify-content:space-between">
+      <div>
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:.5px">⚙️ CUSTOMIZE MENU</div>
+        <div style="font-size:12px;color:var(--muted)">Use ↑ ↓ to reorder modules. Saved automatically.</div>
+      </div>
+      <button onclick="closeCustomizeMenu()" style="background:none;border:none;font-size:22px;cursor:pointer;color:var(--muted)">✕</button>
+    </div>
+    <div id="customize-list" style="overflow-y:auto;padding:10px 14px;flex:1"></div>
+    <div style="padding:12px 18px;border-top:1px solid var(--b1);display:flex;gap:8px;justify-content:space-between;align-items:center">
+      <button class="btn btn-sm" onclick="resetMenuOrder()" style="color:var(--red);border-color:var(--red)">↺ Reset to Default</button>
+      <button class="btn btn-p" onclick="closeCustomizeMenu()">Done</button>
+    </div>
+  </div>
+</div>
+
 <!-- ═══ LOGIN SCREEN ═══ -->
 <div id="login-screen" style="display:none;position:fixed;inset:0;z-index:99999;background:linear-gradient(135deg,#4f46e5,#7c3aed);align-items:center;justify-content:center;flex-direction:column;padding:20px">
   <div style="background:#fff;border-radius:20px;padding:32px 28px;width:100%;max-width:360px;box-shadow:0 24px 64px rgba(0,0,0,.3);text-align:center">
@@ -370,6 +389,9 @@ mark{background:#fef08a;border-radius:2px;padding:0 2px;}
 <div class="body">
 <!-- SIDEBAR -->
 <nav class="sb" id="sb">
+  <div class="sb-grp" id="sb-customize-wrap">
+    <div class="sb-item" id="n-customize" onclick="openCustomizeMenu()" style="background:rgba(79,70,229,.08);border:1px dashed var(--ac)"><span class="sb-ico">⚙️</span>Customize Menu Order</div>
+  </div>
   <div class="sb-grp">
     <div class="sb-lbl">Home</div>
     <div class="sb-item on" id="n-home" onclick="go('home')"><span class="sb-ico">🏠</span>Dashboard</div>
@@ -1932,6 +1954,7 @@ const D={
   stock:[],
   stockCats:[],
   stockLog:[],
+  menuOrder:[],
   scanHistory:[],
   purchase:[],
 
@@ -4797,6 +4820,7 @@ function showUpdateToast(modName, modId) {
 }
 
 function reRenderCurrent() {
+  if(typeof applyMenuOrder==="function") applyMenuOrder();
   const active = document.querySelector(".mod.on");
   if (!active) return;
   const id = active.id.replace("mod-","");
@@ -4823,7 +4847,7 @@ function loadAllFromFirebase() {
     "deadstock","rd","compliance","itax","tds","gst","itc","future",
     "dayData","healthHabits","healthGoals","bdmGames","bdmSkills",
     "bdmDrills","selfGoals","books","weeklyReviews","quotes","uid",
-    "mustdo","accounts","costing","costCats","kb","stock","stockCats","stockLog","orders","purchase","production","prodStock","expenses","scanHistory"
+    "mustdo","accounts","costing","costCats","kb","stock","stockCats","stockLog","menuOrder","orders","purchase","production","prodStock","expenses","scanHistory"
   ];
 
   let initialLoadDone = false;
@@ -4947,7 +4971,7 @@ function loadAllFromFirebase() {
 // ── LOCALSTORAGE FALLBACK ──
 function saveToLocal() {
   try {
-    const save = {urgent:D.urgent,cod:D.cod,transport:D.transport,payment:D.payment,defaulter:D.defaulter,banking:D.banking,deadstock:D.deadstock,rd:D.rd,compliance:D.compliance,itax:D.itax,tds:D.tds,gst:D.gst,itc:D.itc,future:D.future,dayData:D.dayData,healthHabits:D.healthHabits,healthGoals:D.healthGoals,bdmGames:D.bdmGames,bdmSkills:D.bdmSkills,bdmDrills:D.bdmDrills,selfGoals:D.selfGoals,books:D.books,weeklyReviews:D.weeklyReviews,quotes:D.quotes,uid:D.uid,orders:D.orders,purchase:D.purchase,production:D.production,prodStock:D.prodStock,expenses:D.expenses,scanHistory:D.scanHistory,mustdo:D.mustdo,accounts:D.accounts,costing:D.costing,costCats:D.costCats,kb:D.kb,stock:D.stock,stockCats:D.stockCats,stockLog:D.stockLog};
+    const save = {urgent:D.urgent,cod:D.cod,transport:D.transport,payment:D.payment,defaulter:D.defaulter,banking:D.banking,deadstock:D.deadstock,rd:D.rd,compliance:D.compliance,itax:D.itax,tds:D.tds,gst:D.gst,itc:D.itc,future:D.future,dayData:D.dayData,healthHabits:D.healthHabits,healthGoals:D.healthGoals,bdmGames:D.bdmGames,bdmSkills:D.bdmSkills,bdmDrills:D.bdmDrills,selfGoals:D.selfGoals,books:D.books,weeklyReviews:D.weeklyReviews,quotes:D.quotes,uid:D.uid,orders:D.orders,purchase:D.purchase,production:D.production,prodStock:D.prodStock,expenses:D.expenses,scanHistory:D.scanHistory,mustdo:D.mustdo,accounts:D.accounts,costing:D.costing,costCats:D.costCats,kb:D.kb,stock:D.stock,stockCats:D.stockCats,stockLog:D.stockLog,menuOrder:D.menuOrder};
     localStorage.setItem("aman_walia_data", JSON.stringify(save));
   } catch(e) { console.warn("LocalStorage save failed:", e); }
 }
@@ -5759,6 +5783,9 @@ function applyRole(){
   // Show logout button
   const lo = document.getElementById("logout-btn");
   if(lo) lo.style.display = "flex";
+  // Hide customize menu from employees
+  const cw = document.getElementById("sb-customize-wrap");
+  if(cw) cw.style.display = isEmp ? "none" : "";
   // Update header label
   const rl = document.getElementById("role-label");
   if(rl){
@@ -5808,8 +5835,150 @@ function initLogin(){
 }
 
 
+
+// ══════════════════════════════════════════
+// CUSTOMIZE MENU ORDER
+// ══════════════════════════════════════════
+// Module metadata: id -> {label, icon, group}
+const MENU_META = {
+  home:{label:"Dashboard",icon:"🏠",group:"Home"},
+  kb:{label:"Knowledge Base",icon:"🧠",group:"Home"},
+  stock:{label:"Stock",icon:"📦",group:"Home"},
+  utilities:{label:"Utilities",icon:"🧮",group:"Home"},
+  scanner:{label:"Paper Scanner",icon:"📷",group:"Home"},
+  orders:{label:"Order Tracker",icon:"📦",group:"Operations"},
+  urgent:{label:"Urgent Orders",icon:"🚨",group:"Operations"},
+  cod:{label:"COD of Parties",icon:"💳",group:"Operations"},
+  transport:{label:"Transport / Delivery",icon:"🚚",group:"Operations"},
+  deadstock:{label:"Dead Stock",icon:"📦",group:"Operations"},
+  purchase:{label:"Purchase / Reorder",icon:"🛒",group:"Operations"},
+  production:{label:"Production",icon:"🏭",group:"Operations"},
+  payment:{label:"Payment Follow-Up",icon:"💰",group:"Finance & Legal"},
+  defaulter:{label:"Notices / Defaulters",icon:"⚠️",group:"Finance & Legal"},
+  banking:{label:"Banking Issues",icon:"🏦",group:"Finance & Legal"},
+  itax:{label:"Income Tax Dates",icon:"📅",group:"Finance & Legal"},
+  tds:{label:"TDS Dates",icon:"📑",group:"Finance & Legal"},
+  gst:{label:"GST Dates",icon:"📋",group:"Finance & Legal"},
+  itc:{label:"ITC Reconciliation",icon:"🔄",group:"Finance & Legal"},
+  compliance:{label:"Compliances",icon:"✅",group:"Finance & Legal"},
+  accounts:{label:"Accounting Issues",icon:"🧾",group:"Finance & Legal"},
+  costing:{label:"Cost & Pricing",icon:"💹",group:"Finance & Legal"},
+  expenses:{label:"Expenses",icon:"💸",group:"Finance & Legal"},
+  rd:{label:"R&D Ideas",icon:"🔬",group:"Growth"},
+  future:{label:"Future Plans",icon:"🚀",group:"Growth"},
+  mustdo:{label:"Must Do Daily",icon:"✅",group:"Daily Life"},
+  tracker:{label:"Day Tracker",icon:"📅",group:"Daily Life"},
+  health:{label:"Health & Fitness",icon:"❤️",group:"Daily Life"},
+  badminton:{label:"Badminton",icon:"🏸",group:"Daily Life"},
+  self:{label:"Self Improvement",icon:"🧠",group:"Daily Life"},
+  quotes:{label:"Quotes",icon:"💡",group:"Daily Life"},
+};
+
+// Default order = order as defined in MENU_META
+function defaultMenuOrder(){ return Object.keys(MENU_META); }
+
+// Get effective order (saved or default), filtered to known modules
+function getMenuOrder(){
+  let order = (D.menuOrder && D.menuOrder.length) ? D.menuOrder.slice() : defaultMenuOrder();
+  // Ensure every known module is present (append any missing at end of its group)
+  defaultMenuOrder().forEach(id=>{ if(!order.includes(id)) order.push(id); });
+  // Drop any unknown ids
+  order = order.filter(id=>MENU_META[id]);
+  return order;
+}
+
+function openCustomizeMenu(){
+  closeSB();
+  renderCustomizeList();
+  document.getElementById("customize-overlay").style.display="flex";
+}
+function closeCustomizeMenu(){
+  document.getElementById("customize-overlay").style.display="none";
+}
+
+function renderCustomizeList(){
+  const order = getMenuOrder();
+  // group them in current order, preserving group headers
+  const groups = [];
+  const seen = {};
+  order.forEach(id=>{
+    const g = MENU_META[id].group;
+    if(!seen[g]){ seen[g]=[]; groups.push({name:g, items:seen[g]}); }
+    seen[g].push(id);
+  });
+  const el = document.getElementById("customize-list");
+  el.innerHTML = groups.map(grp=>`
+    <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin:12px 0 6px;padding-left:4px">${grp.name}</div>
+    ${grp.items.map((id,idx)=>`
+      <div style="display:flex;align-items:center;gap:10px;background:var(--s2);border:1px solid var(--b1);border-radius:10px;padding:9px 12px;margin-bottom:6px">
+        <span style="font-size:18px">${MENU_META[id].icon}</span>
+        <span style="flex:1;font-size:13.5px;font-weight:600">${MENU_META[id].label}</span>
+        <button onclick="moveMenuItem('${id}',-1)" ${idx===0?"disabled":""} style="background:#fff;border:1px solid var(--b1);border-radius:7px;width:32px;height:32px;cursor:pointer;font-size:15px;${idx===0?"opacity:.3":""}">↑</button>
+        <button onclick="moveMenuItem('${id}',1)" ${idx===grp.items.length-1?"disabled":""} style="background:#fff;border:1px solid var(--b1);border-radius:7px;width:32px;height:32px;cursor:pointer;font-size:15px;${idx===grp.items.length-1?"opacity:.3":""}">↓</button>
+      </div>`).join("")}
+  `).join("");
+}
+
+function moveMenuItem(id, dir){
+  let order = getMenuOrder();
+  // Only reorder within the same group
+  const grp = MENU_META[id].group;
+  // indices of items in this group within full order
+  const groupIds = order.filter(x=>MENU_META[x].group===grp);
+  const gi = groupIds.indexOf(id);
+  const swapWith = gi + dir;
+  if(swapWith<0 || swapWith>=groupIds.length) return;
+  // swap in groupIds
+  [groupIds[gi], groupIds[swapWith]] = [groupIds[swapWith], groupIds[gi]];
+  // rebuild full order: walk original order, but when we hit this group, emit reordered groupIds
+  let emitted = false;
+  const newOrder = [];
+  order.forEach(x=>{
+    if(MENU_META[x].group===grp){
+      if(!emitted){ groupIds.forEach(g=>newOrder.push(g)); emitted=true; }
+    } else {
+      newOrder.push(x);
+    }
+  });
+  D.menuOrder = newOrder;
+  autoSave("menuOrder");
+  renderCustomizeList();
+  applyMenuOrder();
+}
+
+function resetMenuOrder(){
+  if(!confirm("Reset menu to default order?")) return;
+  D.menuOrder = [];
+  autoSave("menuOrder");
+  renderCustomizeList();
+  applyMenuOrder();
+}
+
+// Physically reorder the .sb-item DOM elements inside their groups
+function applyMenuOrder(){
+  const order = getMenuOrder();
+  // For each module, find its DOM node and its parent group, reposition
+  // Build per-group desired sequence
+  const groupSeq = {};
+  order.forEach(id=>{
+    const g = MENU_META[id].group;
+    if(!groupSeq[g]) groupSeq[g]=[];
+    groupSeq[g].push(id);
+  });
+  Object.keys(groupSeq).forEach(g=>{
+    groupSeq[g].forEach(id=>{
+      const node = document.getElementById("n-"+id);
+      if(node && node.parentElement){
+        node.parentElement.appendChild(node); // move to end in order
+      }
+    });
+  });
+}
+
+
 // ── INIT ──
 R_home();
+applyMenuOrder();
 initLogin();
 setTimeout(fetchDailyQuote, 2000); // fetch quote after app loads
 </script>
