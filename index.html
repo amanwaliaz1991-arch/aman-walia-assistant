@@ -257,6 +257,11 @@ html,body{height:100%;background:var(--bg);color:var(--tx);font-family:"Plus Jak
 .gs-tag{font-size:11px;background:var(--s2);border:1px solid var(--b1);padding:2px 8px;border-radius:10px;color:var(--muted);flex-shrink:0;}
 .gs-section{padding:6px 18px;font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);background:var(--s2);border-bottom:1px solid var(--b1);}
 mark{background:#fef08a;border-radius:2px;padding:0 2px;}
+
+/* ── UTILITIES ── */
+.ut-panel{animation:fadeIn .2s ease;}
+@keyframes fadeIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
+.gst-rate-btn.active,.btn.active{background:var(--ac);color:#fff;border-color:var(--ac);}
 </style>
   <!-- Firebase SDK -->
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
@@ -336,6 +341,7 @@ mark{background:#fef08a;border-radius:2px;padding:0 2px;}
     <div class="sb-lbl">Home</div>
     <div class="sb-item on" id="n-home" onclick="go('home')"><span class="sb-ico">🏠</span>Dashboard</div>
     <div class="sb-item" id="n-kb" onclick="go('kb')"><span class="sb-ico">🧠</span>Knowledge Base</div>
+    <div class="sb-item" id="n-utilities" onclick="go('utilities')"><span class="sb-ico">🧮</span>Utilities</div>
     <div class="sb-item" id="n-scanner" onclick="go('scanner')"><span class="sb-ico">📷</span>Paper Scanner<span class="sb-bdg b" id="b-scanner">0</span></div>
   </div>
   <div class="sb-grp">
@@ -1303,6 +1309,300 @@ mark{background:#fef08a;border-radius:2px;padding:0 2px;}
   </div>
 </div>
 
+
+<!-- ████ UTILITIES ████ -->
+<div class="mod" id="mod-utilities">
+  <div class="ph">
+    <div><div class="pt">UTILITIES <span>& TOOLS</span></div>
+    <div class="pt-sub">GST Calculator · Margin · Converter · Date · Percentage</div></div>
+  </div>
+
+  <!-- Tab buttons -->
+  <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px">
+    <button class="btn btn-p" id="ut-tab-gst"     onclick="switchUtilTab('gst')">📑 GST Calculator</button>
+    <button class="btn"       id="ut-tab-margin"  onclick="switchUtilTab('margin')">📊 Margin Calculator</button>
+    <button class="btn"       id="ut-tab-calc"    onclick="switchUtilTab('calc')">🧮 Calculator</button>
+    <button class="btn"       id="ut-tab-date"    onclick="switchUtilTab('date')">📅 Date Calculator</button>
+    <button class="btn"       id="ut-tab-unit"    onclick="switchUtilTab('unit')">📐 Unit Converter</button>
+    <button class="btn"       id="ut-tab-pct"     onclick="switchUtilTab('pct')">% Percentage</button>
+    <button class="btn"       id="ut-tab-tds"     onclick="switchUtilTab('tds')">📄 TDS Calculator</button>
+    <button class="btn"       id="ut-tab-disc"    onclick="switchUtilTab('disc')">🏷️ Discount</button>
+  </div>
+
+  <!-- ── GST CALCULATOR ── -->
+  <div id="ut-gst" class="ut-panel">
+    <div class="card">
+      <div class="card-hdr">📑 GST Calculator</div>
+      <div style="padding:20px;display:grid;grid-template-columns:1fr 1fr;gap:20px">
+        <div>
+          <div class="fg" style="margin-bottom:12px">
+            <label>Enter Amount (₹)</label>
+            <input class="inp" id="gst-amount" type="number" placeholder="e.g. 10000" oninput="calcGST()" style="width:100%;font-size:16px">
+          </div>
+          <div class="fg" style="margin-bottom:12px">
+            <label>GST Rate</label>
+            <div style="display:flex;gap:8px;flex-wrap:wrap">
+              <button class="btn btn-sm gst-rate-btn" onclick="setGSTRate(0)">0%</button>
+              <button class="btn btn-sm gst-rate-btn" onclick="setGSTRate(5)">5%</button>
+              <button class="btn btn-sm gst-rate-btn" onclick="setGSTRate(12)">12%</button>
+              <button class="btn btn-sm gst-rate-btn active" onclick="setGSTRate(18)">18%</button>
+              <button class="btn btn-sm gst-rate-btn" onclick="setGSTRate(28)">28%</button>
+              <input class="inp" id="gst-rate-custom" type="number" placeholder="Custom %" oninput="calcGST()" style="width:80px;font-size:13px">
+            </div>
+          </div>
+          <div class="fg">
+            <label>Calculation Type</label>
+            <div style="display:flex;gap:8px;margin-top:6px">
+              <button class="btn btn-p btn-sm" id="gst-type-excl" onclick="setGSTType('exclusive')">Exclusive (Add GST)</button>
+              <button class="btn btn-sm" id="gst-type-incl" onclick="setGSTType('inclusive')">Inclusive (Extract GST)</button>
+            </div>
+          </div>
+        </div>
+        <!-- Results -->
+        <div id="gst-results" style="background:var(--s2);border-radius:12px;padding:20px;border:1px solid var(--b1)">
+          <div style="font-size:13px;color:var(--muted);text-align:center;padding:20px">Enter amount to calculate</div>
+        </div>
+      </div>
+      <!-- GST breakdown table -->
+      <div id="gst-breakdown" style="display:none;padding:0 20px 20px">
+        <div style="font-size:12px;font-weight:700;color:var(--muted);letter-spacing:1px;text-transform:uppercase;margin-bottom:10px">IGST / CGST+SGST BREAKDOWN</div>
+        <div id="gst-breakdown-content"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── MARGIN CALCULATOR ── -->
+  <div id="ut-margin" class="ut-panel" style="display:none">
+    <div class="card">
+      <div class="card-hdr">📊 Margin / Markup Calculator</div>
+      <div style="padding:20px;display:grid;grid-template-columns:1fr 1fr;gap:20px">
+        <div>
+          <div class="fg" style="margin-bottom:12px">
+            <label>Cost Price — CP (₹)</label>
+            <input class="inp" id="mg-cp" type="number" placeholder="Your cost" oninput="calcMargin()" style="width:100%;font-size:16px">
+          </div>
+          <div class="fg" style="margin-bottom:12px">
+            <label>Selling Price — SP (₹)</label>
+            <input class="inp" id="mg-sp" type="number" placeholder="Your selling price" oninput="calcMargin()" style="width:100%;font-size:16px">
+          </div>
+          <div style="font-size:12px;color:var(--muted);margin-top:8px">Or enter CP + Margin% to get SP:</div>
+          <div style="display:flex;gap:8px;margin-top:8px">
+            <input class="inp" id="mg-target-pct" type="number" placeholder="Target margin %" oninput="calcTargetSP()" style="flex:1">
+            <button class="btn btn-sm btn-p" onclick="calcTargetSP()">Get SP →</button>
+          </div>
+        </div>
+        <div id="mg-results" style="background:var(--s2);border-radius:12px;padding:20px;border:1px solid var(--b1)">
+          <div style="font-size:13px;color:var(--muted);text-align:center;padding:20px">Enter CP and SP to calculate</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── SIMPLE CALCULATOR ── -->
+  <div id="ut-calc" class="ut-panel" style="display:none">
+    <div class="card" style="max-width:320px;margin:0 auto">
+      <div class="card-hdr">🧮 Calculator</div>
+      <div style="padding:16px">
+        <div id="calc-display" style="background:#1e293b;color:#fff;font-family:'JetBrains Mono';font-size:28px;padding:16px;border-radius:10px;text-align:right;min-height:60px;margin-bottom:12px;word-break:break-all">0</div>
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px">
+          <button onclick="calcBtn('C')" style="padding:16px;border-radius:10px;font-size:17px;font-weight:600;cursor:pointer;border:1px solid var(--b1);background:var(--s2);color:var(--tx)">C</button>
+          <button onclick="calcBtn('±')" style="padding:16px;border-radius:10px;font-size:17px;font-weight:600;cursor:pointer;border:1px solid var(--b1);background:var(--s2);color:var(--tx)">±</button>
+          <button onclick="calcBtn('%')" style="padding:16px;border-radius:10px;font-size:17px;font-weight:600;cursor:pointer;border:1px solid var(--b1);background:var(--s2);color:var(--tx)">%</button>
+          <button onclick="calcBtn('÷')" style="padding:16px;border-radius:10px;font-size:17px;font-weight:600;cursor:pointer;border:1px solid var(--b1);background:var(--orange);color:#fff">÷</button>
+          <button onclick="calcBtn('7')" style="padding:16px;border-radius:10px;font-size:17px;font-weight:600;cursor:pointer;border:1px solid var(--b1);background:#fff;color:var(--tx)">7</button>
+          <button onclick="calcBtn('8')" style="padding:16px;border-radius:10px;font-size:17px;font-weight:600;cursor:pointer;border:1px solid var(--b1);background:#fff;color:var(--tx)">8</button>
+          <button onclick="calcBtn('9')" style="padding:16px;border-radius:10px;font-size:17px;font-weight:600;cursor:pointer;border:1px solid var(--b1);background:#fff;color:var(--tx)">9</button>
+          <button onclick="calcBtn('×')" style="padding:16px;border-radius:10px;font-size:17px;font-weight:600;cursor:pointer;border:1px solid var(--b1);background:var(--orange);color:#fff">×</button>
+          <button onclick="calcBtn('4')" style="padding:16px;border-radius:10px;font-size:17px;font-weight:600;cursor:pointer;border:1px solid var(--b1);background:#fff;color:var(--tx)">4</button>
+          <button onclick="calcBtn('5')" style="padding:16px;border-radius:10px;font-size:17px;font-weight:600;cursor:pointer;border:1px solid var(--b1);background:#fff;color:var(--tx)">5</button>
+          <button onclick="calcBtn('6')" style="padding:16px;border-radius:10px;font-size:17px;font-weight:600;cursor:pointer;border:1px solid var(--b1);background:#fff;color:var(--tx)">6</button>
+          <button onclick="calcBtn('−')" style="padding:16px;border-radius:10px;font-size:17px;font-weight:600;cursor:pointer;border:1px solid var(--b1);background:var(--orange);color:#fff">−</button>
+          <button onclick="calcBtn('1')" style="padding:16px;border-radius:10px;font-size:17px;font-weight:600;cursor:pointer;border:1px solid var(--b1);background:#fff;color:var(--tx)">1</button>
+          <button onclick="calcBtn('2')" style="padding:16px;border-radius:10px;font-size:17px;font-weight:600;cursor:pointer;border:1px solid var(--b1);background:#fff;color:var(--tx)">2</button>
+          <button onclick="calcBtn('3')" style="padding:16px;border-radius:10px;font-size:17px;font-weight:600;cursor:pointer;border:1px solid var(--b1);background:#fff;color:var(--tx)">3</button>
+          <button onclick="calcBtn('+')" style="padding:16px;border-radius:10px;font-size:17px;font-weight:600;cursor:pointer;border:1px solid var(--b1);background:var(--orange);color:#fff">+</button>
+          <button onclick="calcBtn('0')" style="padding:16px;border-radius:10px;font-size:17px;font-weight:600;cursor:pointer;border:1px solid var(--b1);background:#fff;color:var(--tx)">0</button>
+          <button onclick="calcBtn('.')" style="padding:16px;border-radius:10px;font-size:17px;font-weight:600;cursor:pointer;border:1px solid var(--b1);background:#fff;color:var(--tx)">.</button>
+          <button onclick="calcBtn('⌫')" style="padding:16px;border-radius:10px;font-size:17px;font-weight:600;cursor:pointer;border:1px solid var(--b1);background:#fff;color:var(--tx)">⌫</button>
+          <button onclick="calcBtn('=')" style="padding:16px;border-radius:10px;font-size:17px;font-weight:600;cursor:pointer;border:1px solid var(--b1);background:var(--ac);color:#fff">=</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── DATE CALCULATOR ── -->
+  <div id="ut-date" class="ut-panel" style="display:none">
+    <div class="card">
+      <div class="card-hdr">📅 Date Calculator</div>
+      <div style="padding:20px;display:grid;grid-template-columns:1fr 1fr;gap:20px">
+        <div>
+          <div style="font-size:13px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:12px">Days Between Dates</div>
+          <div class="fg" style="margin-bottom:10px"><label>From Date</label><input class="inp" id="dt-from" type="date" oninput="calcDate()" style="width:100%"></div>
+          <div class="fg" style="margin-bottom:10px"><label>To Date</label><input class="inp" id="dt-to" type="date" oninput="calcDate()" style="width:100%"></div>
+          <div id="dt-result" style="background:var(--s2);border-radius:10px;padding:16px;margin-top:10px;font-size:14px"></div>
+        </div>
+        <div>
+          <div style="font-size:13px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:12px">Add / Subtract Days</div>
+          <div class="fg" style="margin-bottom:10px"><label>Start Date</label><input class="inp" id="dt-start" type="date" oninput="calcAddDate()" style="width:100%"></div>
+          <div style="display:flex;gap:8px;margin-bottom:10px">
+            <input class="inp" id="dt-days" type="number" placeholder="Days" oninput="calcAddDate()" style="flex:1">
+            <select class="sel" id="dt-op" onchange="calcAddDate()" style="width:120px">
+              <option value="add">+ Add Days</option>
+              <option value="sub">− Subtract Days</option>
+            </select>
+          </div>
+          <div id="dt-add-result" style="background:var(--s2);border-radius:10px;padding:16px;font-size:14px"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── UNIT CONVERTER ── -->
+  <div id="ut-unit" class="ut-panel" style="display:none">
+    <div class="card">
+      <div class="card-hdr">📐 Unit Converter</div>
+      <div style="padding:20px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:20px">
+        <!-- Weight -->
+        <div style="background:var(--s2);border-radius:12px;padding:16px">
+          <div style="font-size:13px;font-weight:700;margin-bottom:12px">⚖️ Weight</div>
+          <input class="inp" id="wt-kg" type="number" placeholder="Kilograms" oninput="convWeight('kg')" style="width:100%;margin-bottom:8px">
+          <input class="inp" id="wt-gm" type="number" placeholder="Grams" oninput="convWeight('gm')" style="width:100%;margin-bottom:8px">
+          <input class="inp" id="wt-lb" type="number" placeholder="Pounds" oninput="convWeight('lb')" style="width:100%;margin-bottom:8px">
+          <input class="inp" id="wt-oz" type="number" placeholder="Ounces" oninput="convWeight('oz')" style="width:100%">
+        </div>
+        <!-- Length -->
+        <div style="background:var(--s2);border-radius:12px;padding:16px">
+          <div style="font-size:13px;font-weight:700;margin-bottom:12px">📏 Length</div>
+          <input class="inp" id="ln-m"  type="number" placeholder="Meters" oninput="convLength('m')" style="width:100%;margin-bottom:8px">
+          <input class="inp" id="ln-cm" type="number" placeholder="Centimeters" oninput="convLength('cm')" style="width:100%;margin-bottom:8px">
+          <input class="inp" id="ln-ft" type="number" placeholder="Feet" oninput="convLength('ft')" style="width:100%;margin-bottom:8px">
+          <input class="inp" id="ln-in" type="number" placeholder="Inches" oninput="convLength('in')" style="width:100%">
+        </div>
+        <!-- Volume -->
+        <div style="background:var(--s2);border-radius:12px;padding:16px">
+          <div style="font-size:13px;font-weight:700;margin-bottom:12px">🧴 Volume</div>
+          <input class="inp" id="vl-l"  type="number" placeholder="Liters" oninput="convVolume('l')" style="width:100%;margin-bottom:8px">
+          <input class="inp" id="vl-ml" type="number" placeholder="Milliliters" oninput="convVolume('ml')" style="width:100%;margin-bottom:8px">
+          <input class="inp" id="vl-gl" type="number" placeholder="Gallons (US)" oninput="convVolume('gl')" style="width:100%">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── PERCENTAGE CALCULATOR ── -->
+  <div id="ut-pct" class="ut-panel" style="display:none">
+    <div class="card">
+      <div class="card-hdr">% Percentage Calculator</div>
+      <div style="padding:20px;display:grid;grid-template-columns:1fr 1fr;gap:20px">
+        <div>
+          <div style="font-size:13px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:12px">X% of Y</div>
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+            <input class="inp" id="pct-x" type="number" placeholder="%" oninput="calcPct1()" style="width:80px">
+            <span style="font-size:14px">% of</span>
+            <input class="inp" id="pct-y" type="number" placeholder="Number" oninput="calcPct1()" style="flex:1">
+            <span style="font-size:14px">= </span>
+            <div id="pct-r1" style="font-family:'JetBrains Mono';font-size:20px;font-weight:700;color:var(--ac);min-width:80px">—</div>
+          </div>
+          <div style="font-size:13px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin:20px 0 12px">What % is X of Y?</div>
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+            <input class="inp" id="pct-x2" type="number" placeholder="X" oninput="calcPct2()" style="flex:1">
+            <span style="font-size:14px">is what % of</span>
+            <input class="inp" id="pct-y2" type="number" placeholder="Y" oninput="calcPct2()" style="flex:1">
+            <span style="font-size:14px">= </span>
+            <div id="pct-r2" style="font-family:'JetBrains Mono';font-size:20px;font-weight:700;color:var(--ac);min-width:80px">—</div>
+          </div>
+          <div style="font-size:13px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin:20px 0 12px">% Change (Old → New)</div>
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+            <input class="inp" id="pct-old" type="number" placeholder="Old value" oninput="calcPctChange()" style="flex:1">
+            <span>→</span>
+            <input class="inp" id="pct-new" type="number" placeholder="New value" oninput="calcPctChange()" style="flex:1">
+            <span>= </span>
+            <div id="pct-r3" style="font-family:'JetBrains Mono';font-size:18px;font-weight:700;min-width:90px">—</div>
+          </div>
+        </div>
+        <div style="background:var(--s2);border-radius:12px;padding:16px">
+          <div style="font-size:13px;font-weight:700;margin-bottom:12px">Quick % Tips</div>
+          <div style="font-size:12px;color:var(--muted);line-height:2">
+            <div>💡 10% of any number = divide by 10</div>
+            <div>💡 25% = divide by 4</div>
+            <div>💡 50% = divide by 2</div>
+            <div>💡 To add 18% GST: multiply by 1.18</div>
+            <div>💡 To remove 18% GST: divide by 1.18</div>
+            <div>💡 Margin % = (SP-CP)/CP × 100</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── TDS CALCULATOR ── -->
+  <div id="ut-tds" class="ut-panel" style="display:none">
+    <div class="card">
+      <div class="card-hdr">📄 TDS Calculator</div>
+      <div style="padding:20px;display:grid;grid-template-columns:1fr 1fr;gap:20px">
+        <div>
+          <div class="fg" style="margin-bottom:12px">
+            <label>Invoice / Payment Amount (₹)</label>
+            <input class="inp" id="tds-amt" type="number" placeholder="e.g. 50000" oninput="calcTDS()" style="width:100%;font-size:16px">
+          </div>
+          <div class="fg" style="margin-bottom:12px">
+            <label>TDS Section / Rate</label>
+            <select class="sel" id="tds-rate" onchange="calcTDS()" style="width:100%">
+              <option value="1">Section 194C — 1% (Individual/HUF Contractor)</option>
+              <option value="2" selected>Section 194C — 2% (Company Contractor)</option>
+              <option value="10">Section 194J — 10% (Professional Services)</option>
+              <option value="0.1">Section 194Q — 0.1% (Purchase of Goods)</option>
+              <option value="2">Section 194H — 2% (Commission/Brokerage)</option>
+              <option value="10">Section 194I — 10% (Rent)</option>
+              <option value="custom">Custom Rate</option>
+            </select>
+          </div>
+          <div class="fg" id="tds-custom-div" style="display:none">
+            <label>Custom TDS %</label>
+            <input class="inp" id="tds-custom" type="number" placeholder="Enter %" oninput="calcTDS()" style="width:100%">
+          </div>
+        </div>
+        <div id="tds-results" style="background:var(--s2);border-radius:12px;padding:20px;border:1px solid var(--b1)">
+          <div style="font-size:13px;color:var(--muted);text-align:center;padding:20px">Enter amount to calculate</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── DISCOUNT CALCULATOR ── -->
+  <div id="ut-disc" class="ut-panel" style="display:none">
+    <div class="card">
+      <div class="card-hdr">🏷️ Discount Calculator</div>
+      <div style="padding:20px;display:grid;grid-template-columns:1fr 1fr;gap:20px">
+        <div>
+          <div class="fg" style="margin-bottom:12px">
+            <label>Original Price (₹)</label>
+            <input class="inp" id="disc-orig" type="number" placeholder="MRP / Original price" oninput="calcDisc()" style="width:100%;font-size:16px">
+          </div>
+          <div class="fg" style="margin-bottom:12px">
+            <label>Discount %</label>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:6px">
+              <button class="btn btn-sm" onclick="document.getElementById('disc-pct').value=5;calcDisc()">5%</button>
+              <button class="btn btn-sm" onclick="document.getElementById('disc-pct').value=10;calcDisc()">10%</button>
+              <button class="btn btn-sm" onclick="document.getElementById('disc-pct').value=15;calcDisc()">15%</button>
+              <button class="btn btn-sm" onclick="document.getElementById('disc-pct').value=20;calcDisc()">20%</button>
+              <button class="btn btn-sm" onclick="document.getElementById('disc-pct').value=25;calcDisc()">25%</button>
+              <button class="btn btn-sm" onclick="document.getElementById('disc-pct').value=30;calcDisc()">30%</button>
+              <button class="btn btn-sm" onclick="document.getElementById('disc-pct').value=40;calcDisc()">40%</button>
+              <button class="btn btn-sm" onclick="document.getElementById('disc-pct').value=50;calcDisc()">50%</button>
+            </div>
+            <input class="inp" id="disc-pct" type="number" placeholder="Or enter custom %" oninput="calcDisc()" style="width:100%;margin-top:8px">
+          </div>
+        </div>
+        <div id="disc-results" style="background:var(--s2);border-radius:12px;padding:20px;border:1px solid var(--b1)">
+          <div style="font-size:13px;color:var(--muted);text-align:center;padding:20px">Enter price and discount to calculate</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
 </div><!-- /main -->
 
 </div><!-- /body -->
@@ -1380,7 +1680,7 @@ function go(id){
     itax:R.itax,tds:R.tds,gst:R.gst,itc:R.itc,future:R.future,tracker:initTracker,
     health:R.health,badminton:R.badminton,self:R.self,quotes:R.quotes,
     mustdo:R.mustdo,accounts:R.accounts,costing:R.costing,kb:R.kb,orders:R.orders,purchase:R.purchase,production:R.production,
-    expenses:R.expenses,scanner:R.scanner};
+    expenses:R.expenses,scanner:R.scanner,utilities:initUtilities};
   rmap[id]?.();
 }
 
@@ -3439,6 +3739,344 @@ function renderQuote(q) {
   if(au) au.textContent = "— " + q.author + (q.context ? " · " + q.context : "");
 }
 
+
+// ══════════════════════════════════════════
+// UTILITIES — Calculators & Converters
+// ══════════════════════════════════════════
+let gstRate = 18;
+let gstType = "exclusive";
+let calcCurrent = "0";
+let calcPrev = null;
+let calcOp = null;
+let calcReset = false;
+
+function initUtilities(){
+  switchUtilTab("gst");
+}
+
+function switchUtilTab(tab){
+  document.querySelectorAll(".ut-panel").forEach(p=>p.style.display="none");
+  const panel = document.getElementById("ut-"+tab);
+  if(panel) panel.style.display="block";
+  // Highlight active tab button
+  ["gst","margin","calc","date","unit","pct","tds","disc"].forEach(t=>{
+    const btn = document.getElementById("ut-tab-"+t);
+    if(btn){
+      if(t===tab){ btn.classList.add("btn-p"); btn.classList.remove("btn"); }
+      else { btn.classList.remove("btn-p"); btn.classList.add("btn"); }
+    }
+  });
+}
+
+// ── GST CALCULATOR ──
+function setGSTRate(rate){
+  gstRate = rate;
+  const custom = document.getElementById("gst-rate-custom");
+  if(custom) custom.value = "";
+  // highlight selected rate button
+  document.querySelectorAll(".gst-rate-btn").forEach(b=>{
+    b.classList.toggle("active", parseFloat(b.textContent)===rate);
+  });
+  calcGST();
+}
+
+function setGSTType(type){
+  gstType = type;
+  const excl = document.getElementById("gst-type-excl");
+  const incl = document.getElementById("gst-type-incl");
+  if(excl && incl){
+    if(type==="exclusive"){ excl.classList.add("btn-p"); excl.classList.remove("btn"); incl.classList.remove("btn-p"); incl.classList.add("btn"); }
+    else { incl.classList.add("btn-p"); incl.classList.remove("btn"); excl.classList.remove("btn-p"); excl.classList.add("btn"); }
+  }
+  calcGST();
+}
+
+function calcGST(){
+  const amt = parseFloat(document.getElementById("gst-amount")?.value || 0);
+  const customRate = parseFloat(document.getElementById("gst-rate-custom")?.value || 0);
+  const rate = customRate > 0 ? customRate : gstRate;
+  const resEl = document.getElementById("gst-results");
+  const bdEl  = document.getElementById("gst-breakdown");
+  const bdContent = document.getElementById("gst-breakdown-content");
+
+  if(!amt || amt<=0){
+    if(resEl) resEl.innerHTML = '<div style="font-size:13px;color:var(--muted);text-align:center;padding:20px">Enter amount to calculate</div>';
+    if(bdEl) bdEl.style.display="none";
+    return;
+  }
+
+  let base, gstAmt, total;
+  if(gstType==="exclusive"){
+    // Add GST on top
+    base = amt;
+    gstAmt = amt * rate/100;
+    total = base + gstAmt;
+  } else {
+    // Extract GST from total
+    total = amt;
+    base = amt / (1 + rate/100);
+    gstAmt = total - base;
+  }
+
+  const cgst = gstAmt/2, sgst = gstAmt/2;
+
+  if(resEl) resEl.innerHTML = `
+    <div style="text-align:center">
+      <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:1px">${gstType==="exclusive"?"Base Amount":"Amount (excl. GST)"}</div>
+      <div style="font-family:'Bebas Neue';font-size:26px;color:var(--tx)">${fa(Math.round(base*100)/100)}</div>
+    </div>
+    <div style="text-align:center;margin-top:14px;padding-top:14px;border-top:1px solid var(--b1)">
+      <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:1px">GST @ ${rate}%</div>
+      <div style="font-family:'Bebas Neue';font-size:26px;color:var(--orange)">${fa(Math.round(gstAmt*100)/100)}</div>
+    </div>
+    <div style="text-align:center;margin-top:14px;padding-top:14px;border-top:2px solid var(--ac)">
+      <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:1px">Total ${gstType==="exclusive"?"(incl. GST)":"Amount"}</div>
+      <div style="font-family:'Bebas Neue';font-size:32px;color:var(--ac)">${fa(Math.round(total*100)/100)}</div>
+    </div>`;
+
+  if(bdEl && bdContent){
+    bdEl.style.display="block";
+    bdContent.innerHTML = `
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        <div style="background:#fff;border:1px solid var(--b1);border-radius:8px;padding:12px;text-align:center">
+          <div style="font-size:11px;color:var(--muted)">Within State (CGST + SGST)</div>
+          <div style="font-size:13px;margin-top:6px">CGST @ ${rate/2}%: <b>${fa(Math.round(cgst*100)/100)}</b></div>
+          <div style="font-size:13px">SGST @ ${rate/2}%: <b>${fa(Math.round(sgst*100)/100)}</b></div>
+        </div>
+        <div style="background:#fff;border:1px solid var(--b1);border-radius:8px;padding:12px;text-align:center">
+          <div style="font-size:11px;color:var(--muted)">Inter State (IGST)</div>
+          <div style="font-size:18px;margin-top:10px">IGST @ ${rate}%: <b>${fa(Math.round(gstAmt*100)/100)}</b></div>
+        </div>
+      </div>`;
+  }
+}
+
+// ── MARGIN CALCULATOR ──
+function calcMargin(){
+  const cp = parseFloat(document.getElementById("mg-cp")?.value || 0);
+  const sp = parseFloat(document.getElementById("mg-sp")?.value || 0);
+  const resEl = document.getElementById("mg-results");
+  if(!cp || !sp){
+    if(resEl) resEl.innerHTML = '<div style="font-size:13px;color:var(--muted);text-align:center;padding:20px">Enter CP and SP to calculate</div>';
+    return;
+  }
+  const margin = sp - cp;
+  const marginPct = (margin/cp*100);
+  const markupPct = (margin/sp*100);
+  const col = margin>=0 ? "var(--green)" : "var(--red)";
+  if(resEl) resEl.innerHTML = `
+    <div style="text-align:center">
+      <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:1px">Profit / Margin</div>
+      <div style="font-family:'Bebas Neue';font-size:32px;color:${col}">${fa(Math.round(margin*100)/100)}</div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px;padding-top:14px;border-top:1px solid var(--b1)">
+      <div style="text-align:center">
+        <div style="font-size:11px;color:var(--muted)">Margin %</div>
+        <div style="font-family:'Bebas Neue';font-size:24px;color:${col}">${marginPct.toFixed(1)}%</div>
+        <div style="font-size:10px;color:var(--dim)">on cost</div>
+      </div>
+      <div style="text-align:center">
+        <div style="font-size:11px;color:var(--muted)">Markup %</div>
+        <div style="font-family:'Bebas Neue';font-size:24px;color:var(--ac)">${markupPct.toFixed(1)}%</div>
+        <div style="font-size:10px;color:var(--dim)">on selling price</div>
+      </div>
+    </div>`;
+}
+
+function calcTargetSP(){
+  const cp = parseFloat(document.getElementById("mg-cp")?.value || 0);
+  const pct = parseFloat(document.getElementById("mg-target-pct")?.value || 0);
+  if(!cp || !pct) return;
+  const sp = cp * (1 + pct/100);
+  document.getElementById("mg-sp").value = Math.round(sp*100)/100;
+  calcMargin();
+}
+
+// ── SIMPLE CALCULATOR ──
+function calcBtn(b){
+  const disp = document.getElementById("calc-display");
+  const ops = {"÷":"/","×":"*","−":"-","+":"+"};
+  if(b==="C"){ calcCurrent="0"; calcPrev=null; calcOp=null; }
+  else if(b==="⌫"){ calcCurrent = calcCurrent.length>1 ? calcCurrent.slice(0,-1) : "0"; }
+  else if(b==="±"){ calcCurrent = String(parseFloat(calcCurrent)*-1); }
+  else if(b==="%"){ calcCurrent = String(parseFloat(calcCurrent)/100); }
+  else if(["÷","×","−","+"].includes(b)){
+    if(calcOp && calcPrev!==null && !calcReset){ calcEquals(); }
+    calcPrev = parseFloat(calcCurrent);
+    calcOp = ops[b];
+    calcReset = true;
+  }
+  else if(b==="="){ calcEquals(); calcOp=null; }
+  else { // number or .
+    if(b==="." && calcCurrent.includes(".")) return;
+    if(calcCurrent==="0" && b!==".") calcCurrent = b;
+    else if(calcReset){ calcCurrent = b; calcReset=false; }
+    else calcCurrent += b;
+  }
+  if(disp) disp.textContent = calcCurrent;
+}
+
+function calcEquals(){
+  if(calcOp===null || calcPrev===null) return;
+  const cur = parseFloat(calcCurrent);
+  let res = 0;
+  switch(calcOp){
+    case "+": res = calcPrev + cur; break;
+    case "-": res = calcPrev - cur; break;
+    case "*": res = calcPrev * cur; break;
+    case "/": res = cur!==0 ? calcPrev / cur : 0; break;
+  }
+  res = Math.round(res*100000000)/100000000;
+  calcCurrent = String(res);
+  calcPrev = null;
+  calcReset = true;
+}
+
+// ── DATE CALCULATOR ──
+function calcDate(){
+  const from = document.getElementById("dt-from")?.value;
+  const to   = document.getElementById("dt-to")?.value;
+  const resEl = document.getElementById("dt-result");
+  if(!from || !to){ if(resEl) resEl.innerHTML=""; return; }
+  const d1 = new Date(from), d2 = new Date(to);
+  const days = Math.round((d2-d1)/86400000);
+  const absDays = Math.abs(days);
+  const weeks = Math.floor(absDays/7);
+  const months = Math.floor(absDays/30.44);
+  const years = (absDays/365.25).toFixed(2);
+  if(resEl) resEl.innerHTML = `
+    <div style="font-family:'Bebas Neue';font-size:28px;color:var(--ac)">${absDays} days</div>
+    <div style="font-size:13px;color:var(--muted);margin-top:4px">${days<0?"⬅️ "+to+" is before "+from:"➡️ Difference"}</div>
+    <div style="font-size:13px;margin-top:8px;line-height:1.8">
+      = ${weeks} weeks ${absDays%7} days<br>
+      ≈ ${months} months<br>
+      ≈ ${years} years
+    </div>`;
+}
+
+function calcAddDate(){
+  const start = document.getElementById("dt-start")?.value;
+  const days  = parseInt(document.getElementById("dt-days")?.value || 0);
+  const op    = document.getElementById("dt-op")?.value;
+  const resEl = document.getElementById("dt-add-result");
+  if(!start || !days){ if(resEl) resEl.innerHTML=""; return; }
+  const d = new Date(start);
+  d.setDate(d.getDate() + (op==="sub" ? -days : days));
+  const weekdays = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
+  if(resEl) resEl.innerHTML = `
+    <div style="font-size:11px;color:var(--muted);text-transform:uppercase">Result Date</div>
+    <div style="font-family:'Bebas Neue';font-size:24px;color:var(--ac);margin-top:4px">${d.toISOString().slice(0,10)}</div>
+    <div style="font-size:14px;color:var(--tx);margin-top:4px">${weekdays[d.getDay()]}</div>`;
+}
+
+// ── UNIT CONVERTER ──
+function convWeight(from){
+  let kg;
+  const v = parseFloat(document.getElementById("wt-"+from)?.value || 0);
+  if(from==="kg") kg=v; else if(from==="gm") kg=v/1000; else if(from==="lb") kg=v/2.20462; else if(from==="oz") kg=v/35.274;
+  if(from!=="kg") document.getElementById("wt-kg").value = kg ? +(kg).toFixed(4) : "";
+  if(from!=="gm") document.getElementById("wt-gm").value = kg ? +(kg*1000).toFixed(2) : "";
+  if(from!=="lb") document.getElementById("wt-lb").value = kg ? +(kg*2.20462).toFixed(4) : "";
+  if(from!=="oz") document.getElementById("wt-oz").value = kg ? +(kg*35.274).toFixed(3) : "";
+}
+
+function convLength(from){
+  let m;
+  const v = parseFloat(document.getElementById("ln-"+from)?.value || 0);
+  if(from==="m") m=v; else if(from==="cm") m=v/100; else if(from==="ft") m=v/3.28084; else if(from==="in") m=v/39.3701;
+  if(from!=="m")  document.getElementById("ln-m").value  = m ? +(m).toFixed(4) : "";
+  if(from!=="cm") document.getElementById("ln-cm").value = m ? +(m*100).toFixed(2) : "";
+  if(from!=="ft") document.getElementById("ln-ft").value = m ? +(m*3.28084).toFixed(4) : "";
+  if(from!=="in") document.getElementById("ln-in").value = m ? +(m*39.3701).toFixed(3) : "";
+}
+
+function convVolume(from){
+  let l;
+  const v = parseFloat(document.getElementById("vl-"+from)?.value || 0);
+  if(from==="l") l=v; else if(from==="ml") l=v/1000; else if(from==="gl") l=v*3.78541;
+  if(from!=="l")  document.getElementById("vl-l").value  = l ? +(l).toFixed(4) : "";
+  if(from!=="ml") document.getElementById("vl-ml").value = l ? +(l*1000).toFixed(1) : "";
+  if(from!=="gl") document.getElementById("vl-gl").value = l ? +(l/3.78541).toFixed(4) : "";
+}
+
+// ── PERCENTAGE ──
+function calcPct1(){
+  const x = parseFloat(document.getElementById("pct-x")?.value || 0);
+  const y = parseFloat(document.getElementById("pct-y")?.value || 0);
+  const r = document.getElementById("pct-r1");
+  if(r) r.textContent = (x&&y) ? +((x/100)*y).toFixed(2) : "—";
+}
+function calcPct2(){
+  const x = parseFloat(document.getElementById("pct-x2")?.value || 0);
+  const y = parseFloat(document.getElementById("pct-y2")?.value || 0);
+  const r = document.getElementById("pct-r2");
+  if(r) r.textContent = (x&&y) ? (+(x/y*100).toFixed(2))+"%" : "—";
+}
+function calcPctChange(){
+  const o = parseFloat(document.getElementById("pct-old")?.value || 0);
+  const n = parseFloat(document.getElementById("pct-new")?.value || 0);
+  const r = document.getElementById("pct-r3");
+  if(!o || n===""){ if(r){r.textContent="—";r.style.color="var(--tx)";} return; }
+  const chg = (n-o)/o*100;
+  if(r){
+    r.textContent = (chg>=0?"+":"")+chg.toFixed(1)+"%";
+    r.style.color = chg>=0 ? "var(--green)" : "var(--red)";
+  }
+}
+
+// ── TDS CALCULATOR ──
+function calcTDS(){
+  const amt = parseFloat(document.getElementById("tds-amt")?.value || 0);
+  const sel = document.getElementById("tds-rate")?.value;
+  const customDiv = document.getElementById("tds-custom-div");
+  const resEl = document.getElementById("tds-results");
+  if(customDiv) customDiv.style.display = sel==="custom" ? "block" : "none";
+  let rate = sel==="custom" ? parseFloat(document.getElementById("tds-custom")?.value || 0) : parseFloat(sel);
+  if(!amt || !rate){
+    if(resEl) resEl.innerHTML = '<div style="font-size:13px;color:var(--muted);text-align:center;padding:20px">Enter amount to calculate</div>';
+    return;
+  }
+  const tds = amt * rate/100;
+  const net = amt - tds;
+  if(resEl) resEl.innerHTML = `
+    <div style="text-align:center">
+      <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:1px">Invoice Amount</div>
+      <div style="font-family:'Bebas Neue';font-size:24px;color:var(--tx)">${fa(amt)}</div>
+    </div>
+    <div style="text-align:center;margin-top:14px;padding-top:14px;border-top:1px solid var(--b1)">
+      <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:1px">TDS Deducted @ ${rate}%</div>
+      <div style="font-family:'Bebas Neue';font-size:26px;color:var(--red)">− ${fa(Math.round(tds*100)/100)}</div>
+    </div>
+    <div style="text-align:center;margin-top:14px;padding-top:14px;border-top:2px solid var(--green)">
+      <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:1px">Net Payable</div>
+      <div style="font-family:'Bebas Neue';font-size:32px;color:var(--green)">${fa(Math.round(net*100)/100)}</div>
+    </div>`;
+}
+
+// ── DISCOUNT CALCULATOR ──
+function calcDisc(){
+  const orig = parseFloat(document.getElementById("disc-orig")?.value || 0);
+  const pct  = parseFloat(document.getElementById("disc-pct")?.value || 0);
+  const resEl = document.getElementById("disc-results");
+  if(!orig || !pct){
+    if(resEl) resEl.innerHTML = '<div style="font-size:13px;color:var(--muted);text-align:center;padding:20px">Enter price and discount to calculate</div>';
+    return;
+  }
+  const saved = orig * pct/100;
+  const final = orig - saved;
+  if(resEl) resEl.innerHTML = `
+    <div style="text-align:center">
+      <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:1px">You Save</div>
+      <div style="font-family:'Bebas Neue';font-size:28px;color:var(--orange)">${fa(Math.round(saved*100)/100)}</div>
+    </div>
+    <div style="text-align:center;margin-top:14px;padding-top:14px;border-top:2px solid var(--green)">
+      <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:1px">Final Price</div>
+      <div style="font-family:'Bebas Neue';font-size:34px;color:var(--green)">${fa(Math.round(final*100)/100)}</div>
+      <div style="font-size:12px;color:var(--dim);margin-top:4px">${pct}% off ${fa(orig)}</div>
+    </div>`;
+}
+
+
 // ── SMART SCAN ──
 function openScan(){
   document.getElementById("scan-mo").classList.add("show");
@@ -3696,7 +4334,7 @@ function reRenderCurrent() {
     itax:R.itax, tds:R.tds, gst:R.gst, itc:R.itc, future:R.future,
     tracker:()=>renderDT(document.getElementById("td")?.value||new Date().toISOString().slice(0,10)),
     health:R.health, badminton:R.badminton, self:R.self, quotes:R.quotes,
-    mustdo:R.mustdo, accounts:R.accounts, costing:R.costing,
+    mustdo:R.mustdo, accounts:R.accounts, costing:R.costing, kb:R.kb,
     orders:R.orders, purchase:R.purchase, production:R.production,
     expenses:R.expenses, scanner:R.scanner
   };
