@@ -275,6 +275,8 @@ mark{background:#fef08a;border-radius:2px;padding:0 2px;}
   <button class="hdr-menu" id="menu-btn" onclick="toggleSB()">☰</button>
   <div class="hdr-logo">Aman Walia<span>Personal Assistant</span></div>
   <div class="hdr-r">
+    <span id="role-label" style="display:none;align-items:center;gap:4px;background:rgba(255,255,255,.2);color:#fff;font-size:12px;font-weight:600;padding:5px 12px;border-radius:8px;margin-right:4px"></span>
+    <button id="logout-btn" onclick="logout()" title="Logout" style="display:none;background:rgba(239,68,68,.85);border:1px solid rgba(255,255,255,.25);color:#fff;height:34px;padding:0 12px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:600;align-items:center;gap:4px">🚪 Logout</button>
     <button onclick="toggleGlobalSearch()" title="Search everything" id="gs-btn" style="background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.25);color:#fff;width:34px;height:34px;border-radius:8px;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;">🔍</button>
     <button onclick="manualRefresh()" title="Refresh data from Firebase" style="background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.25);color:#fff;width:34px;height:34px;border-radius:8px;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;" id="refresh-btn">🔄</button>
     <div id="sync-status" style="font-size:13px;color:rgba(255,255,255,.7);display:flex;align-items:center;gap:4px;">💾 <span>Local Only</span></div>
@@ -332,6 +334,37 @@ mark{background:#fef08a;border-radius:2px;padding:0 2px;}
       <button class="btn btn-p" id="mo-sv" onclick="moSave()">💾 Save</button>
     </div>
   </div>
+</div>
+
+
+<!-- ═══ LOGIN SCREEN ═══ -->
+<div id="login-screen" style="display:none;position:fixed;inset:0;z-index:99999;background:linear-gradient(135deg,#4f46e5,#7c3aed);align-items:center;justify-content:center;flex-direction:column;padding:20px">
+  <div style="background:#fff;border-radius:20px;padding:32px 28px;width:100%;max-width:360px;box-shadow:0 24px 64px rgba(0,0,0,.3);text-align:center">
+    <div style="font-size:40px;margin-bottom:8px">🏏</div>
+    <div style="font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:1px;color:#1e293b">AMAN WALIA</div>
+    <div style="font-size:13px;color:#64748b;margin-bottom:24px">Business Assistant</div>
+
+    <div id="login-pin-step">
+      <div style="font-size:13px;color:#475569;margin-bottom:12px;font-weight:600">Enter your PIN</div>
+      <input id="login-pin" type="tel" inputmode="numeric" maxlength="4" placeholder="••••"
+        style="width:160px;text-align:center;font-size:28px;letter-spacing:12px;padding:12px;border:2px solid #e2e8f0;border-radius:12px;font-family:'JetBrains Mono',monospace;margin-bottom:8px"
+        oninput="loginPinInput(this)" onkeydown="if(event.key==='Enter')checkLoginPin()">
+      <div id="login-error" style="font-size:13px;color:#ef4444;min-height:18px;margin-bottom:8px"></div>
+      <button onclick="checkLoginPin()" style="width:100%;background:#4f46e5;color:#fff;border:none;padding:13px;border-radius:12px;font-size:15px;font-weight:700;cursor:pointer">Unlock →</button>
+      <label style="display:flex;align-items:center;justify-content:center;gap:8px;margin-top:14px;font-size:13px;color:#64748b;cursor:pointer">
+        <input type="checkbox" id="login-remember" checked style="width:16px;height:16px"> Remember me on this device
+      </label>
+    </div>
+
+    <div id="login-name-step" style="display:none">
+      <div style="font-size:13px;color:#475569;margin-bottom:12px;font-weight:600">👋 Welcome! Enter your name</div>
+      <input id="login-name" type="text" placeholder="Your name"
+        style="width:100%;text-align:center;font-size:18px;padding:12px;border:2px solid #e2e8f0;border-radius:12px;margin-bottom:12px"
+        onkeydown="if(event.key==='Enter')confirmEmpName()">
+      <button onclick="confirmEmpName()" style="width:100%;background:#16a34a;color:#fff;border:none;padding:13px;border-radius:12px;font-size:15px;font-weight:700;cursor:pointer">Continue to Stock →</button>
+    </div>
+  </div>
+  <div style="color:rgba(255,255,255,.7);font-size:12px;margin-top:20px">Marigold Cricket · KRI · Star Syndicate</div>
 </div>
 
 <div class="body">
@@ -1769,6 +1802,8 @@ function doUndo(){
 
 // ── NAV ──
 function go(id){
+  // Employee access guard — only Stock allowed
+  if(typeof currentRole!=="undefined" && currentRole==="employee" && id!=="stock"){ id = "stock"; }
   document.querySelectorAll(".mod").forEach(m=>m.classList.remove("on"));
   document.querySelectorAll(".sb-item,.bnav-item").forEach(m=>m.classList.remove("on"));
   document.getElementById("mod-"+id)?.classList.add("on");
@@ -4479,7 +4514,7 @@ function logStockMovement(itemId, dir, qty, note, balance){
     balance,              // running balance after this movement
     date: new Date().toISOString().slice(0,10),
     time: new Date().toLocaleTimeString("en-IN",{hour:"2-digit",minute:"2-digit"}),
-    by: (typeof currentUser!=="undefined" && currentUser) ? currentUser : "Owner"
+    by: currentUser || "Owner"
   });
   autoSave("uid");
 }
@@ -5649,8 +5684,130 @@ function runGlobalSearch() {
   });
 }
 
+
+// ══════════════════════════════════════════
+// LOGIN / ACCESS CONTROL
+// ══════════════════════════════════════════
+const OWNER_PIN = "7172";
+const EMPLOYEE_PIN = "1234";
+let currentRole = "owner";   // "owner" | "employee"
+let currentUser = "Owner";   // name stamped on stock movements
+
+function loginPinInput(el){
+  el.value = el.value.replace(/[^0-9]/g,"");
+  document.getElementById("login-error").textContent = "";
+  if(el.value.length===4) setTimeout(checkLoginPin, 150);
+}
+
+function checkLoginPin(){
+  const pin = document.getElementById("login-pin")?.value || "";
+  const remember = document.getElementById("login-remember")?.checked;
+  const errEl = document.getElementById("login-error");
+
+  if(pin === OWNER_PIN){
+    currentRole = "owner";
+    currentUser = "Owner";
+    if(remember){ localStorage.setItem("aman_role","owner"); localStorage.setItem("aman_user","Owner"); }
+    applyRole();
+    hideLogin();
+  }
+  else if(pin === EMPLOYEE_PIN){
+    // Go to name step
+    document.getElementById("login-pin-step").style.display = "none";
+    document.getElementById("login-name-step").style.display = "block";
+    // Pre-fill remembered employee name
+    const savedName = localStorage.getItem("aman_user");
+    if(savedName && localStorage.getItem("aman_role")==="employee"){
+      document.getElementById("login-name").value = savedName;
+    }
+    setTimeout(()=>document.getElementById("login-name")?.focus(),60);
+  }
+  else {
+    if(errEl) errEl.textContent = "❌ Wrong PIN. Try again.";
+    document.getElementById("login-pin").value = "";
+  }
+}
+
+function confirmEmpName(){
+  const name = document.getElementById("login-name")?.value?.trim();
+  if(!name){ alert("Please enter your name"); return; }
+  const remember = document.getElementById("login-remember")?.checked;
+  currentRole = "employee";
+  currentUser = name;
+  if(remember){ localStorage.setItem("aman_role","employee"); localStorage.setItem("aman_user",name); }
+  applyRole();
+  hideLogin();
+}
+
+function applyRole(){
+  const isEmp = currentRole === "employee";
+  // Show/hide sidebar items — employee sees only Stock
+  document.querySelectorAll(".sb-item").forEach(item=>{
+    const id = item.id.replace("n-","");
+    item.style.display = (isEmp && id !== "stock") ? "none" : "";
+  });
+  // Hide sidebar group labels for employee (only Stock's group should be visible)
+  document.querySelectorAll(".sb-lbl").forEach(l=>{ l.style.display = isEmp ? "none" : ""; });
+  // Hide bottom nav for employee (or restrict)
+  const botNav = document.querySelector(".bot-nav");
+  if(botNav) botNav.style.display = isEmp ? "none" : "";
+  // Hide header buttons employee shouldn't use (search/backup/AI/scan)
+  ["gs-btn"].forEach(bid=>{ const b=document.getElementById(bid); if(b) b.style.display = isEmp?"none":""; });
+  // Show logout button
+  const lo = document.getElementById("logout-btn");
+  if(lo) lo.style.display = "flex";
+  // Update header label
+  const rl = document.getElementById("role-label");
+  if(rl){
+    rl.textContent = isEmp ? ("👷 "+currentUser) : "👑 Owner";
+    rl.style.display = "inline-flex";
+  }
+  // Navigate to correct landing module
+  if(isEmp) go("stock");
+  else go("home");
+}
+
+function hideLogin(){
+  document.getElementById("login-screen").style.display = "none";
+}
+
+function showLogin(){
+  // Reset to PIN step
+  document.getElementById("login-pin-step").style.display = "block";
+  document.getElementById("login-name-step").style.display = "none";
+  document.getElementById("login-pin").value = "";
+  document.getElementById("login-error").textContent = "";
+  document.getElementById("login-screen").style.display = "flex";
+  setTimeout(()=>document.getElementById("login-pin")?.focus(),100);
+}
+
+function logout(){
+  if(!confirm("Logout and return to PIN screen?")) return;
+  localStorage.removeItem("aman_role");
+  localStorage.removeItem("aman_user");
+  currentRole = "owner";
+  currentUser = "Owner";
+  showLogin();
+}
+
+function initLogin(){
+  const savedRole = localStorage.getItem("aman_role");
+  const savedUser = localStorage.getItem("aman_user");
+  if(savedRole === "owner"){
+    currentRole = "owner"; currentUser = "Owner";
+    applyRole(); hideLogin();
+  } else if(savedRole === "employee" && savedUser){
+    currentRole = "employee"; currentUser = savedUser;
+    applyRole(); hideLogin();
+  } else {
+    showLogin();
+  }
+}
+
+
 // ── INIT ──
 R_home();
+initLogin();
 setTimeout(fetchDailyQuote, 2000); // fetch quote after app loads
 </script>
 <input type="file" id="import-file" accept=".json" style="display:none" onchange="importBackup(this)">
