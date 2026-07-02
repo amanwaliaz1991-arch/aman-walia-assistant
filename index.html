@@ -280,7 +280,7 @@ mark{background:#fef08a;border-radius:2px;padding:0 2px;}
     <button onclick="toggleGlobalSearch()" title="Search everything" id="gs-btn" style="background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.25);color:#fff;width:34px;height:34px;border-radius:8px;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;">🔍</button>
     <button onclick="manualRefresh()" title="Refresh data from Firebase" style="background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.25);color:#fff;width:34px;height:34px;border-radius:8px;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;" id="refresh-btn">🔄</button>
     <div id="sync-status" style="font-size:13px;color:rgba(255,255,255,.7);display:flex;align-items:center;gap:4px;">💾 <span>Local Only</span></div>
-    <button class="btn" onclick="exportBackup()" style="background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.2);color:#fff;font-size:13px;padding:5px 10px;">📥 Backup</button><button class="btn" onclick="openApiKeySettings()" style="background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.2);color:#fff;font-size:13px;padding:5px 10px;" title="Set Anthropic API Key">⚙️ AI Key</button><button class="hdr-scan" onclick="openScan()"><span class="scan-ico">📷</span><span class="scan-txt">Scan / Upload</span></button>
+    <button class="btn" id="backup-btn" onclick="exportBackup()" style="background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.2);color:#fff;font-size:13px;padding:5px 10px;">📥 Backup</button><button class="btn" id="aikey-btn" onclick="openApiKeySettings()" style="background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.2);color:#fff;font-size:13px;padding:5px 10px;" title="Set Anthropic API Key">⚙️ AI Key</button><button class="hdr-scan" id="scan-btn" onclick="openScan()"><span class="scan-ico">📷</span><span class="scan-txt">Scan / Upload</span></button>
     <div class="hdr-clk" id="clk">--:--</div>
   </div>
 </div>
@@ -5569,6 +5569,7 @@ function toggleGlobalSearch() {
 }
 
 function openGlobalSearch() {
+  if(typeof currentRole!=="undefined" && currentRole==="employee") return;
   const ov = document.getElementById("gs-overlay");
   ov.style.display = "block";
   gsActiveIdx = -1;
@@ -5584,7 +5585,7 @@ function closeGlobalSearch() {
 
 // Keyboard shortcut: Ctrl+K or Cmd+K
 document.addEventListener("keydown", e => {
-  if((e.ctrlKey||e.metaKey) && e.key==="k") { e.preventDefault(); openGlobalSearch(); }
+  if((e.ctrlKey||e.metaKey) && e.key==="k") { e.preventDefault(); if(typeof currentRole==="undefined"||currentRole!=="employee") openGlobalSearch(); }
   if(e.key==="Escape") closeGlobalSearch();
 });
 
@@ -5779,7 +5780,7 @@ function applyRole(){
   const botNav = document.querySelector(".bot-nav");
   if(botNav) botNav.style.display = isEmp ? "none" : "";
   // Hide header buttons employee shouldn't use (search/backup/AI/scan)
-  ["gs-btn"].forEach(bid=>{ const b=document.getElementById(bid); if(b) b.style.display = isEmp?"none":""; });
+  ["gs-btn","backup-btn","aikey-btn","scan-btn"].forEach(bid=>{ const b=document.getElementById(bid); if(b) b.style.display = isEmp?"none":""; });
   // Show logout button
   const lo = document.getElementById("logout-btn");
   if(lo) lo.style.display = "flex";
@@ -5973,6 +5974,57 @@ function applyMenuOrder(){
       }
     });
   });
+}
+
+
+
+// ══════════════════════════════════════════
+// BACKUP / RESTORE
+// ══════════════════════════════════════════
+function exportBackup(){
+  if(typeof currentRole!=="undefined" && currentRole==="employee"){ alert("Not available for employee login"); return; }
+  try{
+    const payload = {
+      _app: "aman-walia-assistant",
+      _exportedAt: new Date().toISOString(),
+      data: D
+    };
+    const blob = new Blob([JSON.stringify(payload, null, 2)], {type:"application/json"});
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "aman-backup-" + new Date().toISOString().slice(0,10) + ".json";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(()=>URL.revokeObjectURL(a.href), 2000);
+  }catch(e){ alert("Backup failed: " + e.message); }
+}
+
+function importBackup(input){
+  if(typeof currentRole!=="undefined" && currentRole==="employee"){ alert("Not available for employee login"); return; }
+  const file = input.files && input.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try{
+      const parsed = JSON.parse(e.target.result);
+      const data = parsed.data || parsed; // accept raw D dumps too
+      if(!data || typeof data !== "object"){ alert("Invalid backup file"); return; }
+      if(!confirm("Restore backup? This will OVERWRITE current data with the backup file. Continue?")) return;
+      // Merge known collections only
+      Object.keys(D).forEach(k=>{
+        if(data[k] !== undefined) D[k] = data[k];
+      });
+      // Save everything to Firebase
+      Object.keys(D).forEach(k=>{ try{ autoSave(k); }catch(_){} });
+      saveToLocal();
+      alert("✅ Backup restored. Syncing to cloud…");
+      R_home();
+      reRenderCurrent();
+    }catch(err){ alert("Import failed: " + err.message); }
+  };
+  reader.readAsText(file);
+  input.value = "";
 }
 
 
