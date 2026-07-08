@@ -409,6 +409,7 @@ mark{background:#fef08a;border-radius:2px;padding:0 2px;}
     <div class="sb-item" id="n-deadstock" onclick="go('deadstock')"><span class="sb-ico">📦</span>Dead Stock</div>
     <div class="sb-item" id="n-purchase" onclick="go('purchase')"><span class="sb-ico">🛒</span>Purchase / Reorder</div>
     <div class="sb-item" id="n-production" onclick="go('production')"><span class="sb-ico">🏭</span>Production</div>
+    <div class="sb-item" id="n-quotation" onclick="go('quotation')"><span class="sb-ico">📄</span>Quotation Maker</div>
   </div>
   <div class="sb-grp">
     <div class="sb-lbl">Finance & Legal</div>
@@ -428,6 +429,7 @@ mark{background:#fef08a;border-radius:2px;padding:0 2px;}
     <div class="sb-lbl">Growth</div>
     <div class="sb-item" id="n-rd" onclick="go('rd')"><span class="sb-ico">🔬</span>R&D Ideas</div>
     <div class="sb-item" id="n-future" onclick="go('future')"><span class="sb-ico">🚀</span>Future Plans</div>
+    <div class="sb-item" id="n-brands" onclick="go('brands')"><span class="sb-ico">🏷️</span>Brand Launch Tracker</div>
   </div>
   <div class="sb-grp">
     <div class="sb-lbl">Daily Life</div>
@@ -649,6 +651,14 @@ mark{background:#fef08a;border-radius:2px;padding:0 2px;}
     <button class="btn btn-p" onclick="Mo.open('payment')">+ Add</button>
   </div></div>
   <div class="g4" id="pst"></div>
+  <!-- AGING REPORT -->
+  <div class="card" style="margin-bottom:14px">
+    <div class="card-hdr">📊 Payment Aging Report
+      <span style="font-size:12px;color:var(--muted);font-weight:400;margin-left:8px">Outstanding by age (tap bucket to filter)</span>
+    </div>
+    <div id="pay-aging" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:1px;background:var(--b1)"></div>
+    <div id="pay-aging-agent" style="padding:10px 16px;border-top:1px solid var(--b1)"></div>
+  </div>
   <div class="card"><div class="card-hdr">Follow-Up Register</div>
   <div class="tbl-scroll"><table class="tbl"><thead><tr><th>Party</th><th>Invoice</th><th>Amount</th><th>Due</th><th>Days Over</th><th>Remarks</th><th>Agent</th><th>Status</th><th>Actions</th></tr></thead><tbody id="pyb"></tbody></table></div>
   <div id="pye" class="es" style="display:none"><div class="em">💰</div>All payments clear!</div></div>
@@ -1760,6 +1770,138 @@ mark{background:#fef08a;border-radius:2px;padding:0 2px;}
   </div>
 </div>
 
+
+<!-- ████ QUOTATION MAKER ████ -->
+<div class="mod" id="mod-quotation">
+  <div class="ph">
+    <div><div class="pt">QUOTATION <span>MAKER</span></div>
+    <div class="pt-sub">Create · Generate PDF · Share on WhatsApp</div></div>
+    <button class="btn btn-p" onclick="newQuotation()">+ New Quotation</button>
+  </div>
+
+  <div class="g4" id="qt-stats" style="margin-bottom:14px"></div>
+
+  <!-- QUOTATION FORM -->
+  <div id="qt-form" style="display:none;margin-bottom:16px">
+    <div class="card">
+      <div class="card-hdr" id="qt-form-title">📄 New Quotation</div>
+      <div style="padding:16px">
+        <div class="fr">
+          <div class="fg"><label>Quotation No.</label>
+            <input class="inp" id="qt-no" readonly style="width:100%;background:var(--s2)"></div>
+          <div class="fg"><label>Date</label>
+            <input class="inp" id="qt-date" type="date" style="width:100%"></div>
+          <div class="fg"><label>Valid Until</label>
+            <input class="inp" id="qt-valid" type="date" style="width:100%"></div>
+        </div>
+        <div style="font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin:16px 0 8px">Party Details</div>
+        <div class="fr">
+          <div class="fg" style="flex:2"><label>Party Name *</label>
+            <input class="inp" id="qt-party" placeholder="M/s Sharma Trading Co." style="width:100%"></div>
+          <div class="fg"><label>Phone</label>
+            <input class="inp" id="qt-phone" placeholder="98xxxxxxxx" style="width:100%"></div>
+        </div>
+        <div class="fr" style="margin-top:10px">
+          <div class="fg" style="flex:2"><label>Address / City</label>
+            <input class="inp" id="qt-addr" placeholder="City, State" style="width:100%"></div>
+          <div class="fg"><label>GSTIN</label>
+            <input class="inp" id="qt-gstin" placeholder="Optional" style="width:100%"></div>
+        </div>
+        <div style="font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin:16px 0 8px">Items</div>
+        <div style="display:flex;gap:8px;margin-bottom:8px;flex-wrap:wrap">
+          <select class="sel" id="qt-cost-pick" style="flex:1;min-width:180px">
+            <option value="">— Pick from Cost & Pricing —</option>
+          </select>
+          <button class="btn btn-sm" onclick="qtAddFromCosting()">↓ Add Selected</button>
+          <button class="btn btn-sm btn-p" onclick="qtAddRow()">+ Blank Row</button>
+        </div>
+        <div class="tbl-scroll"><table class="tbl">
+          <thead><tr><th style="width:32px">#</th><th>Description</th><th style="width:70px">Qty</th><th style="width:70px">Unit</th><th style="width:100px">Rate (Rs)</th><th style="width:110px">Amount</th><th style="width:36px"></th></tr></thead>
+          <tbody id="qt-rows"></tbody>
+        </table></div>
+        <div class="fr" style="margin-top:12px">
+          <div class="fg"><label>GST %</label>
+            <select class="sel" id="qt-gst" onchange="qtRecalc()" style="width:100%">
+              <option value="0">0% (Exempt)</option>
+              <option value="5">5%</option>
+              <option value="12" selected>12%</option>
+              <option value="18">18%</option>
+              <option value="28">28%</option>
+            </select></div>
+          <div class="fg"><label>Freight / Other Charges (Rs)</label>
+            <input class="inp" id="qt-freight" type="number" value="0" oninput="qtRecalc()" style="width:100%"></div>
+        </div>
+        <div id="qt-totals" style="background:var(--s2);border:1px solid var(--b1);border-radius:10px;padding:12px 16px;margin-top:12px;text-align:right;font-size:14px;line-height:2"></div>
+        <div class="fg" style="margin-top:12px"><label>Terms & Notes</label>
+          <textarea class="ta" id="qt-terms" rows="3" style="width:100%">1. Prices are Ex-Works Jalandhar.
+2. GST extra as applicable.
+3. Payment: 50% advance, balance before dispatch.
+4. Delivery: 15-20 days from order confirmation.</textarea></div>
+        <div style="display:flex;gap:8px;margin-top:14px;justify-content:flex-end;flex-wrap:wrap">
+          <button class="btn" onclick="closeQtForm()">Cancel</button>
+          <button class="btn" onclick="saveQuotation(false)">💾 Save Draft</button>
+          <button class="btn btn-p" onclick="saveQuotation(true)">📄 Save & Generate PDF</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SAVED QUOTATIONS -->
+  <div class="card">
+    <div class="card-hdr">Saved Quotations</div>
+    <div class="tbl-scroll"><table class="tbl">
+      <thead><tr><th>Quote No.</th><th>Date</th><th>Party</th><th>Items</th><th>Total</th><th>Actions</th></tr></thead>
+      <tbody id="qt-list"></tbody>
+    </table></div>
+    <div id="qt-empty" class="es" style="display:none"><div class="em">📄</div>No quotations yet.</div>
+  </div>
+</div>
+
+
+<!-- ████ BRAND LAUNCH TRACKER ████ -->
+<div class="mod" id="mod-brands">
+  <div class="ph">
+    <div><div class="pt">BRAND <span>LAUNCH TRACKER</span></div>
+    <div class="pt-sub">AURA · SixHo · Punjab — milestones & progress</div></div>
+  </div>
+  <div class="g4" id="br-stats" style="margin-bottom:14px"></div>
+  <div id="br-brands"></div>
+</div>
+
+<!-- BRAND MILESTONE MODAL -->
+<div class="mo" id="br-mo" onclick="if(event.target===this)closeBrMo()">
+  <div class="mo-box" style="max-width:440px">
+    <div class="mo-handle"></div>
+    <div class="mo-title"><span id="br-mo-t">Milestone</span><button class="mo-x" onclick="closeBrMo()">✕</button></div>
+    <div style="padding:0 2px">
+      <div class="fg" style="margin-bottom:10px"><label>Brand</label>
+        <select class="sel" id="br-brand" style="width:100%">
+          <option value="AURA">✨ AURA</option>
+          <option value="SixHo">🎾 SixHo</option>
+          <option value="Punjab">🦁 Punjab</option>
+        </select></div>
+      <div class="fg" style="margin-bottom:10px"><label>Milestone *</label>
+        <input class="inp" id="br-title" placeholder="e.g. Finalize sticker design" style="width:100%"></div>
+      <div class="fr" style="margin-bottom:10px">
+        <div class="fg"><label>Target Date</label>
+          <input class="inp" id="br-due" type="date" style="width:100%"></div>
+        <div class="fg"><label>Status</label>
+          <select class="sel" id="br-status" style="width:100%">
+            <option value="pending">⬜ Pending</option>
+            <option value="progress">🔄 In Progress</option>
+            <option value="done">✅ Done</option>
+          </select></div>
+      </div>
+      <div class="fg" style="margin-bottom:14px"><label>Notes</label>
+        <input class="inp" id="br-notes" placeholder="Optional details" style="width:100%"></div>
+      <div style="display:flex;gap:8px;justify-content:flex-end;padding-bottom:8px">
+        <button class="btn" onclick="closeBrMo()">Cancel</button>
+        <button class="btn btn-p" onclick="saveBrMilestone()">💾 Save</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 </div><!-- /main -->
 
 </div><!-- /body -->
@@ -1839,7 +1981,7 @@ function go(id){
     itax:R.itax,tds:R.tds,gst:R.gst,itc:R.itc,future:R.future,tracker:initTracker,
     health:R.health,badminton:R.badminton,self:R.self,quotes:R.quotes,
     mustdo:R.mustdo,accounts:R.accounts,costing:R.costing,kb:R.kb,orders:R.orders,purchase:R.purchase,production:R.production,
-    expenses:R.expenses,scanner:R.scanner,stock:R.stock,utilities:initUtilities};
+    expenses:R.expenses,scanner:R.scanner,stock:R.stock,utilities:initUtilities,quotation:R.quotation,brands:R.brands};
   rmap[id]?.();
 }
 
@@ -1955,6 +2097,8 @@ const D={
   stockCats:[],
   stockLog:[],
   menuOrder:[],
+  quotations:[],
+  brandMilestones:[],
   scanHistory:[],
   purchase:[],
 
@@ -2278,7 +2422,47 @@ const R={
     const statusF=document.getElementById("pay-status-filter")?.value||"";
     let total=0;
     const filtered=D.payment.filter(p=>(!agentF||p.agent===agentF)&&(!statusF||p.status===statusF));
-    document.getElementById("pyb").innerHTML=filtered.map(p=>{
+
+    // ── AGING REPORT ──
+    const agingBucket = window.__payAgingFilter || "";
+    const pending = D.payment.filter(p=>p.status!=="collected");
+    const amtOf = p => parseInt((p.amt||"0").toString().replace(/[^\d]/g,""))||0;
+    const ageOf = p => p.due ? Math.floor((new Date()-new Date(p.due))/86400000) : 0;
+    const buckets = [
+      {key:"current", label:"Not Due Yet", test:d=>d<=0,       col:"var(--green)"},
+      {key:"b30",     label:"1–30 Days",   test:d=>d>0&&d<=30, col:"var(--gold)"},
+      {key:"b60",     label:"31–60 Days",  test:d=>d>30&&d<=60,col:"var(--orange)"},
+      {key:"b90",     label:"61–90 Days",  test:d=>d>60&&d<=90,col:"#ea580c"},
+      {key:"b90p",    label:"90+ Days",    test:d=>d>90,       col:"var(--red)"},
+    ];
+    const agingEl = document.getElementById("pay-aging");
+    if(agingEl){
+      agingEl.innerHTML = buckets.map(b=>{
+        const items = pending.filter(p=>b.test(ageOf(p)));
+        const amt = items.reduce((s,p)=>s+amtOf(p),0);
+        const active = agingBucket===b.key;
+        return `<div onclick="payAgingFilter('${b.key}')" style="padding:12px 14px;background:${active?b.col+"18":"#fff"};text-align:center;cursor:pointer;${active?"box-shadow:inset 0 -3px 0 "+b.col:""}">
+          <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.6px">${b.label}</div>
+          <div style="font-family:'Bebas Neue';font-size:21px;color:${b.col}">${fa(amt)}</div>
+          <div style="font-size:11px;color:var(--dim)">${items.length} part${items.length===1?"y":"ies"}</div>
+        </div>`;
+      }).join("");
+    }
+    // Agent-wise aging summary line
+    const agEl = document.getElementById("pay-aging-agent");
+    if(agEl){
+      const agents = ["Baba Ji","Aman","Raman"];
+      agEl.innerHTML = '<div style="display:flex;gap:16px;flex-wrap:wrap;font-size:12.5px">' + agents.map(ag=>{
+        const items = pending.filter(p=>p.agent===ag);
+        const amt = items.reduce((s,p)=>s+amtOf(p),0);
+        const over60 = items.filter(p=>ageOf(p)>60).reduce((s,p)=>s+amtOf(p),0);
+        return `<span><b>${ag}:</b> ${fa(amt)}${over60?` <span style="color:var(--red)">(${fa(over60)} over 60d)</span>`:""}</span>`;
+      }).join("") + '</div>';
+    }
+    // Apply aging bucket filter to register list
+    const bucketDef = buckets.find(b=>b.key===agingBucket);
+    const filtered2 = bucketDef ? filtered.filter(p=>p.status!=="collected"&&bucketDef.test(ageOf(p))) : filtered;
+    document.getElementById("pyb").innerHTML=filtered2.map(p=>{
       const days=dOvr(p.due),a=parseInt((p.amt||0).toString().replace(/[₹,]/g,""));
       if(p.status!=="collected")total+=a;
       const done=p.status==="collected";
@@ -2892,6 +3076,85 @@ const R={
           }).join("")}</tbody>
         </table></div>` :
         `<div style="padding:14px;text-align:center;font-size:13px;color:var(--muted)">No items yet. <span style="color:var(--ac);cursor:pointer;font-weight:600" onclick="openStockForm(null,'${grp.name}')">+ Add first item →</span></div>`}
+      </div>`;
+    }).join("");
+  },
+  quotation(){
+    const qs = D.quotations||[];
+    const totalVal = qs.reduce((s,q)=>s+(q.grand||0),0);
+    const thisMonth = qs.filter(q=>(q.date||"").slice(0,7)===new Date().toISOString().slice(0,7));
+    document.getElementById("qt-stats").innerHTML =
+      sc("var(--ac)","Total Quotations",qs.length) +
+      sc("var(--orange)","This Month",thisMonth.length) +
+      sc("var(--green)","Total Value",fa(totalVal)) +
+      sc("var(--gold)","Avg Value",qs.length?fa(Math.round(totalVal/qs.length)):"—");
+    const list = document.getElementById("qt-list");
+    const empty = document.getElementById("qt-empty");
+    if(!qs.length){ list.innerHTML=""; empty.style.display="block"; return; }
+    empty.style.display="none";
+    list.innerHTML = qs.slice().sort((a,b)=>(b.id-a.id)).map(q=>`<tr>
+      <td><b>${q.no}</b></td>
+      <td style="font-size:13px">${fd(q.date)}</td>
+      <td>${q.party}${q.addr?`<div style="font-size:12px;color:var(--muted)">${q.addr}</div>`:""}</td>
+      <td style="font-size:13px">${(q.items||[]).length}</td>
+      <td class="amt" style="font-weight:700;color:var(--ac)">${fa(q.grand||0)}</td>
+      <td style="white-space:nowrap">
+        <button class="btn btn-sm btn-p" onclick="generateQuotationPDF(${q.id})">📄 PDF</button>
+        <button class="btn-e" onclick="editQuotation(${q.id})">✏️</button>
+        <button class="btn-d" onclick="delQuotation(${q.id})">🗑</button>
+      </td>
+    </tr>`).join("");
+  },
+  brands(){
+    const ms = D.brandMilestones||[];
+    const brands = ["AURA","SixHo","Punjab"];
+    const bMeta = {
+      "AURA":{icon:"✨",color:"#C8B89A",desc:"Premium cricket brand — TM filed Jun 2026"},
+      "SixHo":{icon:"🎾",color:"#16a34a",desc:"Tennis ball brand — TM filed Jun 2026"},
+      "Punjab":{icon:"🦁",color:"#ea580c",desc:"Punjab Cricket — @punjabkri Instagram"}
+    };
+    const doneCount = ms.filter(m=>m.status==="done").length;
+    document.getElementById("br-stats").innerHTML =
+      sc("var(--ac)","Total Milestones",ms.length) +
+      sc("var(--green)","Completed",doneCount) +
+      sc("var(--orange)","In Progress",ms.filter(m=>m.status==="progress").length) +
+      sc("var(--red)","Pending",ms.filter(m=>m.status==="pending").length);
+    const container = document.getElementById("br-brands");
+    container.innerHTML = brands.map(b=>{
+      const bms = ms.filter(m=>m.brand===b).sort((a,b2)=>(a.due||"9999").localeCompare(b2.due||"9999"));
+      const done = bms.filter(m=>m.status==="done").length;
+      const pct = bms.length ? Math.round(done/bms.length*100) : 0;
+      const meta = bMeta[b];
+      return `<div class="card" style="margin-bottom:16px">
+        <div style="padding:13px 16px;border-bottom:2px solid var(--b1);display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+          <span style="font-size:26px">${meta.icon}</span>
+          <div style="flex:1;min-width:150px">
+            <div style="font-size:16px;font-weight:800;letter-spacing:.5px">${b}</div>
+            <div style="font-size:12px;color:var(--muted)">${meta.desc}</div>
+          </div>
+          <div style="min-width:130px;flex:1;max-width:220px">
+            <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--muted);margin-bottom:3px">
+              <span>${done}/${bms.length} done</span><span>${pct}%</span></div>
+            <div style="background:var(--s2);border-radius:8px;height:8px;overflow:hidden">
+              <div style="width:${pct}%;height:100%;background:${meta.color};border-radius:8px"></div></div>
+          </div>
+          <button class="btn btn-p btn-sm" onclick="openBrMilestone(null,'${b}')">+ Milestone</button>
+        </div>
+        ${bms.length ? bms.map(m=>{
+          const days = m.due ? Math.floor((new Date(m.due)-new Date())/86400000) : null;
+          const stIcon = m.status==="done"?"✅":m.status==="progress"?"🔄":"⬜";
+          const dueTxt = m.due ? (m.status==="done" ? fd(m.due) : (days<0?`<span style="color:var(--red)">${Math.abs(days)}d overdue</span>`:days===0?'<span style="color:var(--red)">Today</span>':`${days}d left`)) : "";
+          return `<div style="padding:10px 16px;border-bottom:1px solid var(--b1);display:flex;align-items:center;gap:10px">
+            <span style="font-size:17px;cursor:pointer" onclick="cycleBrStatus(${m.id})" title="Tap to change status">${stIcon}</span>
+            <div style="flex:1;min-width:0">
+              <div style="font-size:13.5px;font-weight:600;${m.status==="done"?"text-decoration:line-through;color:var(--dim)":""}">${m.title}</div>
+              ${m.notes?`<div style="font-size:12px;color:var(--muted)">${m.notes}</div>`:""}
+            </div>
+            <span style="font-size:12px;color:var(--muted);white-space:nowrap">${dueTxt}</span>
+            <button class="btn-e" onclick="openBrMilestone(${m.id})">✏️</button>
+            <button class="btn-d" onclick="delBrMilestone(${m.id})">🗑</button>
+          </div>`;
+        }).join("") : `<div style="padding:14px;text-align:center;font-size:13px;color:var(--muted)">No milestones. <span style="color:var(--ac);cursor:pointer;font-weight:600" onclick="openBrMilestone(null,'${b}')">+ Add first →</span></div>`}
       </div>`;
     }).join("");
   },
@@ -4833,7 +5096,7 @@ function reRenderCurrent() {
     health:R.health, badminton:R.badminton, self:R.self, quotes:R.quotes,
     mustdo:R.mustdo, accounts:R.accounts, costing:R.costing, kb:R.kb,
     orders:R.orders, purchase:R.purchase, production:R.production,
-    expenses:R.expenses, scanner:R.scanner, stock:R.stock
+    expenses:R.expenses, scanner:R.scanner, stock:R.stock, quotation:R.quotation, brands:R.brands
   };
   rmap[id]?.();
 }
@@ -4847,7 +5110,7 @@ function loadAllFromFirebase() {
     "deadstock","rd","compliance","itax","tds","gst","itc","future",
     "dayData","healthHabits","healthGoals","bdmGames","bdmSkills",
     "bdmDrills","selfGoals","books","weeklyReviews","quotes","uid",
-    "mustdo","accounts","costing","costCats","kb","stock","stockCats","stockLog","menuOrder","orders","purchase","production","prodStock","expenses","scanHistory"
+    "mustdo","accounts","costing","costCats","kb","stock","stockCats","stockLog","menuOrder","quotations","brandMilestones","orders","purchase","production","prodStock","expenses","scanHistory"
   ];
 
   let initialLoadDone = false;
@@ -4971,7 +5234,7 @@ function loadAllFromFirebase() {
 // ── LOCALSTORAGE FALLBACK ──
 function saveToLocal() {
   try {
-    const save = {urgent:D.urgent,cod:D.cod,transport:D.transport,payment:D.payment,defaulter:D.defaulter,banking:D.banking,deadstock:D.deadstock,rd:D.rd,compliance:D.compliance,itax:D.itax,tds:D.tds,gst:D.gst,itc:D.itc,future:D.future,dayData:D.dayData,healthHabits:D.healthHabits,healthGoals:D.healthGoals,bdmGames:D.bdmGames,bdmSkills:D.bdmSkills,bdmDrills:D.bdmDrills,selfGoals:D.selfGoals,books:D.books,weeklyReviews:D.weeklyReviews,quotes:D.quotes,uid:D.uid,orders:D.orders,purchase:D.purchase,production:D.production,prodStock:D.prodStock,expenses:D.expenses,scanHistory:D.scanHistory,mustdo:D.mustdo,accounts:D.accounts,costing:D.costing,costCats:D.costCats,kb:D.kb,stock:D.stock,stockCats:D.stockCats,stockLog:D.stockLog,menuOrder:D.menuOrder};
+    const save = {urgent:D.urgent,cod:D.cod,transport:D.transport,payment:D.payment,defaulter:D.defaulter,banking:D.banking,deadstock:D.deadstock,rd:D.rd,compliance:D.compliance,itax:D.itax,tds:D.tds,gst:D.gst,itc:D.itc,future:D.future,dayData:D.dayData,healthHabits:D.healthHabits,healthGoals:D.healthGoals,bdmGames:D.bdmGames,bdmSkills:D.bdmSkills,bdmDrills:D.bdmDrills,selfGoals:D.selfGoals,books:D.books,weeklyReviews:D.weeklyReviews,quotes:D.quotes,uid:D.uid,orders:D.orders,purchase:D.purchase,production:D.production,prodStock:D.prodStock,expenses:D.expenses,scanHistory:D.scanHistory,mustdo:D.mustdo,accounts:D.accounts,costing:D.costing,costCats:D.costCats,kb:D.kb,stock:D.stock,stockCats:D.stockCats,stockLog:D.stockLog,menuOrder:D.menuOrder,quotations:D.quotations,brandMilestones:D.brandMilestones};
     localStorage.setItem("aman_walia_data", JSON.stringify(save));
   } catch(e) { console.warn("LocalStorage save failed:", e); }
 }
@@ -5854,6 +6117,7 @@ const MENU_META = {
   deadstock:{label:"Dead Stock",icon:"📦",group:"Operations"},
   purchase:{label:"Purchase / Reorder",icon:"🛒",group:"Operations"},
   production:{label:"Production",icon:"🏭",group:"Operations"},
+  quotation:{label:"Quotation Maker",icon:"📄",group:"Operations"},
   payment:{label:"Payment Follow-Up",icon:"💰",group:"Finance & Legal"},
   defaulter:{label:"Notices / Defaulters",icon:"⚠️",group:"Finance & Legal"},
   banking:{label:"Banking Issues",icon:"🏦",group:"Finance & Legal"},
@@ -5867,6 +6131,7 @@ const MENU_META = {
   expenses:{label:"Expenses",icon:"💸",group:"Finance & Legal"},
   rd:{label:"R&D Ideas",icon:"🔬",group:"Growth"},
   future:{label:"Future Plans",icon:"🚀",group:"Growth"},
+  brands:{label:"Brand Launch Tracker",icon:"🏷️",group:"Growth"},
   mustdo:{label:"Must Do Daily",icon:"✅",group:"Daily Life"},
   tracker:{label:"Day Tracker",icon:"📅",group:"Daily Life"},
   health:{label:"Health & Fitness",icon:"❤️",group:"Daily Life"},
@@ -6025,6 +6290,340 @@ function importBackup(input){
   };
   reader.readAsText(file);
   input.value = "";
+}
+
+
+
+// ══════════════════════════════════════════
+// QUOTATION MAKER
+// ══════════════════════════════════════════
+let qtEditId = null;
+let qtRowSeq = 0;
+
+function nextQuoteNo(){
+  const yr = new Date().getFullYear();
+  const n = (D.quotations||[]).length + 1;
+  return `QT-${yr}-${String(n).padStart(3,"0")}`;
+}
+
+function newQuotation(){
+  qtEditId = null;
+  document.getElementById("qt-form-title").textContent = "📄 New Quotation";
+  document.getElementById("qt-no").value = nextQuoteNo();
+  document.getElementById("qt-date").value = new Date().toISOString().slice(0,10);
+  const valid = new Date(); valid.setDate(valid.getDate()+15);
+  document.getElementById("qt-valid").value = valid.toISOString().slice(0,10);
+  ["qt-party","qt-phone","qt-addr","qt-gstin"].forEach(id=>document.getElementById(id).value="");
+  document.getElementById("qt-gst").value = "12";
+  document.getElementById("qt-freight").value = "0";
+  document.getElementById("qt-rows").innerHTML = "";
+  qtPopulateCostPick();
+  qtAddRow();
+  qtRecalc();
+  document.getElementById("qt-form").style.display = "block";
+  window.scrollTo({top:0,behavior:"smooth"});
+}
+
+function qtPopulateCostPick(){
+  const sel = document.getElementById("qt-cost-pick");
+  const items = (D.costing||[]);
+  sel.innerHTML = '<option value="">— Pick from Cost & Pricing —</option>' +
+    items.map(c=>`<option value="${c.id}">${c.cat?c.cat+" › ":""}${c.name} — Rs ${c.sp||c.cp||0}</option>`).join("");
+}
+
+function qtAddFromCosting(){
+  const id = parseInt(document.getElementById("qt-cost-pick").value||0);
+  if(!id) return;
+  const c = (D.costing||[]).find(x=>x.id===id);
+  if(!c) return;
+  qtAddRow(c.name + (c.cat?" ("+c.cat+")":""), 1, c.unit||"pcs", c.sp||c.cp||0);
+}
+
+function qtAddRow(desc="", qty=1, unit="pcs", rate=""){
+  const tb = document.getElementById("qt-rows");
+  const rid = ++qtRowSeq;
+  const tr = document.createElement("tr");
+  tr.id = "qtr-"+rid;
+  tr.innerHTML = `
+    <td style="color:var(--muted);font-size:13px" class="qt-sn"></td>
+    <td><input class="inp" value="${desc.replace(/"/g,'&quot;')}" placeholder="Item description" style="width:100%;min-width:160px;font-size:13px" oninput="qtRecalc()" data-f="desc"></td>
+    <td><input class="inp" type="number" value="${qty}" style="width:100%;font-size:13px" oninput="qtRecalc()" data-f="qty"></td>
+    <td><input class="inp" value="${unit}" style="width:100%;font-size:13px" data-f="unit"></td>
+    <td><input class="inp" type="number" value="${rate}" style="width:100%;font-size:13px" oninput="qtRecalc()" data-f="rate"></td>
+    <td class="qt-amt" style="font-family:'JetBrains Mono';font-size:13px;font-weight:600">—</td>
+    <td><button class="btn-d" onclick="document.getElementById('qtr-${rid}').remove();qtRecalc()">✕</button></td>`;
+  tb.appendChild(tr);
+  qtRecalc();
+}
+
+function qtReadRows(){
+  return [...document.querySelectorAll("#qt-rows tr")].map(tr=>{
+    const g = f => tr.querySelector(`[data-f="${f}"]`)?.value || "";
+    return { desc:g("desc").trim(), qty:parseFloat(g("qty"))||0, unit:g("unit").trim()||"pcs", rate:parseFloat(g("rate"))||0 };
+  }).filter(r=>r.desc);
+}
+
+function qtRecalc(){
+  let sub = 0;
+  document.querySelectorAll("#qt-rows tr").forEach((tr,i)=>{
+    tr.querySelector(".qt-sn").textContent = i+1;
+    const qty = parseFloat(tr.querySelector('[data-f="qty"]')?.value)||0;
+    const rate = parseFloat(tr.querySelector('[data-f="rate"]')?.value)||0;
+    const amt = qty*rate;
+    sub += amt;
+    tr.querySelector(".qt-amt").textContent = amt ? fa(amt) : "—";
+  });
+  const gstPct = parseFloat(document.getElementById("qt-gst")?.value)||0;
+  const freight = parseFloat(document.getElementById("qt-freight")?.value)||0;
+  const gstAmt = (sub+freight)*gstPct/100;
+  const grand = sub + freight + gstAmt;
+  document.getElementById("qt-totals").innerHTML = `
+    Subtotal: <b>${fa(sub)}</b><br>
+    ${freight?`Freight/Other: <b>${fa(freight)}</b><br>`:""}
+    GST @ ${gstPct}%: <b>${fa(Math.round(gstAmt*100)/100)}</b><br>
+    <span style="font-size:17px">Grand Total: <b style="color:var(--ac)">${fa(Math.round(grand))}</b></span>`;
+}
+
+function saveQuotation(genPdf){
+  const party = document.getElementById("qt-party").value.trim();
+  if(!party){ alert("Party name required"); return; }
+  const items = qtReadRows();
+  if(!items.length){ alert("Add at least one item"); return; }
+  const sub = items.reduce((s,r)=>s+r.qty*r.rate,0);
+  const gstPct = parseFloat(document.getElementById("qt-gst").value)||0;
+  const freight = parseFloat(document.getElementById("qt-freight").value)||0;
+  const gstAmt = (sub+freight)*gstPct/100;
+  const q = {
+    no: document.getElementById("qt-no").value,
+    date: document.getElementById("qt-date").value,
+    valid: document.getElementById("qt-valid").value,
+    party, phone: document.getElementById("qt-phone").value.trim(),
+    addr: document.getElementById("qt-addr").value.trim(),
+    gstin: document.getElementById("qt-gstin").value.trim(),
+    items, gstPct, freight,
+    sub, gstAmt, grand: Math.round(sub+freight+gstAmt),
+    terms: document.getElementById("qt-terms").value,
+  };
+  if(!D.quotations) D.quotations=[];
+  if(qtEditId){
+    const i = D.quotations.findIndex(x=>x.id===qtEditId);
+    if(i>-1) D.quotations[i] = {...D.quotations[i], ...q};
+  } else {
+    q.id = ++D.uid;
+    q.createdAt = new Date().toISOString().slice(0,10);
+    D.quotations.push(q);
+  }
+  autoSave("quotations"); autoSave("uid");
+  closeQtForm();
+  R.quotation();
+  if(genPdf) generateQuotationPDF(qtEditId || q.id);
+}
+
+function editQuotation(id){
+  const q = (D.quotations||[]).find(x=>x.id===id);
+  if(!q) return;
+  qtEditId = id;
+  newQuotation(); // resets form
+  qtEditId = id;  // restore after reset
+  document.getElementById("qt-form-title").textContent = "✏️ Edit " + q.no;
+  document.getElementById("qt-no").value = q.no;
+  document.getElementById("qt-date").value = q.date||"";
+  document.getElementById("qt-valid").value = q.valid||"";
+  document.getElementById("qt-party").value = q.party||"";
+  document.getElementById("qt-phone").value = q.phone||"";
+  document.getElementById("qt-addr").value = q.addr||"";
+  document.getElementById("qt-gstin").value = q.gstin||"";
+  document.getElementById("qt-gst").value = String(q.gstPct??12);
+  document.getElementById("qt-freight").value = q.freight||0;
+  document.getElementById("qt-rows").innerHTML = "";
+  (q.items||[]).forEach(r=>qtAddRow(r.desc, r.qty, r.unit, r.rate));
+  if(!(q.items||[]).length) qtAddRow();
+  document.getElementById("qt-terms").value = q.terms||"";
+  qtRecalc();
+}
+
+function delQuotation(id){
+  const q = (D.quotations||[]).find(x=>x.id===id);
+  if(!q || !confirm(`Delete quotation ${q.no}?`)) return;
+  D.quotations = D.quotations.filter(x=>x.id!==id);
+  autoSave("quotations");
+  R.quotation();
+}
+
+function closeQtForm(){
+  document.getElementById("qt-form").style.display="none";
+  qtEditId = null;
+}
+
+// ── PDF GENERATION (jsPDF lazy-loaded) ──
+function loadJsPDF(cb){
+  if(window.jspdf){ cb(); return; }
+  const s1 = document.createElement("script");
+  s1.src = "https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js";
+  s1.onload = ()=>{
+    const s2 = document.createElement("script");
+    s2.src = "https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js";
+    s2.onload = cb;
+    s2.onerror = ()=>alert("Could not load PDF library. Check internet.");
+    document.head.appendChild(s2);
+  };
+  s1.onerror = ()=>alert("Could not load PDF library. Check internet.");
+  document.head.appendChild(s1);
+}
+
+function generateQuotationPDF(id){
+  const q = (D.quotations||[]).find(x=>x.id===id);
+  if(!q){ alert("Quotation not found"); return; }
+  loadJsPDF(()=>{
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+    const W = doc.internal.pageSize.getWidth();
+
+    // Header band
+    doc.setFillColor(79,70,229);
+    doc.rect(0,0,W,30,"F");
+    doc.setTextColor(255,255,255);
+    doc.setFont("helvetica","bold"); doc.setFontSize(18);
+    doc.text("KULDIP RUBBER INDUSTRIES", 14, 13);
+    doc.setFont("helvetica","normal"); doc.setFontSize(9);
+    doc.text("S/80 Industrial Area, Jalandhar, Punjab | Since 1971", 14, 20);
+    doc.text("Cricket Bat Handles | Grips | Ready Bats | English & Kashmir Willow", 14, 25);
+
+    // Title
+    doc.setTextColor(30,30,30);
+    doc.setFont("helvetica","bold"); doc.setFontSize(15);
+    doc.text("QUOTATION", W/2, 42, {align:"center"});
+
+    // Meta
+    doc.setFontSize(10); doc.setFont("helvetica","normal");
+    doc.text(`Quotation No: ${q.no}`, 14, 52);
+    doc.text(`Date: ${q.date||""}`, 14, 58);
+    if(q.valid) doc.text(`Valid Until: ${q.valid}`, 14, 64);
+
+    // Party block
+    doc.setFont("helvetica","bold");
+    doc.text("To:", 120, 52);
+    doc.setFont("helvetica","normal");
+    const partyLines = [q.party, q.addr, q.gstin?("GSTIN: "+q.gstin):"", q.phone?("Ph: "+q.phone):""].filter(Boolean);
+    partyLines.forEach((l,i)=>doc.text(String(l), 120, 58+i*6));
+
+    // Items table
+    const body = (q.items||[]).map((r,i)=>[
+      i+1, r.desc, r.qty, r.unit, "Rs "+(r.rate||0).toLocaleString("en-IN"),
+      "Rs "+Math.round(r.qty*r.rate).toLocaleString("en-IN")
+    ]);
+    doc.autoTable({
+      startY: 82,
+      head: [["#","Description","Qty","Unit","Rate","Amount"]],
+      body,
+      theme: "grid",
+      headStyles: {fillColor:[79,70,229], fontSize:10},
+      styles: {fontSize:9.5, cellPadding:2.5},
+      columnStyles: {0:{cellWidth:10},2:{cellWidth:16},3:{cellWidth:18},4:{cellWidth:30},5:{cellWidth:34}}
+    });
+
+    // Totals
+    let y = doc.lastAutoTable.finalY + 8;
+    doc.setFontSize(10);
+    const rightX = W-14;
+    doc.text(`Subtotal: Rs ${Math.round(q.sub).toLocaleString("en-IN")}`, rightX, y, {align:"right"}); y+=6;
+    if(q.freight){ doc.text(`Freight/Other: Rs ${Math.round(q.freight).toLocaleString("en-IN")}`, rightX, y, {align:"right"}); y+=6; }
+    doc.text(`GST @ ${q.gstPct}%: Rs ${Math.round(q.gstAmt).toLocaleString("en-IN")}`, rightX, y, {align:"right"}); y+=7;
+    doc.setFont("helvetica","bold"); doc.setFontSize(12);
+    doc.text(`Grand Total: Rs ${q.grand.toLocaleString("en-IN")}`, rightX, y, {align:"right"}); y+=10;
+
+    // Terms
+    doc.setFont("helvetica","bold"); doc.setFontSize(10);
+    doc.text("Terms & Conditions:", 14, y); y+=5;
+    doc.setFont("helvetica","normal"); doc.setFontSize(9);
+    String(q.terms||"").split("\n").forEach(line=>{ doc.text(line, 14, y); y+=5; });
+
+    y += 12;
+    doc.setFont("helvetica","bold");
+    doc.text("For Kuldip Rubber Industries", rightX, y, {align:"right"});
+    y += 16;
+    doc.setFont("helvetica","normal");
+    doc.text("Authorised Signatory", rightX, y, {align:"right"});
+
+    const filename = `${q.no}-${q.party.replace(/[^a-zA-Z0-9]/g,"_").slice(0,20)}.pdf`;
+    // Try Web Share (mobile -> WhatsApp), else download
+    const blob = doc.output("blob");
+    const file = new File([blob], filename, {type:"application/pdf"});
+    if(navigator.canShare && navigator.canShare({files:[file]})){
+      navigator.share({files:[file], title:q.no, text:`Quotation ${q.no} — Kuldip Rubber Industries`})
+        .catch(()=>doc.save(filename));
+    } else {
+      doc.save(filename);
+    }
+  });
+}
+
+
+
+// ══════════════════════════════════════════
+// BRAND LAUNCH TRACKER
+// ══════════════════════════════════════════
+let brEditId = null;
+
+function openBrMilestone(id, presetBrand){
+  brEditId = id || null;
+  const m = id ? (D.brandMilestones||[]).find(x=>x.id===id) : null;
+  document.getElementById("br-mo-t").textContent = id ? "✏️ Edit Milestone" : "➕ New Milestone";
+  document.getElementById("br-brand").value = m ? m.brand : (presetBrand||"AURA");
+  document.getElementById("br-title").value = m ? m.title : "";
+  document.getElementById("br-due").value = m ? (m.due||"") : "";
+  document.getElementById("br-status").value = m ? (m.status||"pending") : "pending";
+  document.getElementById("br-notes").value = m ? (m.notes||"") : "";
+  document.getElementById("br-mo").style.display = "flex";
+  setTimeout(()=>document.getElementById("br-title")?.focus(),80);
+}
+function closeBrMo(){ document.getElementById("br-mo").style.display="none"; brEditId=null; }
+
+function saveBrMilestone(){
+  const title = document.getElementById("br-title").value.trim();
+  if(!title){ alert("Milestone title required"); return; }
+  const data = {
+    brand: document.getElementById("br-brand").value,
+    title,
+    due: document.getElementById("br-due").value || "",
+    status: document.getElementById("br-status").value,
+    notes: document.getElementById("br-notes").value.trim()
+  };
+  if(!D.brandMilestones) D.brandMilestones=[];
+  if(brEditId){
+    const i = D.brandMilestones.findIndex(x=>x.id===brEditId);
+    if(i>-1) D.brandMilestones[i] = {...D.brandMilestones[i], ...data};
+  } else {
+    data.id = ++D.uid;
+    data.createdAt = new Date().toISOString().slice(0,10);
+    D.brandMilestones.push(data);
+  }
+  autoSave("brandMilestones"); autoSave("uid");
+  closeBrMo();
+  R.brands();
+}
+
+function cycleBrStatus(id){
+  const m = (D.brandMilestones||[]).find(x=>x.id===id);
+  if(!m) return;
+  m.status = m.status==="pending" ? "progress" : m.status==="progress" ? "done" : "pending";
+  autoSave("brandMilestones");
+  R.brands();
+}
+
+function delBrMilestone(id){
+  const m = (D.brandMilestones||[]).find(x=>x.id===id);
+  if(!m || !confirm(`Delete milestone "${m.title}"?`)) return;
+  D.brandMilestones = D.brandMilestones.filter(x=>x.id!==id);
+  autoSave("brandMilestones");
+  R.brands();
+}
+
+
+
+function payAgingFilter(key){
+  window.__payAgingFilter = (window.__payAgingFilter===key) ? "" : key;
+  R.payment();
 }
 
 
