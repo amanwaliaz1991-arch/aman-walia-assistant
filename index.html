@@ -6871,6 +6871,21 @@ function payAgingFilter(key){
 
 
 
+
+function crmToast(msg){
+  let t = document.getElementById("crm-toast");
+  if(!t){
+    t = document.createElement("div");
+    t.id = "crm-toast";
+    t.style.cssText = "position:fixed;bottom:90px;left:50%;transform:translateX(-50%);background:#1e293b;color:#fff;padding:11px 20px;border-radius:10px;font-size:13.5px;font-weight:600;z-index:9999;box-shadow:0 8px 28px rgba(0,0,0,.3);opacity:0;transition:opacity .25s;pointer-events:none;max-width:90vw;text-align:center";
+    document.body.appendChild(t);
+  }
+  t.textContent = msg;
+  t.style.opacity = "1";
+  clearTimeout(t._x);
+  t._x = setTimeout(()=>{ t.style.opacity = "0"; }, 2600);
+}
+
 // ══════════════════════════════════════════
 // CRM / CUSTOMERS
 // ══════════════════════════════════════════
@@ -6929,20 +6944,25 @@ function openWA(id){
   const n = parseInt(localStorage.getItem(dk)||"0")+1;
   localStorage.setItem(dk, n);
   const dEl=document.getElementById("crm-daily"); if(dEl) dEl.textContent=n;
-  // stamp lastContact
+  // stamp lastContact + auto-mark as contacted
   c.lastContact = new Date().toISOString().slice(0,10);
+  const wasPending = c.status === "pending";
+  if(wasPending) c.status = "done";
   saveCrmContact(id);
   R.crm();
+  if(wasPending) crmToast(`✅ ${c.name} marked as contacted`);
 }
 
 function crmMarkDone(id){
   const c=(D.crm||[]).find(x=>x.id===id); if(!c) return;
   c.status="done"; c.lastContact = c.lastContact || new Date().toISOString().slice(0,10);
   saveCrmContact(id); R.crm();
+  crmToast(`✅ ${c.name} marked as contacted`);
 }
 function crmUndo(id){
   const c=(D.crm||[]).find(x=>x.id===id); if(!c) return;
-  c.status="pending"; saveCrmContact(id); R.crm();
+  c.status="pending"; c.lastContact=""; saveCrmContact(id); R.crm();
+  crmToast(`↩ ${c.name} moved back to Pending`);
 }
 
 // ── DETAIL MODAL ──
