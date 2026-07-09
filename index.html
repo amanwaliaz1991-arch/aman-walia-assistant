@@ -2051,6 +2051,8 @@ mark{background:#fef08a;border-radius:2px;padding:0 2px;}
     <div class="pt-sub">🔐 Encrypted · auto-locks after 10 min idle or when app is backgrounded</div></div>
     <div style="display:flex;gap:8px;flex-wrap:wrap">
       <button class="btn" onclick="lgLock(false);go('home')">🔒 Lock</button>
+      <button class="btn" onclick="lgImportForm()">📋 Paste Import</button>
+      <button class="btn" onclick="lgImportForm()">📋 Paste Import</button>
       <button class="btn btn-p" onclick="lgPartyForm()">+ New Party</button>
     </div>
   </div>
@@ -3497,7 +3499,8 @@ const R={
     const entries = LG.data.entries||[];
     const sq = (document.getElementById("lg-search")?.value||"").toLowerCase();
 
-    const balOf = pid => (entries.filter(e=>e.pid===pid)
+    const openOf = pid => parseFloat((parties.find(p=>p.id===pid)||{}).opening) || 0;
+    const balOf = pid => openOf(pid) + (entries.filter(e=>e.pid===pid)
       .reduce((s,e)=>s + (parseFloat(e.debit)||0) - (parseFloat(e.credit)||0), 0));
 
     const totalRecv = parties.reduce((s,p)=>{ const b=balOf(p.id); return s + (b>0?b:0); },0);
@@ -3536,7 +3539,8 @@ const R={
       return;
     }
     const rows = entries.filter(e=>e.pid===p.id).slice().sort((a,b)=>(a.date||"").localeCompare(b.date||""));
-    let run = 0;
+    const opening = parseFloat(p.opening)||0;
+    let run = opening;
     hdr.innerHTML = `${p.name} <span style="font-weight:400;font-size:12px;color:var(--muted)">${[p.city,p.phone,p.gstin].filter(Boolean).join(" · ")}</span>
       <span style="float:right;display:flex;gap:6px">
         <button class="btn btn-sm btn-p" onclick="lgEntryForm()">+ Entry</button>
@@ -3546,7 +3550,14 @@ const R={
     body.innerHTML = rows.length ? `
       <div class="tbl-scroll"><table class="tbl">
         <thead><tr><th style="width:92px">Date</th><th>Particulars</th><th style="width:110px;text-align:right">Debit</th><th style="width:110px;text-align:right">Credit</th><th style="width:120px;text-align:right">Balance</th><th style="width:60px"></th></tr></thead>
-        <tbody>${rows.map(e=>{
+        <tbody>${opening?`<tr style="background:var(--s2)">
+            <td style="font-size:12.5px">—</td>
+            <td style="font-size:13px;font-weight:700">Opening Balance</td>
+            <td class="amt" style="text-align:right">—</td>
+            <td class="amt" style="text-align:right">—</td>
+            <td class="amt" style="text-align:right;font-weight:700">${fa(Math.abs(opening))} ${opening>0?"Dr":"Cr"}</td>
+            <td></td></tr>`:""}
+          ${rows.map(e=>{
           const d = parseFloat(e.debit)||0, c = parseFloat(e.credit)||0;
           run += d - c;
           return `<tr>
@@ -3562,14 +3573,14 @@ const R={
           </tr>`;
         }).join("")}</tbody>
         <tfoot><tr style="background:var(--s2);font-weight:800">
-          <td colspan="2" style="text-align:right">Closing Balance</td>
-          <td class="amt" style="text-align:right">${fa(rows.reduce((s,e)=>s+(parseFloat(e.debit)||0),0))}</td>
-          <td class="amt" style="text-align:right">${fa(rows.reduce((s,e)=>s+(parseFloat(e.credit)||0),0))}</td>
+          <td colspan="2" style="text-align:right">Closing Balance${opening?` <span style="font-weight:400;font-size:11px;color:var(--muted)">(incl. opening ${fa(Math.abs(opening))})</span>`:""}</td>
+          <td class="amt" style="text-align:right">${fa(rows.reduce((s,e)=>s+(parseFloat(e.debit)||0),0) + (opening>0?opening:0))}</td>
+          <td class="amt" style="text-align:right">${fa(rows.reduce((s,e)=>s+(parseFloat(e.credit)||0),0) + (opening<0?-opening:0))}</td>
           <td class="amt" style="text-align:right;color:${run>0?"var(--green)":run<0?"var(--red)":"inherit"}">${fa(Math.abs(Math.round(run)))} ${run>0?"Dr":run<0?"Cr":""}</td>
           <td></td>
         </tr></tfoot>
       </table></div>`
-      : `<div class="es" style="padding:34px"><div class="em">📒</div>No entries for ${p.name}.
+      : `<div class="es" style="padding:34px"><div class="em">📒</div>${opening?`Opening balance <b>${fa(Math.abs(opening))} ${opening>0?"Dr":"Cr"}</b>. `:""}No entries for ${p.name}.
          <div style="margin-top:12px"><button class="btn btn-p" onclick="lgEntryForm()">+ Add first entry</button></div></div>`;
   },
   accounts(){
@@ -7451,8 +7462,12 @@ function lgPartyForm(pid){
       <div class="fg"><label>City</label><input class="inp" id="lgp-city" value="${p?p.city||"":""}" style="width:100%"></div>
       <div class="fg"><label>Phone</label><input class="inp" id="lgp-phone" value="${p?p.phone||"":""}" style="width:100%"></div>
     </div>
-    <div class="fg" style="margin-bottom:10px"><label>GSTIN</label>
-      <input class="inp" id="lgp-gstin" value="${p?p.gstin||"":""}" style="width:100%"></div>
+    <div class="fr" style="margin-bottom:10px">
+      <div class="fg"><label>GSTIN</label>
+        <input class="inp" id="lgp-gstin" value="${p?p.gstin||"":""}" style="width:100%"></div>
+      <div class="fg"><label>Opening Balance <span style="font-size:10px;color:var(--muted)">(+ = they owe you)</span></label>
+        <input class="inp" id="lgp-opening" type="number" value="${p?p.opening||0:0}" style="width:100%"></div>
+    </div>
     <div class="fg" style="margin-bottom:14px"><label>Notes</label>
       <input class="inp" id="lgp-note" value="${p?(p.note||"").replace(/"/g,"&quot;"):""}" style="width:100%"></div>
     <div style="display:flex;gap:8px;justify-content:flex-end;padding-bottom:8px">
@@ -7470,6 +7485,7 @@ async function lgSaveParty(pid){
     name, city:document.getElementById("lgp-city").value.trim(),
     phone:document.getElementById("lgp-phone").value.trim(),
     gstin:document.getElementById("lgp-gstin").value.trim(),
+    opening:parseFloat(document.getElementById("lgp-opening").value)||0,
     note:document.getElementById("lgp-note").value.trim(),
   };
   if(!LG.data.parties) LG.data.parties = [];
@@ -7551,6 +7567,316 @@ async function lgDelEntry(eid){
   LG.data.entries = (LG.data.entries||[]).filter(x=>x.id!==eid);
   await lgSave(); flushNow();
   R.ledger();
+}
+
+
+// ── Paste importer: tab/comma separated ledger rows ──
+function lgImportForm(){
+  lgTouch();
+  const parties = LG.data.parties||[];
+  document.getElementById("crm-mo-t").textContent = "📋 Paste Ledger Import";
+  document.getElementById("crm-mo-b").innerHTML = `
+    <div style="background:#eff6ff;border:1px solid #c7d2fe;border-radius:8px;padding:10px 13px;margin-bottom:12px;font-size:12.5px;color:#3730a3;line-height:1.65">
+      Paste rows copied from Excel. Expected columns (tab separated):<br>
+      <code style="font-size:11.5px">Date &nbsp; Particulars &nbsp; Ref &nbsp; Debit &nbsp; Credit</code><br>
+      Dates accept <b>dd.mm.yyyy</b>, <b>dd/mm/yyyy</b> or <b>yyyy-mm-dd</b>. Leave Debit or Credit blank.
+    </div>
+    <div class="fr" style="margin-bottom:10px">
+      <div class="fg" style="flex:2"><label>Import into party</label>
+        <select class="sel" id="lgi-party" style="width:100%">
+          <option value="">— New party —</option>
+          ${parties.map(p=>`<option value="${p.id}">${p.name}</option>`).join("")}
+        </select></div>
+      <div class="fg"><label>New party name</label>
+        <input class="inp" id="lgi-name" placeholder="e.g. Fusion Sports" style="width:100%"></div>
+    </div>
+    <div class="fr" style="margin-bottom:10px">
+      <div class="fg"><label>Opening Balance</label>
+        <input class="inp" id="lgi-open" type="number" value="0" style="width:100%"></div>
+      <div class="fg"><label>Expected Closing <span style="font-size:10px;color:var(--muted)">(optional check)</span></label>
+        <input class="inp" id="lgi-expect" type="number" placeholder="Leave blank to skip" style="width:100%"></div>
+    </div>
+    <div class="fg" style="margin-bottom:10px"><label>Paste rows</label>
+      <textarea class="ta" id="lgi-text" rows="7" placeholder="08.06.2026&#9;HM 40pc @10500&#9;&#9;420000&#9;" style="width:100%;font-family:'JetBrains Mono';font-size:12px"></textarea></div>
+    <div style="display:flex;gap:8px;margin-bottom:10px">
+      <button class="btn btn-sm" onclick="lgParsePreview()">👁 Preview</button>
+      <span id="lgi-msg" style="font-size:12.5px;align-self:center"></span>
+    </div>
+    <div id="lgi-preview" style="max-height:34vh;overflow-y:auto;margin-bottom:12px"></div>
+    <div style="display:flex;gap:8px;justify-content:flex-end;padding-bottom:8px">
+      <button class="btn" onclick="closeCrmMo()">Cancel</button>
+      <button class="btn btn-p" onclick="lgDoImport()" id="lgi-go" disabled>💾 Import</button>
+    </div>`;
+  document.getElementById("crm-mo").style.display="flex";
+}
+
+function lgNormDate(s){
+  s = String(s||"").trim();
+  if(!s) return "";
+  let m;
+  if((m = s.match(/^(\d{4})-(\d{2})-(\d{2})$/))) return s;
+  if((m = s.match(/^(\d{1,2})[.\/-](\d{1,2})[.\/-](\d{4})$/)))
+    return `${m[3]}-${String(m[2]).padStart(2,"0")}-${String(m[1]).padStart(2,"0")}`;
+  if((m = s.match(/^(\d{1,2})[.\/-](\d{1,2})[.\/-](\d{2})$/)))
+    return `20${m[3]}-${String(m[2]).padStart(2,"0")}-${String(m[1]).padStart(2,"0")}`;
+  return "";
+}
+const lgNum = v => { const n = parseFloat(String(v||"").replace(/[₹,\s]/g,"")); return isNaN(n)?0:n; };
+
+function lgParseRows(){
+  const raw = document.getElementById("lgi-text").value;
+  const out = [], bad = [];
+  raw.split(/\r?\n/).forEach((line,i)=>{
+    if(!line.trim()) return;
+    const cols = line.split(/\t|,(?=(?:[^"]*"[^"]*")*[^"]*$)/).map(c=>c.replace(/^"|"$/g,"").trim());
+    const [dRaw, part, ref, deb, cred] = [cols[0]||"", cols[1]||"", cols[2]||"", cols[3]||"", cols[4]||""];
+    // Skip header / total rows
+    if(/^(date|opening|total)$/i.test(dRaw) || /^(date)$/i.test(part)) return;
+    const date = lgNormDate(dRaw);
+    const debit = lgNum(deb), credit = lgNum(cred);
+    if(!date){ bad.push({line:i+1, why:"bad date", text:line.slice(0,50)}); return; }
+    if(!part){ bad.push({line:i+1, why:"no particulars", text:line.slice(0,50)}); return; }
+    if(!debit && !credit){ bad.push({line:i+1, why:"no amount", text:line.slice(0,50)}); return; }
+    if(debit && credit){ bad.push({line:i+1, why:"both debit & credit", text:line.slice(0,50)}); return; }
+    out.push({date, particulars:part, ref, debit, credit});
+  });
+  return {rows:out, bad};
+}
+
+function lgParsePreview(){
+  const {rows, bad} = lgParseRows();
+  const msg = document.getElementById("lgi-msg");
+  const prev = document.getElementById("lgi-preview");
+  const goBtn = document.getElementById("lgi-go");
+  if(!rows.length){
+    msg.style.color="var(--red)"; msg.textContent="No valid rows found.";
+    prev.innerHTML=""; goBtn.disabled=true; return;
+  }
+  const opening = lgNum(document.getElementById("lgi-open").value);
+  const expect = document.getElementById("lgi-expect").value.trim();
+  const totD = rows.reduce((s,r)=>s+r.debit,0);
+  const totC = rows.reduce((s,r)=>s+r.credit,0);
+  const closing = opening + totD - totC;
+
+  let run = opening;
+  prev.innerHTML = `<div class="tbl-scroll"><table class="tbl">
+    <thead><tr><th>Date</th><th>Particulars</th><th style="text-align:right">Debit</th><th style="text-align:right">Credit</th><th style="text-align:right">Balance</th></tr></thead>
+    <tbody>
+      ${opening?`<tr style="background:var(--s2)"><td>—</td><td><b>Opening</b></td><td></td><td></td><td class="amt" style="text-align:right">${fa(Math.abs(opening))} ${opening>0?"Dr":"Cr"}</td></tr>`:""}
+      ${rows.map(r=>{ run += r.debit - r.credit; return `<tr>
+        <td style="font-size:12.5px">${fd(r.date)}</td>
+        <td style="font-size:12.5px">${r.particulars}${r.ref?`<div style="font-size:11px;color:var(--muted)">${r.ref}</div>`:""}</td>
+        <td class="amt" style="text-align:right;color:var(--green)">${r.debit?fa(r.debit):"—"}</td>
+        <td class="amt" style="text-align:right;color:var(--red)">${r.credit?fa(r.credit):"—"}</td>
+        <td class="amt" style="text-align:right">${fa(Math.abs(Math.round(run)))} ${run>0?"Dr":run<0?"Cr":""}</td></tr>`;}).join("")}
+    </tbody>
+    <tfoot><tr style="background:var(--s2);font-weight:800">
+      <td colspan="2" style="text-align:right">Totals</td>
+      <td class="amt" style="text-align:right">${fa(totD)}</td>
+      <td class="amt" style="text-align:right">${fa(totC)}</td>
+      <td class="amt" style="text-align:right">${fa(Math.abs(Math.round(closing)))} ${closing>0?"Dr":"Cr"}</td>
+    </tr></tfoot></table></div>
+    ${bad.length?`<div style="background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:9px 12px;margin-top:10px;font-size:12px;color:#991b1b">
+      <b>${bad.length} row(s) skipped:</b><br>${bad.map(b=>`Line ${b.line} — ${b.why}: <code>${b.text}</code>`).join("<br>")}</div>`:""}`;
+
+  if(expect!==""){
+    const exp = lgNum(expect);
+    const diff = Math.round(closing - exp);
+    if(diff===0){ msg.style.color="var(--green)"; msg.textContent = `✅ ${rows.length} rows · closing matches ${fa(exp)}`; }
+    else { msg.style.color="var(--orange)"; msg.textContent = `⚠️ ${rows.length} rows · closing ${fa(Math.round(closing))} vs expected ${fa(exp)} — off by ${fa(Math.abs(diff))}`; }
+  } else {
+    msg.style.color="var(--green)"; msg.textContent = `✅ ${rows.length} rows parsed`;
+  }
+  goBtn.disabled = false;
+}
+
+async function lgDoImport(){
+  const {rows} = lgParseRows();
+  if(!rows.length){ alert("Nothing to import"); return; }
+  let pid = document.getElementById("lgi-party").value;
+  const opening = lgNum(document.getElementById("lgi-open").value);
+
+  if(!LG.data.parties) LG.data.parties = [];
+  if(!LG.data.entries) LG.data.entries = [];
+
+  if(!pid){
+    const name = document.getElementById("lgi-name").value.trim();
+    if(!name){ alert("Enter a name for the new party"); return; }
+    pid = "lp_"+Date.now();
+    LG.data.parties.push({id:pid, name, city:"", phone:"", gstin:"", opening, note:""});
+  } else {
+    const p = LG.data.parties.find(x=>x.id===pid);
+    if(p && opening) p.opening = opening;
+  }
+
+  let n = 0;
+  rows.forEach((r,i)=>{
+    LG.data.entries.push({ id:"le_"+Date.now()+"_"+i, pid, ...r });
+    n++;
+  });
+  LG.party = pid;
+  await lgSave(); flushNow();
+  closeCrmMo(); R.ledger();
+  crmToast(`✅ Imported ${n} entries`);
+}
+
+
+// ══════════════════════════════════════════
+// LEDGER PASTE IMPORT
+// Paste a tab/comma separated table, map the
+// columns, review the preview, then import.
+// ══════════════════════════════════════════
+function lgImportForm(){
+  lgTouch();
+  const parties = LG.data.parties||[];
+  document.getElementById("crm-mo-t").textContent = "📋 Paste Import";
+  document.getElementById("crm-mo-b").innerHTML = `
+    <div style="background:#eff6ff;border:1px solid #c7d2fe;border-radius:8px;padding:10px 13px;margin-bottom:12px;font-size:12.5px;color:#3730a3;line-height:1.6">
+      Copy rows from Excel and paste below. Expected columns:<br>
+      <b>Date · Particulars · Debit · Credit</b> — extra columns are ignored.<br>
+      Dates accepted: <code>08.06.2026</code>, <code>08/06/2026</code>, <code>2026-06-08</code>.
+    </div>
+    <div class="fr" style="margin-bottom:10px">
+      <div class="fg" style="flex:2"><label>Party</label>
+        <select class="sel" id="lgi-party" style="width:100%">
+          <option value="">— New party —</option>
+          ${parties.map(p=>`<option value="${p.id}">${p.name}</option>`).join("")}
+        </select></div>
+      <div class="fg"><label>New party name</label>
+        <input class="inp" id="lgi-newname" placeholder="e.g. Fusion Sports" style="width:100%"></div>
+    </div>
+    <div class="fg" style="margin-bottom:10px"><label>Opening Balance <span style="font-size:10px;color:var(--muted)">(+Dr / −Cr) — leave 0 if none</span></label>
+      <input class="inp" id="lgi-open" type="number" value="0" style="width:100%"></div>
+    <div class="fg" style="margin-bottom:10px"><label>Paste rows</label>
+      <textarea class="ta" id="lgi-text" rows="6" placeholder="08.06.2026&#9;HM 40pc + GST&#9;427200&#9;&#10;15.06.2026&#9;IMPS&#9;&#9;150000" style="width:100%;font-family:'JetBrains Mono';font-size:12px"></textarea></div>
+    <div style="display:flex;gap:8px;margin-bottom:10px">
+      <button class="btn btn-p btn-sm" onclick="lgParsePreview()">🔍 Parse & Preview</button>
+      <span id="lgi-msg" style="font-size:12.5px;align-self:center"></span>
+    </div>
+    <div id="lgi-preview"></div>
+    <div style="display:flex;gap:8px;justify-content:flex-end;padding-bottom:8px;margin-top:12px">
+      <button class="btn" onclick="closeCrmMo()">Cancel</button>
+      <button class="btn btn-p" id="lgi-go" onclick="lgDoImport()" disabled style="opacity:.5">➕ Import</button>
+    </div>`;
+  document.getElementById("crm-mo").style.display="flex";
+}
+
+function lgParseDate(s){
+  s = String(s||"").trim();
+  if(!s) return "";
+  let m;
+  if((m = s.match(/^(\d{4})-(\d{2})-(\d{2})$/))) return s;
+  if((m = s.match(/^(\d{1,2})[.\/-](\d{1,2})[.\/-](\d{4})$/)))
+    return `${m[3]}-${String(m[2]).padStart(2,"0")}-${String(m[1]).padStart(2,"0")}`;
+  if((m = s.match(/^(\d{1,2})[.\/-](\d{1,2})[.\/-](\d{2})$/)))
+    return `20${m[3]}-${String(m[2]).padStart(2,"0")}-${String(m[1]).padStart(2,"0")}`;
+  return "";
+}
+function lgParseNum(s){
+  const n = parseFloat(String(s||"").replace(/[₹,\s]/g,""));
+  return isNaN(n) ? 0 : n;
+}
+
+function lgParsePreview(){
+  const raw = document.getElementById("lgi-text").value;
+  const msg = document.getElementById("lgi-msg");
+  const prev = document.getElementById("lgi-preview");
+  const goBtn = document.getElementById("lgi-go");
+  const lines = raw.split(/\r?\n/).map(l=>l.trimEnd()).filter(l=>l.trim());
+  if(!lines.length){ msg.style.color="var(--red)"; msg.textContent="Nothing pasted."; return; }
+
+  const rows = [];
+  const skipped = [];
+  lines.forEach((line, idx)=>{
+    let cells = line.includes("\t") ? line.split("\t") : line.split(/\s{2,}|,(?![^(]*\))/);
+    cells = cells.map(c=>c.trim());
+    const date = lgParseDate(cells[0]);
+    if(!date){ skipped.push({line:idx+1, text:line.slice(0,60), why:"no valid date"}); return; }
+    const particulars = cells[1] || "";
+    // find the two rightmost numeric cells → debit, credit (blank = 0)
+    const debit  = lgParseNum(cells[2]);
+    const credit = lgParseNum(cells[3]);
+    if(!debit && !credit){ skipped.push({line:idx+1, text:line.slice(0,60), why:"no amount"}); return; }
+    if(debit && credit){ skipped.push({line:idx+1, text:line.slice(0,60), why:"both debit & credit"}); return; }
+    rows.push({date, particulars, debit, credit});
+  });
+
+  window.__lgImport = rows;
+  if(!rows.length){
+    msg.style.color="var(--red)"; msg.textContent="No valid rows found.";
+    prev.innerHTML = skipped.length ? `<div style="font-size:12px;color:var(--red)">${skipped.map(s=>`Line ${s.line}: ${s.why}`).join("<br>")}</div>` : "";
+    goBtn.disabled = true; goBtn.style.opacity=".5";
+    return;
+  }
+
+  const opening = lgParseNum(document.getElementById("lgi-open").value);
+  let run = opening;
+  const totD = rows.reduce((s,r)=>s+r.debit,0);
+  const totC = rows.reduce((s,r)=>s+r.credit,0);
+  const closing = opening + totD - totC;
+
+  msg.style.color="var(--green)";
+  msg.textContent = `${rows.length} row${rows.length>1?"s":""} parsed${skipped.length?` · ${skipped.length} skipped`:""}`;
+
+  prev.innerHTML = `
+    <div class="tbl-scroll" style="max-height:34vh"><table class="tbl">
+      <thead><tr><th>Date</th><th>Particulars</th><th style="text-align:right">Debit</th><th style="text-align:right">Credit</th><th style="text-align:right">Balance</th></tr></thead>
+      <tbody>
+        ${opening?`<tr style="background:var(--s2)"><td>—</td><td><b>Opening</b></td>
+          <td class="amt" style="text-align:right">${opening>0?fa(opening):"—"}</td>
+          <td class="amt" style="text-align:right">${opening<0?fa(-opening):"—"}</td>
+          <td class="amt" style="text-align:right"><b>${fa(Math.abs(opening))} ${opening>0?"Dr":"Cr"}</b></td></tr>`:""}
+        ${rows.map(r=>{ run += r.debit - r.credit; return `<tr>
+          <td style="font-size:12.5px">${fd(r.date)}</td>
+          <td style="font-size:12.5px">${r.particulars||"—"}</td>
+          <td class="amt" style="text-align:right;color:var(--green)">${r.debit?fa(r.debit):"—"}</td>
+          <td class="amt" style="text-align:right;color:var(--red)">${r.credit?fa(r.credit):"—"}</td>
+          <td class="amt" style="text-align:right">${fa(Math.abs(Math.round(run)))} ${run>0?"Dr":run<0?"Cr":""}</td></tr>`;}).join("")}
+      </tbody>
+      <tfoot><tr style="background:var(--s2);font-weight:800">
+        <td colspan="2" style="text-align:right">Totals</td>
+        <td class="amt" style="text-align:right">${fa(totD + (opening>0?opening:0))}</td>
+        <td class="amt" style="text-align:right">${fa(totC + (opening<0?-opening:0))}</td>
+        <td class="amt" style="text-align:right;color:${closing>0?"var(--green)":"var(--red)"}">${fa(Math.abs(Math.round(closing)))} ${closing>0?"Dr":"Cr"}</td>
+      </tr></tfoot>
+    </table></div>
+    ${skipped.length?`<div style="background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:9px 12px;margin-top:10px;font-size:11.5px;color:#991b1b">
+      <b>Skipped ${skipped.length} line${skipped.length>1?"s":""}:</b><br>
+      ${skipped.map(s=>`Line ${s.line} (${s.why}): ${s.text}`).join("<br>")}
+    </div>`:""}
+    <div style="font-size:12px;color:var(--muted);margin-top:8px">Check the closing balance against your sheet before importing.</div>`;
+
+  goBtn.disabled = false; goBtn.style.opacity="1";
+}
+
+async function lgDoImport(){
+  const rows = window.__lgImport||[];
+  if(!rows.length){ alert("Parse the rows first"); return; }
+  let pid = document.getElementById("lgi-party").value;
+  const opening = lgParseNum(document.getElementById("lgi-open").value);
+
+  if(!LG.data.parties) LG.data.parties = [];
+  if(!LG.data.entries) LG.data.entries = [];
+
+  if(!pid){
+    const name = document.getElementById("lgi-newname").value.trim();
+    if(!name){ alert("Enter a name for the new party"); return; }
+    pid = "lp_"+Date.now();
+    LG.data.parties.push({id:pid, name, city:"", phone:"", gstin:"", opening, note:""});
+  } else if(opening){
+    const p = LG.data.parties.find(x=>x.id===pid);
+    if(p && !p.opening) p.opening = opening;
+  }
+
+  let i = 0;
+  rows.forEach(r=>{
+    LG.data.entries.push({ id:"le_"+Date.now()+"_"+(i++), pid, date:r.date, particulars:r.particulars, ref:"", debit:r.debit, credit:r.credit });
+  });
+
+  LG.party = pid;
+  await lgSave(); flushNow();
+  closeCrmMo(); R.ledger();
+  crmToast(`✅ Imported ${rows.length} entries`);
 }
 
 // ══════════════════════════════════════════
