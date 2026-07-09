@@ -1938,6 +1938,7 @@ mark{background:#fef08a;border-radius:2px;padding:0 2px;}
   <div style="display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap;border-bottom:2px solid var(--b1);padding-bottom:8px">
     <button class="btn btn-sm btn-p" id="crm-tab-pending" onclick="setCrmTab('pending')">⏳ Pending</button>
     <button class="btn btn-sm" id="crm-tab-done" onclick="setCrmTab('done')">✅ Done</button>
+    <button class="btn btn-sm" id="crm-tab-hot" onclick="setCrmTab('hot')">🔥 Hot Leads</button>
     <button class="btn btn-sm" id="crm-tab-kri" onclick="setCrmTab('kri')">⭐ KRI Customers</button>
     <button class="btn btn-sm" id="crm-tab-issues" onclick="setCrmTab('issues')">⚠️ Issues</button>
     <button class="btn btn-sm" id="crm-tab-all" onclick="setCrmTab('all')">📋 All</button>
@@ -1956,6 +1957,22 @@ mark{background:#fef08a;border-radius:2px;padding:0 2px;}
       <select class="sel" id="crm-f-source" onchange="R.crm()" style="width:130px;font-size:13px">
         <option value="">All Sources</option><option value="instagram">Instagram</option><option value="indiamart">IndiaMart</option>
         <option value="websearch">Web Research</option><option value="visiting_card">Visiting Card</option><option value="manual">Manual</option>
+      </select>
+      <select class="sel" id="crm-f-interest" onchange="R.crm()" style="width:150px;font-size:13px">
+        <option value="">All Interest</option>
+        <option value="hot">🔥 Hot Lead</option>
+        <option value="warm">🌤️ Warm</option>
+        <option value="replied">💬 Replied</option>
+        <option value="seen">👀 Seen, No Reply</option>
+        <option value="cold">❄️ Cold</option>
+        <option value="nointerest">❌ Not Interested</option>
+      </select>
+      <select class="sel" id="crm-sort" onchange="R.crm()" style="width:150px;font-size:13px">
+        <option value="interest">Sort: Interest first</option>
+        <option value="score">Sort: Score</option>
+        <option value="contacts_desc">Sort: Most contacted</option>
+        <option value="contacts_asc">Sort: Least contacted</option>
+        <option value="recent">Sort: Recently contacted</option>
       </select>
       <button class="btn btn-sm" onclick="clearCrmFilters()">✕ Clear</button>
     </div>
@@ -3285,6 +3302,8 @@ const R={
     const fCity = document.getElementById("crm-f-city")?.value||"";
     const fP  = document.getElementById("crm-f-priority")?.value||"";
     const fS  = document.getElementById("crm-f-source")?.value||"";
+    const fI  = document.getElementById("crm-f-interest")?.value||"";
+    const sortBy = document.getElementById("crm-sort")?.value||"interest";
 
     // Subtitle
     const sub = document.getElementById("crm-subtitle");
@@ -3309,12 +3328,14 @@ const R={
     let list = all.filter(c=> seg==="manufacturer" ? c.bizType==="manufacturer" : c.bizType!=="manufacturer");
     if(tab==="pending")     list = list.filter(c=>c.status==="pending" && !c.isKri);
     else if(tab==="done")   list = list.filter(c=>c.status==="done");
+    else if(tab==="hot")    list = list.filter(c=>c.interest==="hot"||c.interest==="warm");
     else if(tab==="kri")    list = list.filter(c=>c.isKri);
     else if(tab==="issues") list = list.filter(c=>["wrong_number","no_whatsapp","no_number"].includes(c.status));
     if(fC)    list = list.filter(c=>c.country===fC);
     if(fCity) list = list.filter(c=>c.city===fCity);
     if(fP)    list = list.filter(c=>c.priority===fP);
     if(fS)    list = list.filter(c=>c.source===fS);
+    if(fI)    list = list.filter(c=>(c.interest||"")===fI);
     if(sq)    list = list.filter(c=>((c.name||"")+(c.phone||"")+(c.address||"")+(c.city||"")+(c.note||"")).toLowerCase().includes(sq));
 
     // Stats
@@ -3322,11 +3343,19 @@ const R={
     document.getElementById("crm-stats").innerHTML =
       sc("var(--ac)","Total in Segment",segAll.length.toLocaleString()) +
       sc("var(--green)","Contacted",segAll.filter(c=>c.status==="done").length) +
-      sc("var(--gold)","KRI Customers",segAll.filter(c=>c.isKri).length) +
+      sc("var(--red)","Hot + Warm",segAll.filter(c=>c.interest==="hot"||c.interest==="warm").length,"Prioritise these") +
       sc("var(--orange)","Showing",list.length.toLocaleString(),"After filters");
 
-    // Sort: score desc
-    list = list.slice().sort((a,b)=>(b.score||0)-(a.score||0));
+    // Sort
+    const iOrder = c => (INTEREST_LEVELS[c.interest]?.order) ?? 7;
+    list = list.slice().sort((a,b)=>{
+      if(sortBy==="interest")      return iOrder(a)-iOrder(b) || (b.score||0)-(a.score||0);
+      if(sortBy==="score")         return (b.score||0)-(a.score||0);
+      if(sortBy==="contacts_desc") return (b.contactCount||0)-(a.contactCount||0);
+      if(sortBy==="contacts_asc")  return (a.contactCount||0)-(b.contactCount||0);
+      if(sortBy==="recent")        return (b.lastContact||"").localeCompare(a.lastContact||"");
+      return (b.score||0)-(a.score||0);
+    });
 
     // Pagination (render 60 at a time for speed with 2000+ contacts)
     const shown = window.__crmShown || 60;
@@ -3364,9 +3393,13 @@ const R={
             ${c.instagram?`<span style="font-size:11px;background:var(--s2);padding:2px 7px;border-radius:5px">${c.instagram}</span>`:""}
             ${c.followers?`<span style="font-size:11px;color:var(--muted)">${c.followers} followers</span>`:""}
           </div>
+          ${c.interest?`<div style="margin-bottom:6px">${interestBadge(c.interest)}</div>`:""}
           ${c.response?`<div style="margin-bottom:6px">${RESP[c.response]||""}</div>`:""}
           ${c.userNotes?`<div style="font-size:11px;color:#7c3aed;background:rgba(124,58,237,.07);border-left:2px solid #7c3aed;padding:3px 7px;border-radius:3px;margin-bottom:6px">${c.userNotes}</div>`:""}
-          ${c.lastContact?`<div style="font-size:10px;color:var(--dim);margin-bottom:6px">Last: ${fd(c.lastContact)}</div>`:""}
+          ${(c.contactCount||c.lastContact)?`<div style="display:flex;gap:8px;align-items:center;font-size:10px;color:var(--dim);margin-bottom:6px;flex-wrap:wrap">
+            ${c.contactCount?`<span style="background:var(--ac)15;color:var(--ac);font-weight:700;padding:2px 6px;border-radius:8px;cursor:pointer" onclick="showContactLog('${c.id}')" title="Tap for history">📨 ${c.contactCount}x contacted</span>`:""}
+            ${c.lastContact?`<span>Last: ${fd(c.lastContact)}</span>`:""}
+          </div>`:""}
           <div style="display:flex;gap:5px;flex-wrap:wrap">
             ${c.phone && !noWa ? `<button class="btn btn-sm" style="background:#25D366;color:#fff;border-color:#25D366;flex:1;font-size:12px" onclick="openWA('${c.id}')">💬 WhatsApp</button>` : ""}
             <button class="btn btn-sm" style="font-size:12px" onclick="openCrmDetail('${c.id}')">👁 Details</button>
@@ -6886,6 +6919,22 @@ function crmToast(msg){
   t._x = setTimeout(()=>{ t.style.opacity = "0"; }, 2600);
 }
 
+
+// Interest levels — drives where you spend effort
+const INTEREST_LEVELS = {
+  hot:      {label:"🔥 Hot Lead",     col:"var(--red)",    order:1, hint:"Ready to buy — follow up now"},
+  warm:     {label:"🌤️ Warm",         col:"var(--orange)", order:2, hint:"Engaged, needs nurturing"},
+  replied:  {label:"💬 Replied",       col:"var(--ac)",     order:3, hint:"Responded but unclear"},
+  seen:     {label:"👀 Seen, No Reply",col:"var(--gold)",   order:4, hint:"Read but silent"},
+  nointerest:{label:"❌ Not Interested",col:"var(--muted)", order:6, hint:"Deprioritise"},
+  cold:     {label:"❄️ Cold",          col:"var(--dim)",    order:5, hint:"No engagement yet"},
+};
+function interestBadge(lvl){
+  const m = INTEREST_LEVELS[lvl];
+  if(!m) return "";
+  return `<span style="font-size:10px;font-weight:700;padding:2px 7px;border-radius:12px;background:${m.col}18;color:${m.col}">${m.label}</span>`;
+}
+
 // ══════════════════════════════════════════
 // CRM / CUSTOMERS
 // ══════════════════════════════════════════
@@ -6903,14 +6952,14 @@ function setCrmSegment(s){
 }
 function setCrmTab(t){
   window.__crmTab = t; window.__crmShown = 60;
-  ["pending","done","kri","issues","all"].forEach(x=>{
+  ["pending","done","hot","kri","issues","all"].forEach(x=>{
     const b=document.getElementById("crm-tab-"+x);
     if(b){ b.classList.toggle("btn-p", x===t); }
   });
   R.crm();
 }
 function clearCrmFilters(){
-  ["crm-search","crm-f-country","crm-f-city","crm-f-priority","crm-f-source"].forEach(id=>{
+  ["crm-search","crm-f-country","crm-f-city","crm-f-priority","crm-f-source","crm-f-interest"].forEach(id=>{
     const e=document.getElementById(id); if(e) e.value="";
   });
   window.__crmShown = 60;
@@ -6945,12 +6994,17 @@ function openWA(id){
   localStorage.setItem(dk, n);
   const dEl=document.getElementById("crm-daily"); if(dEl) dEl.textContent=n;
   // stamp lastContact + auto-mark as contacted
-  c.lastContact = new Date().toISOString().slice(0,10);
+  const today = new Date().toISOString().slice(0,10);
+  c.lastContact = today;
+  c.contactCount = (c.contactCount || 0) + 1;
+  if(!c.contactLog) c.contactLog = [];
+  c.contactLog.push({date: today, time: new Date().toLocaleTimeString("en-IN",{hour:"2-digit",minute:"2-digit"}), via:"WhatsApp"});
+  if(c.contactLog.length > 30) c.contactLog = c.contactLog.slice(-30); // cap history
   const wasPending = c.status === "pending";
   if(wasPending) c.status = "done";
   saveCrmContact(id);
   R.crm();
-  if(wasPending) crmToast(`✅ ${c.name} marked as contacted`);
+  crmToast(`✅ ${c.name} — contact #${c.contactCount}`);
 }
 
 function crmMarkDone(id){
@@ -7000,9 +7054,32 @@ function openCrmDetail(id){
       ${outstanding?`<div style="color:var(--red)">Outstanding: <b>${fa(outstanding)}</b></div>`:""}
     </div>` : ""}
 
+    ${c.contactCount ? `
+    <div style="background:var(--s2);border:1px solid var(--b1);border-radius:8px;padding:10px 12px;margin-bottom:12px;font-size:12.5px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+        <span style="font-weight:700">📨 Contacted ${c.contactCount} time${c.contactCount>1?"s":""}</span>
+        <span style="color:var(--muted);font-size:11px">Last: ${c.lastContact?fd(c.lastContact):"—"}</span>
+      </div>
+      ${(c.contactLog||[]).length ? `<div style="max-height:90px;overflow-y:auto;font-size:11.5px;color:var(--muted);line-height:1.7">
+        ${(c.contactLog||[]).slice().reverse().slice(0,8).map(l=>`<div>${fd(l.date)} ${l.time||""} · ${l.via||"WhatsApp"}</div>`).join("")}
+      </div>` : ""}
+    </div>` : ""}
+
     <div class="fg" style="margin-bottom:10px">
       <label>Your Notes</label>
       <textarea class="ta" id="crm-note-inp" rows="2" style="width:100%;font-size:13px">${c.userNotes||""}</textarea>
+    </div>
+    <div class="fg" style="margin-bottom:10px">
+      <label>🎯 Interest Level <span style="font-size:10px;color:var(--muted)">— drives where you spend effort</span></label>
+      <select class="sel" id="crm-interest" style="width:100%">
+        <option value="">— Not set —</option>
+        <option value="hot"        ${c.interest==="hot"?"selected":""}>🔥 Hot Lead — ready to buy, follow up now</option>
+        <option value="warm"       ${c.interest==="warm"?"selected":""}>🌤️ Warm — engaged, needs nurturing</option>
+        <option value="replied"    ${c.interest==="replied"?"selected":""}>💬 Replied — responded but unclear</option>
+        <option value="seen"       ${c.interest==="seen"?"selected":""}>👀 Seen, No Reply</option>
+        <option value="cold"       ${c.interest==="cold"?"selected":""}>❄️ Cold — no engagement</option>
+        <option value="nointerest" ${c.interest==="nointerest"?"selected":""}>❌ Not Interested — deprioritise</option>
+      </select>
     </div>
     <div class="fr" style="margin-bottom:10px">
       <div class="fg"><label>Response</label>
@@ -7039,6 +7116,13 @@ function saveCrmDetail(id){
   const c=(D.crm||[]).find(x=>x.id===id); if(!c) return;
   c.userNotes = document.getElementById("crm-note-inp").value.trim();
   c.response  = document.getElementById("crm-resp").value;
+  c.interest  = document.getElementById("crm-interest").value;
+  // If interest not set but response is, infer a sensible default
+  if(!c.interest && c.response){
+    c.interest = c.response==="interested" ? "hot"
+               : c.response==="callback"   ? "warm"
+               : c.response==="not_interested" ? "nointerest" : "";
+  }
   c.status    = document.getElementById("crm-status").value;
   c.isKri     = document.getElementById("crm-kri").checked;
   saveCrmContact(id);
@@ -7102,6 +7186,47 @@ function saveNewCrmContact(){
   });
   saveAllCrmChunks();
   closeCrmMo(); R.crm();
+}
+
+
+// Show full contact history for a contact
+function showContactLog(id){
+  const c=(D.crm||[]).find(x=>x.id===id); if(!c) return;
+  const logs = (c.contactLog||[]).slice().reverse();
+  document.getElementById("crm-mo-t").textContent = "📨 " + (c.name||"Contact") + " — Contact History";
+  document.getElementById("crm-mo-b").innerHTML = `
+    <div style="background:var(--s2);border:1px solid var(--b1);border-radius:8px;padding:12px 14px;margin-bottom:14px;display:flex;justify-content:space-between;align-items:center">
+      <div>
+        <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.6px">Total Contacts</div>
+        <div style="font-family:'Bebas Neue';font-size:30px;color:var(--ac)">${c.contactCount||0}</div>
+      </div>
+      <div style="text-align:right">
+        <div style="font-size:11px;color:var(--muted)">Interest</div>
+        <div style="margin-top:4px">${c.interest?interestBadge(c.interest):'<span style="font-size:12px;color:var(--dim)">Not set</span>'}</div>
+      </div>
+    </div>
+    ${logs.length ? `<div class="tbl-scroll" style="max-height:44vh"><table class="tbl">
+      <thead><tr><th>#</th><th>Date</th><th>Time</th><th>Via</th></tr></thead>
+      <tbody>${logs.map((l,i)=>`<tr>
+        <td style="color:var(--muted);font-size:12px">${logs.length-i}</td>
+        <td style="font-size:13px">${fd(l.date)}</td>
+        <td style="font-size:12px;color:var(--muted)">${l.time||"—"}</td>
+        <td style="font-size:12px">${l.via||"WhatsApp"}</td>
+      </tr>`).join("")}</tbody></table></div>`
+    : `<div style="padding:20px;text-align:center;color:var(--muted);font-size:13px">No detailed history recorded yet.</div>`}
+    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:14px;padding-bottom:8px">
+      <button class="btn" onclick="closeCrmMo()">Close</button>
+      <button class="btn btn-p" onclick="openCrmDetail('${c.id}')">Open Full Details →</button>
+    </div>`;
+  document.getElementById("crm-mo").style.display="flex";
+}
+
+// Quick-set interest from a contact card (long-press alternative: via detail modal)
+function setCrmInterest(id, lvl){
+  const c=(D.crm||[]).find(x=>x.id===id); if(!c) return;
+  c.interest = lvl;
+  saveCrmContact(id); R.crm();
+  crmToast(`${c.name} → ${INTEREST_LEVELS[lvl]?.label||lvl}`);
 }
 
 // ══════════════════════════════════════════
