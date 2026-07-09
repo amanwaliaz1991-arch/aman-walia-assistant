@@ -33,7 +33,11 @@ async function fbSet(doc, value) {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
   });
-  return r.ok;
+  if (!r.ok) {
+    const t = await r.text().catch(() => "");
+    throw new Error(`Firestore write failed for ${doc}: HTTP ${r.status} ${t.slice(0, 120)}`);
+  }
+  return true;
 }
 
 const pad = (n) => String(n).padStart(2, "0");
@@ -135,6 +139,8 @@ async function runDailyFetch() {
   // Inbox is a staging area; the app drains it. Cap as a safety valve.
   const trimmed = inbox.slice(-2000);
   await fbSet("imInbox", trimmed);
+  // Read back to confirm the write landed
+  const verify = (await fbGet("imInbox")) || [];
   await fbSet("imConfig", {
     ...cfg,
     lastRun: new Date().toISOString(),
@@ -142,7 +148,7 @@ async function runDailyFetch() {
     lastTotal: leads.length,
     lastError: "",
   });
-  return { fetched: leads.length, added, inbox: trimmed.length };
+  return { fetched: leads.length, added, inbox: trimmed.length, verified: verify.length };
 }
 
 export default {
