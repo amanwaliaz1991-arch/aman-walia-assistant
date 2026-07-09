@@ -1914,6 +1914,7 @@ mark{background:#fef08a;border-radius:2px;padding:0 2px;}
     <div class="pt-sub" id="crm-subtitle">Loading contacts…</div></div>
     <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
       <button class="btn" onclick="openImFetch()">📥 IndiaMart Leads</button>
+      <button class="btn" onclick="openImSettings()" title="Daily auto-fetch">⚙️</button>
       <button class="btn btn-p" onclick="openCrmForm()">+ Add Contact</button>
     </div>
   </div>
@@ -1976,6 +1977,7 @@ mark{background:#fef08a;border-radius:2px;padding:0 2px;}
         <option value="contacts_desc">Sort: Most contacted</option>
         <option value="contacts_asc">Sort: Least contacted</option>
         <option value="recent">Sort: Recently contacted</option>
+        <option value="enquiry">Sort: Newest enquiry</option>
       </select>
       <button class="btn btn-sm" onclick="clearCrmFilters()">✕ Clear</button>
     </div>
@@ -2240,6 +2242,8 @@ const D={
   crm:[],
   crmMeta:{},
   imLeadsMeta:{},
+  imConfig:{},
+  imInbox:[],
   imLeads:[],
   scanHistory:[],
   purchase:[],
@@ -3371,6 +3375,7 @@ const R={
       if(sortBy==="contacts_desc") return (b.contactCount||0)-(a.contactCount||0);
       if(sortBy==="contacts_asc")  return (a.contactCount||0)-(b.contactCount||0);
       if(sortBy==="recent")        return (b.lastContact||"").localeCompare(a.lastContact||"");
+      if(sortBy==="enquiry")       return (b.leadDate||"").localeCompare(a.leadDate||"");
       return (b.score||0)-(a.score||0);
     });
 
@@ -3404,6 +3409,7 @@ const R={
           </div>
           <div style="font-size:14.5px;font-weight:700;line-height:1.3">${c.name||"—"}</div>
           <div style="font-size:12px;color:var(--green);font-weight:600">${c.city||""}</div>
+          ${c.leadDate?`<div style="font-size:11px;color:var(--orange);font-weight:700;margin-top:2px">📅 Enquiry: ${fd(c.leadDate)}${crmDaysAgo(c.leadDate)}</div>`:""}
           ${c.address?`<div style="font-size:11px;color:var(--muted);line-height:1.45;margin-top:3px;max-height:32px;overflow:hidden">${c.address}</div>`:""}
           <div style="display:flex;gap:5px;flex-wrap:wrap;margin:7px 0">
             ${c.phone?`<span style="font-size:11px;background:var(--s2);padding:2px 7px;border-radius:5px;font-family:'JetBrains Mono'">${c.phone}</span>`:'<span style="font-size:11px;color:var(--red)">No phone</span>'}
@@ -5391,7 +5397,7 @@ function loadAllFromFirebase() {
     "deadstock","rd","compliance","itax","tds","gst","itc","future",
     "dayData","healthHabits","healthGoals","bdmGames","bdmSkills",
     "bdmDrills","selfGoals","books","weeklyReviews","quotes","uid",
-    "mustdo","accounts","costing","costCats","kb","stock","stockCats","stockLog","menuOrder","quotations","brandMilestones","crm_1","crm_2","crm_3","crm_4","crm_5","crm_6","crm_7","crm_8","crm_9","crm_10","crm_11","crm_12","crmMeta","imLeads_1","imLeads_2","imLeads_3","imLeads_4","imLeads_5","imLeads_6","imLeads_7","imLeads_8","imLeads_9","imLeads_10","imLeads_11","imLeads_12","imLeads_13","imLeads_14","imLeads_15","imLeads_16","imLeads_17","imLeads_18","imLeads_19","imLeads_20","imLeadsMeta","imLeads","orders","purchase","production","prodStock","expenses","scanHistory"
+    "mustdo","accounts","costing","costCats","kb","stock","stockCats","stockLog","menuOrder","quotations","brandMilestones","crm_1","crm_2","crm_3","crm_4","crm_5","crm_6","crm_7","crm_8","crm_9","crm_10","crm_11","crm_12","crmMeta","imLeads_1","imLeads_2","imLeads_3","imLeads_4","imLeads_5","imLeads_6","imLeads_7","imLeads_8","imLeads_9","imLeads_10","imLeads_11","imLeads_12","imLeads_13","imLeads_14","imLeads_15","imLeads_16","imLeads_17","imLeads_18","imLeads_19","imLeads_20","imLeadsMeta","imLeads","imConfig","imInbox","orders","purchase","production","prodStock","expenses","scanHistory"
   ];
 
   let initialLoadDone = false;
@@ -5419,6 +5425,8 @@ function loadAllFromFirebase() {
       }
       else if (col === "crmMeta") { D.crmMeta = parsed || {}; }
       else if (col === "imLeadsMeta") { D.imLeadsMeta = parsed || {}; }
+      else if (col === "imConfig") { D.imConfig = parsed || {}; }
+      else if (col === "imInbox") { D.imInbox = parsed || []; if(D.imInbox.length) setTimeout(drainImInbox, 2500); }
       else if (col === "imLeads") {
         // Legacy single-doc storage — migrate into chunks once
         const legacy = parsed || [];
@@ -7015,6 +7023,21 @@ function saveAllImlChunks(){
   writeChunks(D.imLeads||[], "imLeads_", window.__imlChunks, MAX_IML_CHUNKS);
 }
 
+
+// "· 3 days ago" suffix for enquiry dates
+function crmDaysAgo(dstr){
+  if(!dstr) return "";
+  const d = new Date(dstr);
+  if(isNaN(d)) return "";
+  const days = Math.floor((new Date().setHours(0,0,0,0) - d.setHours(0,0,0,0))/86400000);
+  if(days < 0) return "";
+  if(days === 0) return " · today";
+  if(days === 1) return " · yesterday";
+  if(days < 30) return ` · ${days}d ago`;
+  if(days < 365) return ` · ${Math.floor(days/30)}mo ago`;
+  return ` · ${Math.floor(days/365)}y ago`;
+}
+
 // ══════════════════════════════════════════
 // CRM / CUSTOMERS
 // ══════════════════════════════════════════
@@ -7024,6 +7047,9 @@ window.__crmShown = 60;
 
 function setCrmSegment(s){
   window.__crmSeg = s; window.__crmShown = 60;
+  // IndiaMart leads are time-sensitive — default to newest enquiry first
+  const sortEl = document.getElementById("crm-sort");
+  if(sortEl) sortEl.value = (s==="indiamart") ? "enquiry" : "interest";
   ["retailer","manufacturer","indiamart"].forEach(x=>{
     const b=document.getElementById("crm-seg-"+x);
     if(b){ b.classList.toggle("btn-p", x===s); b.classList.toggle("btn", x!==s); }
@@ -7122,6 +7148,7 @@ function openCrmDetail(id){
       ${c.email?`<div><b>Email:</b> ${c.email}</div>`:""}
       ${c.address?`<div><b>Address:</b> ${c.address}</div>`:""}
       ${c.instagram?`<div><b>Instagram:</b> ${c.instagram} ${c.followers?`(${c.followers} followers)`:""}</div>`:""}
+      ${c.leadDate?`<div><b>📅 Enquiry Date:</b> <span style="color:var(--orange);font-weight:700">${fd(c.leadDate)}${crmDaysAgo(c.leadDate)}</span></div>`:""}
       ${c.score?`<div><b>Score:</b> ${c.score}</div>`:""}
     </div>
     ${c.note?`<div style="background:var(--s2);border-radius:8px;padding:10px 12px;font-size:12.5px;white-space:pre-wrap;line-height:1.6;margin-bottom:12px;max-height:140px;overflow-y:auto">${c.note}</div>`:""}
@@ -7328,6 +7355,129 @@ function imLeadToContact(l){
 
 
 
+
+// ══════════════════════════════════════════
+// AUTO-FETCH — daily leads collected by the
+// Cloudflare cron land in `imInbox`; the app
+// drains them into the archive + CRM on open.
+// ══════════════════════════════════════════
+let __drainedThisSession = false;
+
+async function drainImInbox(){
+  if(__drainedThisSession) return;
+  const inbox = D.imInbox||[];
+  if(!inbox.length) return;
+  __drainedThisSession = true;
+
+  if(!D.imLeads) D.imLeads = [];
+  const knownQids = new Set(D.imLeads.map(l=>String(l.qid)));
+  const fresh = inbox.filter(l=>l.qid && !knownQids.has(String(l.qid)));
+
+  if(!fresh.length){
+    D.imInbox = []; autoSave("imInbox");
+    return;
+  }
+
+  // 1. Always archive
+  D.imLeads.push(...fresh);
+  saveAllImlChunks();
+
+  // 2. Auto-import into CRM if enabled
+  const cfg = D.imConfig||{};
+  let imported = 0;
+  if(cfg.autoImport !== false){
+    if(!D.crm) D.crm = [];
+    const phones = new Set(D.crm.map(c=>c.phone).filter(Boolean));
+    const ids = new Set(D.crm.map(c=>c.id));
+    fresh.forEach(l=>{
+      if(ids.has("im_"+l.qid) || (l.phone && phones.has(l.phone))) { l.imported=true; return; }
+      D.crm.push(imLeadToContact(l));
+      if(l.phone) phones.add(l.phone);
+      ids.add("im_"+l.qid);
+      l.imported = true;
+      imported++;
+    });
+    if(imported){ saveAllCrmChunks(); saveAllImlChunks(); }
+  }
+
+  // 3. Clear inbox
+  D.imInbox = []; autoSave("imInbox");
+
+  crmToast(`📥 ${fresh.length} new IndiaMart lead${fresh.length>1?"s":""}${imported?` · ${imported} added to CRM`:""}`);
+  if(typeof R.crm === "function" && document.getElementById("mod-crm")?.classList.contains("active")) R.crm();
+}
+
+// ── Auto-fetch settings ──
+function openImSettings(){
+  const cfg = D.imConfig||{};
+  document.getElementById("crm-mo-t").textContent = "⚙️ IndiaMart Auto-Fetch";
+  document.getElementById("crm-mo-b").innerHTML = `
+    <div style="background:#eff6ff;border:1px solid #c7d2fe;border-radius:8px;padding:10px 14px;margin-bottom:14px;font-size:12.5px;color:#3730a3">
+      When enabled, your Cloudflare Worker fetches new leads <b>every day at 8:00 AM IST</b> — even if the app is closed. New leads appear automatically next time you open the app.
+    </div>
+    <div class="fg" style="margin-bottom:10px">
+      <label>IndiaMart CRM Key</label>
+      <input class="inp" id="ims-key" value="${(cfg.key||"").replace(/"/g,"&quot;")}" placeholder="Your glusr_crm_key" style="width:100%">
+      <div style="font-size:11px;color:var(--muted);margin-top:3px">Stored in your Firebase so the daily job can use it.</div>
+    </div>
+    <label style="display:flex;align-items:center;gap:9px;font-size:13.5px;margin-bottom:10px;cursor:pointer">
+      <input type="checkbox" id="ims-enabled" ${cfg.enabled!==false?"checked":""} style="width:16px;height:16px">
+      <span>🔄 Enable daily auto-fetch</span>
+    </label>
+    <label style="display:flex;align-items:center;gap:9px;font-size:13.5px;margin-bottom:14px;cursor:pointer">
+      <input type="checkbox" id="ims-autoimport" ${cfg.autoImport!==false?"checked":""} style="width:16px;height:16px">
+      <span>➕ Auto-add new leads to CRM</span>
+    </label>
+    ${cfg.lastRun?`<div style="background:var(--s2);border-radius:8px;padding:10px 12px;font-size:12.5px;margin-bottom:14px;line-height:1.8">
+      <div><b>Last run:</b> ${new Date(cfg.lastRun).toLocaleString("en-IN")}</div>
+      <div><b>Leads seen:</b> ${cfg.lastTotal??"—"} · <b>New:</b> ${cfg.lastCount??"—"}</div>
+    </div>`:'<div style="font-size:12px;color:var(--muted);margin-bottom:14px">Daily job has not run yet.</div>'}
+    <div style="display:flex;gap:8px;justify-content:space-between;padding-bottom:8px;flex-wrap:wrap">
+      <button class="btn" onclick="testImCron()">▶️ Run Now (test)</button>
+      <div style="display:flex;gap:8px">
+        <button class="btn" onclick="closeCrmMo()">Cancel</button>
+        <button class="btn btn-p" onclick="saveImSettings()">💾 Save</button>
+      </div>
+    </div>
+    <div id="ims-status" style="font-size:12.5px;margin-top:8px"></div>`;
+  document.getElementById("crm-mo").style.display="flex";
+}
+
+function saveImSettings(){
+  const key = document.getElementById("ims-key").value.trim();
+  if(!key){ alert("Enter your IndiaMart CRM key"); return; }
+  D.imConfig = {
+    ...(D.imConfig||{}),
+    key,
+    enabled: document.getElementById("ims-enabled").checked,
+    autoImport: document.getElementById("ims-autoimport").checked,
+  };
+  autoSave("imConfig");
+  localStorage.setItem("im_key", key);
+  closeCrmMo();
+  crmToast("✅ Auto-fetch settings saved");
+}
+
+async function testImCron(){
+  const st = document.getElementById("ims-status");
+  st.style.color = "var(--muted)";
+  st.textContent = "⏳ Running daily job…";
+  try {
+    const r = await fetch("/api/cron-test");
+    const d = await r.json();
+    if(d.error || d.skipped){
+      st.style.color = "var(--orange)";
+      st.textContent = "⚠️ " + (d.error || d.skipped);
+      return;
+    }
+    st.style.color = "var(--green)";
+    st.textContent = `✅ Fetched ${d.fetched} leads · ${d.added} new queued. Reopen CRM to see them.`;
+  } catch(e){
+    st.style.color = "var(--red)";
+    st.textContent = "❌ Worker not deployed yet, or route unavailable.";
+  }
+}
+
 // ══════════════════════════════════════════
 // INDIAMART — fetch ALL leads, filter locally
 // ══════════════════════════════════════════
@@ -7344,8 +7494,40 @@ function imPhone(l){
   return "91" + d;
 }
 
+
+// ── IndiaMart fetch: own Worker proxy first, public proxies as fallback ──
+async function imFetchViaProxy(key, startTime, endTime, page){
+  const qs = `key=${encodeURIComponent(key)}&start_time=${encodeURIComponent(startTime)}`
+           + `&end_time=${encodeURIComponent(endTime)}&page_no=${page}`;
+  const direct = "https://mapi.indiamart.com/wservce/crm/crmListing/v2/"
+    + `?glusr_crm_key=${encodeURIComponent(key)}&start_time=${encodeURIComponent(startTime)}`
+    + `&end_time=${encodeURIComponent(endTime)}&page_no=${page}`;
+
+  const routes = [
+    { name:"worker",  url: "/api/indiamart?" + qs },
+    { name:"direct",  url: direct },
+    { name:"allorigins", url: "https://api.allorigins.win/raw?url=" + encodeURIComponent(direct) },
+    { name:"codetabs",   url: "https://api.codetabs.com/v1/proxy?quest=" + encodeURIComponent(direct) },
+  ];
+
+  let lastErr;
+  for(const r of routes){
+    try {
+      const res = await fetch(r.url);
+      if(!res.ok) { lastErr = `${r.name}: HTTP ${res.status}`; continue; }
+      const data = await res.json();
+      if(data && (data.CODE===200 || data.CODE===400)){
+        window.__imRoute = r.name;
+        return data;
+      }
+      lastErr = `${r.name}: unexpected response`;
+    } catch(e){ lastErr = `${r.name}: ${e.message}`; }
+  }
+  throw new Error("All fetch routes failed — " + lastErr);
+}
+
 function openImFetch(){
-  document.getElementById("im-key").value = localStorage.getItem("im_key")||"";
+  document.getElementById("im-key").value = (D.imConfig||{}).key || localStorage.getItem("im_key") || "";
   const to = new Date(), from = new Date(Date.now()-6*86400000);
   document.getElementById("im-to").value = to.toISOString().slice(0,10);
   document.getElementById("im-from").value = from.toISOString().slice(0,10);
@@ -7359,6 +7541,11 @@ function fetchAllImLeads(){
   const key = document.getElementById("im-key").value.trim();
   if(!key){ alert("Enter your IndiaMart CRM key"); return; }
   localStorage.setItem("im_key", key);
+  // Keep the daily job's key in sync
+  if((D.imConfig||{}).key !== key){
+    D.imConfig = {...(D.imConfig||{}), key, enabled:(D.imConfig||{}).enabled!==false, autoImport:(D.imConfig||{}).autoImport!==false};
+    autoSave("imConfig");
+  }
   const status = document.getElementById("im-status");
   status.style.color="var(--muted)";
   status.textContent="⏳ Fetching leads…";
@@ -7383,15 +7570,10 @@ function fetchAllImLeads(){
     const p=n=>String(n).padStart(2,"0");
     return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}${eod?" 23:59:59":" 00:00:00"}`;
   };
-  const baseUrl = "https://mapi.indiamart.com/wservce/crm/crmListing/v2/?glusr_crm_key="
-    + encodeURIComponent(key) + "&start_time=" + encodeURIComponent(fmt(from))
-    + "&end_time=" + encodeURIComponent(fmt(to,true));
-
   const allLeads = [];
   function fetchPage(page){
     status.textContent = `⏳ Fetching page ${page}… (${allLeads.length} so far)`;
-    fetch("https://corsproxy.io/?" + encodeURIComponent(baseUrl + "&page_no=" + page))
-      .then(r=>r.json())
+    imFetchViaProxy(key, fmt(from), fmt(to,true), page)
       .then(data=>{
         if(!data || data.CODE!==200){
           if(page===1){
@@ -7408,7 +7590,7 @@ function fetchAllImLeads(){
       })
       .catch(err=>{
         status.style.color="var(--red)";
-        status.textContent = "Network error: " + err;
+        status.textContent = "❌ " + (err.message||err);
       });
   }
   function finish(){
@@ -7446,7 +7628,7 @@ function fetchAllImLeads(){
     });
     if(stored) saveAllImlChunks();
     status.style.color="var(--green)";
-    status.textContent = `✅ Fetched ${allLeads.length} leads (${stored} new saved) — filter below`;
+    status.textContent = `✅ Fetched ${allLeads.length} leads (${stored} new saved)${window.__imRoute?" via "+window.__imRoute:""} — filter below`;
     document.getElementById("im-results").style.display="block";
     renderImLeads();
   }
