@@ -2048,7 +2048,7 @@ mark{background:#fef08a;border-radius:2px;padding:0 2px;}
 <div class="mod" id="mod-ledger">
   <div class="ph">
     <div><div class="pt">SECURE <span>LEDGER</span></div>
-    <div class="pt-sub">🔐 Encrypted · auto-locks after 5 min idle</div></div>
+    <div class="pt-sub">🔐 Encrypted · auto-locks after 10 min idle or when app is backgrounded</div></div>
     <div style="display:flex;gap:8px;flex-wrap:wrap">
       <button class="btn" onclick="lgLock(false);go('home')">🔒 Lock</button>
       <button class="btn btn-p" onclick="lgPartyForm()">+ New Party</button>
@@ -2142,7 +2142,11 @@ function doUndo(){
 // ── NAV ──
 function go(id){
   if(id === "ledger" && !LG.unlocked){ lgPrompt(); return; }
-  if(id !== "ledger" && typeof LG !== "undefined" && LG.unlocked) lgLock(false);
+  if(id !== "ledger" && typeof LG !== "undefined" && LG.unlocked){
+    // Leaving the module wipes the key + decrypted data from memory
+    LG.unlocked=false; LG.key=null; LG.party=null; LG.data={parties:[],entries:[]};
+    clearTimeout(LG.idleTimer);
+  }
   // Employee access guard — only Stock allowed
   if(typeof currentRole!=="undefined" && currentRole==="employee" && id!=="stock" && id!=="production"){ id = "stock"; }
   document.querySelectorAll(".mod").forEach(m=>m.classList.remove("on"));
@@ -3487,7 +3491,7 @@ const R={
     if(tEl && !tEl.value) tEl.value = localStorage.getItem("crm_tpl") || "";
   },
   ledger(){
-    if(!LG.unlocked){ go("home"); return; }
+    if(!LG.unlocked){ lgLock(false); lgPrompt(); return; }
     lgTouch();
     const parties = LG.data.parties||[];
     const entries = LG.data.entries||[];
@@ -7196,7 +7200,7 @@ function crmDaysAgo(dstr){
 // If the password is lost, the data cannot be recovered.
 // ══════════════════════════════════════════════════════════
 const LG = { unlocked:false, key:null, data:{parties:[],entries:[]}, idleTimer:null, party:null };
-const LG_IDLE_MS = 5 * 60 * 1000;   // auto-lock after 5 minutes idle
+const LG_IDLE_MS = 10 * 60 * 1000;  // auto-lock after 10 minutes idle
 const PBKDF2_ITER = 250000;
 
 const _enc = new TextEncoder();
@@ -7237,14 +7241,27 @@ function lgTouch(){
   if(LG.unlocked) LG.idleTimer = setTimeout(()=>lgLock(true), LG_IDLE_MS);
 }
 function lgLock(auto){
+  const wasOnLedger = document.getElementById("mod-ledger")?.classList.contains("on");
   LG.unlocked = false; LG.key = null; LG.party = null;
   LG.data = {parties:[],entries:[]};
   clearTimeout(LG.idleTimer);
-  const m = document.getElementById("mod-ledger");
-  if(m && m.classList.contains("active")) go("home");
-  if(auto) crmToast("🔒 Ledger locked (idle)");
+  if(wasOnLedger){
+    // Leave the module immediately — never leave stale data on screen
+    document.querySelectorAll(".mod").forEach(m=>m.classList.remove("on"));
+    document.getElementById("mod-home")?.classList.add("on");
+    document.getElementById("n-home")?.classList.add("on");
+    if(typeof R_home==="function") R_home();
+  }
+  if(auto) crmToast("🔒 Ledger locked — 10 min idle");
 }
 document.addEventListener("visibilitychange", ()=>{ if(document.visibilityState==="hidden" && LG.unlocked) lgLock(false); });
+
+// Any interaction inside the ledger resets the idle timer
+["click","keydown","input","touchstart"].forEach(ev=>{
+  document.addEventListener(ev, (e)=>{
+    if(LG.unlocked && e.target.closest && e.target.closest("#mod-ledger,#crm-mo")) lgTouch();
+  }, true);
+});
 
 // ── Entry points: codeword in global search, or 5 taps on the logo ──
 async function lgTryCodeword(text){
