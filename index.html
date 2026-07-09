@@ -5583,7 +5583,13 @@ let pendingSaves = new Set();
 let saveDebounceTimer = null;
 
 function autoSave(collection) {
-  const data = collection === "uid" ? D.uid : D[collection];
+  // Chunked collections (crm_1, imLeads_3, ...) live in window stores, not D.
+  // Resolve them the same way flushSaves does, or the save is silently dropped.
+  let data;
+  if (collection === "uid") data = D.uid;
+  else if (collection.startsWith("crm_")) data = (window.__crmChunks||{})[collection];
+  else if (collection.startsWith("imLeads_")) data = (window.__imlChunks||{})[collection];
+  else data = D[collection];
   if (data === undefined) return;
 
   // Add to pending saves set
