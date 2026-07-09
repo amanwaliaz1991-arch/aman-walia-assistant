@@ -41,29 +41,29 @@ const fmtTime = (d, endOfDay) =>
   `${d.getUTCFullYear()}-${pad(d.getUTCMonth() + 1)}-${pad(d.getUTCDate())}` +
   (endOfDay ? " 23:59:59" : " 00:00:00");
 
-// Fetch every page of leads for a window (IndiaMart caps window at 7 days)
+// IndiaMart rate limit: roughly ONE call per 5 minutes per key.
+// So we fetch a single page and stop. A page holds plenty for a
+// daily window; if it comes back full, the next run picks up the rest
+// (the 2-day overlap window guarantees nothing is missed).
+const RATE_LIMIT_HINT = "once in every 5 minutes";
+
 async function fetchAllLeads(key, from, to) {
-  const base =
+  const url =
     `${IM_BASE}?glusr_crm_key=${encodeURIComponent(key)}` +
     `&start_time=${encodeURIComponent(fmtTime(from))}` +
-    `&end_time=${encodeURIComponent(fmtTime(to, true))}`;
+    `&end_time=${encodeURIComponent(fmtTime(to, true))}&page_no=1`;
 
-  const all = [];
-  for (let page = 1; page <= 50; page++) {
-    const r = await fetch(`${base}&page_no=${page}`, {
-      headers: { "User-Agent": "Mozilla/5.0" },
-    });
-    if (!r.ok) break;
-    const d = await r.json();
-    if (d.CODE !== 200) {
-      if (page === 1) throw new Error(d.MESSAGE || "IndiaMart error");
-      break;
-    }
-    const leads = d.RESPONSE || [];
-    all.push(...leads);
-    if (leads.length < 100) break;
+  const r = await fetch(url, { headers: { "User-Agent": "Mozilla/5.0" } });
+  if (!r.ok) throw new Error(`IndiaMart HTTP ${r.status}`);
+  const d = await r.json();
+
+  if (d.CODE !== 200) {
+    const msg = d.MESSAGE || "IndiaMart error";
+    const e = new Error(msg);
+    e.rateLimited = msg.includes(RATE_LIMIT_HINT);
+    throw e;
   }
-  return all;
+  return d.RESPONSE || [];
 }
 
 function normPhone(l) {
@@ -108,7 +108,19 @@ async function runDailyFetch() {
 
   const to = new Date();
   const from = new Date(Date.now() - 2 * 86400000); // 2-day overlap = no gaps
-  const leads = await fetchAllLeads(cfg.key, from, to);
+
+  let leads;
+  try {
+    leads = await fetchAllLeads(cfg.key, from, to);
+  } catch (e) {
+    await fbSet("imConfig", {
+      ...cfg,
+      lastError: e.message,
+      lastErrorAt: new Date().toISOString(),
+    });
+    if (e.rateLimited) return { rateLimited: true, message: e.message };
+    throw e;
+  }
 
   const inbox = (await fbGet("imInbox")) || [];
   const seen = new Set(inbox.map((l) => String(l.qid)));
@@ -128,6 +140,7 @@ async function runDailyFetch() {
     lastRun: new Date().toISOString(),
     lastCount: added,
     lastTotal: leads.length,
+    lastError: "",
   });
   return { fetched: leads.length, added, inbox: trimmed.length };
 }
