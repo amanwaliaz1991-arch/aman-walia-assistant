@@ -262,6 +262,8 @@ mark{background:#fef08a;border-radius:2px;padding:0 2px;}
 .ut-panel{animation:fadeIn .2s ease;}
 @keyframes fadeIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
 .gst-rate-btn.active,.btn.active{background:var(--ac);color:#fff;border-color:var(--ac);}
+.seg-n{font-size:11px;font-weight:700;background:rgba(0,0,0,.12);padding:1px 6px;border-radius:9px;margin-left:3px}
+.btn-p .seg-n{background:rgba(255,255,255,.25)}
 </style>
   <!-- Firebase SDK -->
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
@@ -403,7 +405,6 @@ mark{background:#fef08a;border-radius:2px;padding:0 2px;}
   <div class="sb-grp">
     <div class="sb-lbl">Operations</div>
     <div class="sb-item" id="n-crm" onclick="go('crm')"><span class="sb-ico">👥</span>CRM / Customers</div>
-    <div class="sb-item" id="n-imleads" onclick="go('imleads')"><span class="sb-ico">🏭</span>IndiaMart Leads</div>
     <div class="sb-item" id="n-orders" onclick="go('orders')"><span class="sb-ico">📦</span>Order Tracker<span class="sb-bdg o" id="b-orders">0</span></div>
     <div class="sb-item" id="n-urgent" onclick="go('urgent')"><span class="sb-ico">🚨</span>Urgent Orders<span class="sb-bdg o" id="b-urgent">0</span></div>
     <div class="sb-item" id="n-cod" onclick="go('cod')"><span class="sb-ico">💳</span>COD of Parties</div>
@@ -1921,8 +1922,9 @@ mark{background:#fef08a;border-radius:2px;padding:0 2px;}
 
   <!-- SEGMENTS -->
   <div style="display:flex;gap:10px;margin-bottom:12px;flex-wrap:wrap">
-    <button class="btn btn-p" id="crm-seg-retailer" onclick="setCrmSegment('retailer')">🏪 Retailers &amp; Wholesalers</button>
-    <button class="btn" id="crm-seg-manufacturer" onclick="setCrmSegment('manufacturer')">🏭 Bat Manufacturers</button>
+    <button class="btn btn-p" id="crm-seg-retailer" onclick="setCrmSegment('retailer')">🏪 Retailers &amp; Wholesalers <span class="seg-n" id="segn-retailer"></span></button>
+    <button class="btn" id="crm-seg-manufacturer" onclick="setCrmSegment('manufacturer')">🏭 Bat Manufacturers <span class="seg-n" id="segn-manufacturer"></span></button>
+    <button class="btn" id="crm-seg-indiamart" onclick="setCrmSegment('indiamart')">🏭 IndiaMart Leads <span class="seg-n" id="segn-indiamart"></span></button>
   </div>
 
   <!-- WHATSAPP TEMPLATE -->
@@ -2036,45 +2038,6 @@ mark{background:#fef08a;border-radius:2px;padding:0 2px;}
 </div>
 
 
-<!-- ████ INDIAMART LEADS (raw archive) ████ -->
-<div class="mod" id="mod-imleads">
-  <div class="ph">
-    <div><div class="pt">INDIAMART <span>LEADS</span></div>
-    <div class="pt-sub">Raw lead archive — every lead ever fetched, filter & import anytime</div></div>
-    <button class="btn btn-p" onclick="openImFetch()">📥 Fetch New Leads</button>
-  </div>
-
-  <div class="g4" id="iml-stats" style="margin-bottom:14px"></div>
-
-  <div class="card" style="margin-bottom:12px">
-    <div style="padding:10px 14px;display:flex;gap:8px;flex-wrap:wrap;align-items:center">
-      <input class="inp" id="iml-search" placeholder="🔍 Name, product, message, phone…" oninput="R.imleads()" style="flex:1;min-width:180px;font-size:13px">
-      <input class="inp" id="iml-city" placeholder="City" oninput="R.imleads()" style="width:120px;font-size:13px">
-      <select class="sel" id="iml-imported" onchange="R.imleads()" style="width:150px;font-size:13px">
-        <option value="">All Leads</option>
-        <option value="no">Not yet in CRM</option>
-        <option value="yes">Already in CRM</option>
-      </select>
-      <select class="sel" id="iml-sort" onchange="R.imleads()" style="width:140px;font-size:13px">
-        <option value="newest">Newest first</option>
-        <option value="oldest">Oldest first</option>
-      </select>
-      <button class="btn btn-sm" onclick="clearImlFilters()">✕ Clear</button>
-      <button class="btn btn-sm btn-p" onclick="importVisibleImLeads()">➕ Import Visible to CRM</button>
-    </div>
-  </div>
-
-  <div class="card">
-    <div class="tbl-scroll"><table class="tbl">
-      <thead><tr><th>Date</th><th>Company / Person</th><th>City</th><th>Phone</th><th>Product / Requirement</th><th>Status</th><th></th></tr></thead>
-      <tbody id="iml-body"></tbody>
-    </table></div>
-  </div>
-  <div id="iml-loadmore" style="text-align:center;padding:14px"></div>
-  <div id="iml-empty" class="es" style="display:none">
-    <div class="em">🏭</div>No IndiaMart leads saved yet.
-    <div style="margin-top:12px"><button class="btn btn-p" onclick="openImFetch()">📥 Fetch Leads</button></div>
-  </div>
 </div>
 
 </div><!-- /main -->
@@ -2156,7 +2119,7 @@ function go(id){
     itax:R.itax,tds:R.tds,gst:R.gst,itc:R.itc,future:R.future,tracker:initTracker,
     health:R.health,badminton:R.badminton,self:R.self,quotes:R.quotes,
     mustdo:R.mustdo,accounts:R.accounts,costing:R.costing,kb:R.kb,orders:R.orders,purchase:R.purchase,production:R.production,
-    expenses:R.expenses,scanner:R.scanner,stock:R.stock,utilities:initUtilities,quotation:R.quotation,brands:R.brands,crm:R.crm,imleads:R.imleads};
+    expenses:R.expenses,scanner:R.scanner,stock:R.stock,utilities:initUtilities,quotation:R.quotation,brands:R.brands,crm:R.crm};
   rmap[id]?.();
 }
 
@@ -2276,6 +2239,7 @@ const D={
   brandMilestones:[],
   crm:[],
   crmMeta:{},
+  imLeadsMeta:{},
   imLeads:[],
   scanHistory:[],
   purchase:[],
@@ -3368,7 +3332,17 @@ const R={
     }
 
     // Segment + tab + filters
-    let list = all.filter(c=> seg==="manufacturer" ? c.bizType==="manufacturer" : c.bizType!=="manufacturer");
+    const inSeg = (c,s) =>
+      s==="manufacturer" ? c.bizType==="manufacturer"
+    : s==="indiamart"    ? c.source==="indiamart"
+    : (c.bizType!=="manufacturer" && c.source!=="indiamart");
+    let list = all.filter(c=>inSeg(c,seg));
+
+    // Segment counts on buttons
+    ["retailer","manufacturer","indiamart"].forEach(s=>{
+      const el = document.getElementById("segn-"+s);
+      if(el) el.textContent = all.filter(c=>inSeg(c,s)).length.toLocaleString();
+    });
     if(tab==="pending")     list = list.filter(c=>c.status==="pending" && !c.isKri);
     else if(tab==="done")   list = list.filter(c=>c.status==="done");
     else if(tab==="hot")    list = list.filter(c=>c.interest==="hot"||c.interest==="warm");
@@ -3382,7 +3356,7 @@ const R={
     if(sq)    list = list.filter(c=>((c.name||"")+(c.phone||"")+(c.address||"")+(c.city||"")+(c.note||"")).toLowerCase().includes(sq));
 
     // Stats
-    const segAll = all.filter(c=> seg==="manufacturer" ? c.bizType==="manufacturer" : c.bizType!=="manufacturer");
+    const segAll = all.filter(c=>inSeg(c,seg));
     document.getElementById("crm-stats").innerHTML =
       sc("var(--ac)","Total in Segment",segAll.length.toLocaleString()) +
       sc("var(--green)","Contacted",segAll.filter(c=>c.status==="done").length) +
@@ -3464,68 +3438,6 @@ const R={
     if(dEl) dEl.textContent = localStorage.getItem(dk) || "0";
     const tEl = document.getElementById("crm-tpl");
     if(tEl && !tEl.value) tEl.value = localStorage.getItem("crm_tpl") || "";
-  },
-  imleads(){
-    const all = D.imLeads||[];
-    const sq   = (document.getElementById("iml-search")?.value||"").toLowerCase();
-    const city = (document.getElementById("iml-city")?.value||"").toLowerCase();
-    const imp  = document.getElementById("iml-imported")?.value||"";
-    const sort = document.getElementById("iml-sort")?.value||"newest";
-
-    // Stats
-    const inCrmPhones = new Set((D.crm||[]).map(c=>c.phone).filter(Boolean));
-    const notImported = all.filter(l=>!l.imported && !(l.phone && inCrmPhones.has(l.phone))).length;
-    document.getElementById("iml-stats").innerHTML =
-      sc("var(--ac)","Total Leads",all.length.toLocaleString()) +
-      sc("var(--green)","In CRM",all.filter(l=>l.imported).length) +
-      sc("var(--orange)","Not Imported",notImported,"Ready to add") +
-      sc("var(--gold)","Cities",new Set(all.map(l=>l.city).filter(Boolean)).size);
-
-    // Filter
-    let list = all.filter(l=>{
-      const hay = ((l.name||"")+(l.person||"")+(l.product||"")+(l.mcat||"")+(l.message||"")+(l.phone||"")).toLowerCase();
-      if(sq && !hay.includes(sq)) return false;
-      if(city && !(l.city||"").toLowerCase().includes(city)) return false;
-      if(imp==="yes" && !l.imported) return false;
-      if(imp==="no"  && l.imported) return false;
-      return true;
-    });
-    list.sort((a,b)=> sort==="oldest"
-      ? (a.queryTime||"").localeCompare(b.queryTime||"")
-      : (b.queryTime||"").localeCompare(a.queryTime||""));
-    window.__imlFiltered = list;
-
-    const empty = document.getElementById("iml-empty");
-    const body  = document.getElementById("iml-body");
-    if(!all.length){ body.innerHTML=""; empty.style.display="block"; document.getElementById("iml-loadmore").innerHTML=""; return; }
-    empty.style.display="none";
-
-    const shown = window.__imlShown || 50;
-    const page = list.slice(0, shown);
-    body.innerHTML = page.map(l=>{
-      const inCrm = l.imported || (l.phone && inCrmPhones.has(l.phone));
-      return `<tr style="${inCrm?"opacity:.6":""}">
-        <td style="font-size:12px;white-space:nowrap">${(l.queryTime||"").slice(0,10)}<div style="font-size:11px;color:var(--muted)">${(l.queryTime||"").slice(11,16)}</div></td>
-        <td><b style="font-size:13.5px">${l.name||"—"}</b>${l.person&&l.person!==l.name?`<div style="font-size:11px;color:var(--muted)">${l.person}</div>`:""}</td>
-        <td style="font-size:12.5px">${l.city||"—"}${l.state?`<div style="font-size:11px;color:var(--muted)">${l.state}</div>`:""}</td>
-        <td style="font-family:'JetBrains Mono';font-size:12px">${l.phone||'<span style="color:var(--red)">—</span>'}</td>
-        <td style="font-size:12.5px;max-width:260px">
-          <div style="font-weight:600">${l.product||l.mcat||"—"}</div>
-          ${l.message?`<div style="font-size:11px;color:var(--muted);max-height:32px;overflow:hidden">${l.message.slice(0,90)}</div>`:""}
-          ${l.subject?`<span class="pill" style="font-size:10px;background:var(--s2);color:var(--muted)">${l.subject}</span>`:""}
-        </td>
-        <td>${inCrm?'<span class="pill pg" style="font-size:10px">✅ In CRM</span>':'<span class="pill py" style="font-size:10px">⏳ New</span>'}</td>
-        <td style="white-space:nowrap">
-          ${l.phone?`<button class="btn btn-sm" style="background:#25D366;color:#fff;border-color:#25D366;font-size:11px;padding:3px 8px" onclick="waImLead('${l.qid}')">💬</button>`:""}
-          ${!inCrm?`<button class="btn btn-sm btn-p" style="font-size:11px;padding:3px 8px" onclick="importOneImLead('${l.qid}')">+ CRM</button>`:""}
-          <button class="btn-e" style="font-size:11px" onclick="viewImLead('${l.qid}')">👁</button>
-        </td>
-      </tr>`;
-    }).join("");
-
-    document.getElementById("iml-loadmore").innerHTML = list.length>shown
-      ? `<button class="btn" onclick="window.__imlShown=(window.__imlShown||50)+50;R.imleads()">Load more (${(list.length-shown).toLocaleString()} remaining)</button>`
-      : (list.length>50?`<span style="font-size:12px;color:var(--muted)">All ${list.length.toLocaleString()} shown</span>`:"");
   },
   accounts(){
     const sf = document.getElementById("acc-status-f")?.value||"";
@@ -5465,7 +5377,7 @@ function reRenderCurrent() {
     health:R.health, badminton:R.badminton, self:R.self, quotes:R.quotes,
     mustdo:R.mustdo, accounts:R.accounts, costing:R.costing, kb:R.kb,
     orders:R.orders, purchase:R.purchase, production:R.production,
-    expenses:R.expenses, scanner:R.scanner, stock:R.stock, quotation:R.quotation, brands:R.brands, crm:R.crm, imleads:R.imleads
+    expenses:R.expenses, scanner:R.scanner, stock:R.stock, quotation:R.quotation, brands:R.brands, crm:R.crm
   };
   rmap[id]?.();
 }
@@ -5479,7 +5391,7 @@ function loadAllFromFirebase() {
     "deadstock","rd","compliance","itax","tds","gst","itc","future",
     "dayData","healthHabits","healthGoals","bdmGames","bdmSkills",
     "bdmDrills","selfGoals","books","weeklyReviews","quotes","uid",
-    "mustdo","accounts","costing","costCats","kb","stock","stockCats","stockLog","menuOrder","quotations","brandMilestones","crm_1","crm_2","crm_3","crm_4","crm_5","crmMeta","imLeads","orders","purchase","production","prodStock","expenses","scanHistory"
+    "mustdo","accounts","costing","costCats","kb","stock","stockCats","stockLog","menuOrder","quotations","brandMilestones","crm_1","crm_2","crm_3","crm_4","crm_5","crm_6","crm_7","crm_8","crm_9","crm_10","crm_11","crm_12","crmMeta","imLeads_1","imLeads_2","imLeads_3","imLeads_4","imLeads_5","imLeads_6","imLeads_7","imLeads_8","imLeads_9","imLeads_10","imLeads_11","imLeads_12","imLeads_13","imLeads_14","imLeads_15","imLeads_16","imLeads_17","imLeads_18","imLeads_19","imLeads_20","imLeadsMeta","imLeads","orders","purchase","production","prodStock","expenses","scanHistory"
   ];
 
   let initialLoadDone = false;
@@ -5493,9 +5405,34 @@ function loadAllFromFirebase() {
         // Chunked CRM contacts — merge into D.crm keyed by chunk index
         if(!window.__crmChunks) window.__crmChunks = {};
         window.__crmChunks[col] = parsed || [];
-        D.crm = Object.keys(window.__crmChunks).sort().reduce((a,k)=>a.concat(window.__crmChunks[k]),[]);
+        D.crm = Object.keys(window.__crmChunks)
+          .sort((a,b)=>parseInt(a.split("_")[1])-parseInt(b.split("_")[1]))
+          .reduce((a,k)=>a.concat(window.__crmChunks[k]),[]);
+      }
+      else if (col.startsWith("imLeads_")) {
+        if(!window.__imlChunks) window.__imlChunks = {};
+        window.__imlChunks[col] = parsed || [];
+        // Sort chunk keys numerically (imLeads_2 before imLeads_10)
+        D.imLeads = Object.keys(window.__imlChunks)
+          .sort((a,b)=>parseInt(a.split("_")[1])-parseInt(b.split("_")[1]))
+          .reduce((a,k)=>a.concat(window.__imlChunks[k]),[]);
       }
       else if (col === "crmMeta") { D.crmMeta = parsed || {}; }
+      else if (col === "imLeadsMeta") { D.imLeadsMeta = parsed || {}; }
+      else if (col === "imLeads") {
+        // Legacy single-doc storage — migrate into chunks once
+        const legacy = parsed || [];
+        if(legacy.length){
+          if(!window.__imlChunks) window.__imlChunks = {};
+          const known = new Set((D.imLeads||[]).map(l=>String(l.qid)));
+          const merged = (D.imLeads||[]).concat(legacy.filter(l=>!known.has(String(l.qid))));
+          if(merged.length > (D.imLeads||[]).length){
+            D.imLeads = merged;
+            setTimeout(()=>{ saveAllImlChunks(); }, 1500);
+            console.log("Migrated", legacy.length, "legacy imLeads into chunks");
+          }
+        }
+      }
       else if (col === "dayData") { D.dayData = parsed || {}; }
       else if (col === "prodStock") { D.prodStock = parsed || []; }
       else if (Array.isArray(D[col])) { D[col] = parsed || []; }
@@ -5670,6 +5607,7 @@ async function flushSaves() {
       let data;
       if(collection === "uid") data = D.uid;
       else if(collection.startsWith("crm_")) data = (window.__crmChunks||{})[collection];
+      else if(collection.startsWith("imLeads_")) data = (window.__imlChunks||{})[collection];
       else data = D[collection];
       if(data === undefined) continue;
       await db.collection("aman_assistant").doc(collection).set({
@@ -6490,7 +6428,6 @@ const MENU_META = {
   utilities:{label:"Utilities",icon:"🧮",group:"Home"},
   scanner:{label:"Paper Scanner",icon:"📷",group:"Home"},
   crm:{label:"CRM / Customers",icon:"👥",group:"Operations"},
-  imleads:{label:"IndiaMart Leads",icon:"🏭",group:"Operations"},
   orders:{label:"Order Tracker",icon:"📦",group:"Operations"},
   urgent:{label:"Urgent Orders",icon:"🚨",group:"Operations"},
   cod:{label:"COD of Parties",icon:"💳",group:"Operations"},
@@ -7041,6 +6978,43 @@ function interestBadge(lvl){
   return `<span style="font-size:10px;font-weight:700;padding:2px 7px;border-radius:12px;background:${m.col}18;color:${m.col}">${m.label}</span>`;
 }
 
+
+// ══════════════════════════════════════════
+// CHUNKED STORAGE — unlimited leads/contacts
+// Firestore caps each doc at 1MB, so large
+// arrays are split across numbered documents.
+// ══════════════════════════════════════════
+const CHUNK_SIZE = 500;           // records per document
+const MAX_CRM_CHUNKS = 12;        // 6,000 contacts
+const MAX_IML_CHUNKS = 20;        // 10,000 leads
+
+// Write an array across numbered chunk docs, clearing any now-empty trailing chunks
+function writeChunks(arr, prefix, store, maxChunks){
+  const n = Math.max(1, Math.ceil(arr.length / CHUNK_SIZE));
+  if(n > maxChunks){
+    console.warn(`${prefix}: ${arr.length} records exceeds capacity (${maxChunks*CHUNK_SIZE}). Oldest will not save.`);
+  }
+  const used = Math.min(n, maxChunks);
+  for(let i=0; i<used; i++){
+    const key = prefix + (i+1);
+    store[key] = arr.slice(i*CHUNK_SIZE, (i+1)*CHUNK_SIZE);
+    autoSave(key);
+  }
+  // Blank out trailing chunks that are no longer needed (after deletions)
+  for(let i=used; i<maxChunks; i++){
+    const key = prefix + (i+1);
+    if(store[key] && store[key].length){
+      store[key] = [];
+      autoSave(key);
+    }
+  }
+}
+
+function saveAllImlChunks(){
+  if(!window.__imlChunks) window.__imlChunks = {};
+  writeChunks(D.imLeads||[], "imLeads_", window.__imlChunks, MAX_IML_CHUNKS);
+}
+
 // ══════════════════════════════════════════
 // CRM / CUSTOMERS
 // ══════════════════════════════════════════
@@ -7050,7 +7024,7 @@ window.__crmShown = 60;
 
 function setCrmSegment(s){
   window.__crmSeg = s; window.__crmShown = 60;
-  ["retailer","manufacturer"].forEach(x=>{
+  ["retailer","manufacturer","indiamart"].forEach(x=>{
     const b=document.getElementById("crm-seg-"+x);
     if(b){ b.classList.toggle("btn-p", x===s); b.classList.toggle("btn", x!==s); }
   });
@@ -7079,10 +7053,10 @@ function saveCrmTpl(){
 function saveCrmContact(id){
   const idx = (D.crm||[]).findIndex(c=>c.id===id);
   if(idx<0) return;
-  const chunkNo = Math.floor(idx/500)+1;
-  const chunk = (D.crm||[]).slice((chunkNo-1)*500, chunkNo*500);
+  const chunkNo = Math.floor(idx/CHUNK_SIZE)+1;
+  if(chunkNo > MAX_CRM_CHUNKS){ saveAllCrmChunks(); return; }
   if(!window.__crmChunks) window.__crmChunks = {};
-  window.__crmChunks["crm_"+chunkNo] = chunk;
+  window.__crmChunks["crm_"+chunkNo] = (D.crm||[]).slice((chunkNo-1)*CHUNK_SIZE, chunkNo*CHUNK_SIZE);
   autoSave("crm_"+chunkNo);
 }
 
@@ -7243,14 +7217,8 @@ function delCrmContact(id){
   closeCrmMo(); R.crm();
 }
 function saveAllCrmChunks(){
-  const all = D.crm||[];
   if(!window.__crmChunks) window.__crmChunks = {};
-  const n = Math.max(1, Math.ceil(all.length/500));
-  for(let i=0;i<n;i++){
-    const key = "crm_"+(i+1);
-    window.__crmChunks[key] = all.slice(i*500,(i+1)*500);
-    autoSave(key);
-  }
+  writeChunks(D.crm||[], "crm_", window.__crmChunks, MAX_CRM_CHUNKS);
 }
 
 // ── ADD CONTACT ──
@@ -7339,13 +7307,7 @@ function setCrmInterest(id, lvl){
 // ══════════════════════════════════════════
 // INDIAMART LEADS — raw archive module
 // ══════════════════════════════════════════
-window.__imlShown = 50;
 
-function clearImlFilters(){
-  ["iml-search","iml-city","iml-imported"].forEach(id=>{const e=document.getElementById(id); if(e) e.value="";});
-  window.__imlShown = 50;
-  R.imleads();
-}
 
 function imLeadToContact(l){
   return {
@@ -7362,76 +7324,9 @@ function imLeadToContact(l){
   };
 }
 
-function importOneImLead(qid){
-  const l = (D.imLeads||[]).find(x=>String(x.qid)===String(qid));
-  if(!l) return;
-  if(!D.crm) D.crm=[];
-  if(D.crm.some(c=>c.id==="im_"+l.qid || (l.phone && c.phone===l.phone))){
-    crmToast("Already in CRM"); l.imported=true; autoSave("imLeads"); R.imleads(); return;
-  }
-  D.crm.push(imLeadToContact(l));
-  l.imported = true;
-  saveAllCrmChunks(); autoSave("imLeads");
-  R.imleads();
-  crmToast(`✅ ${l.name} added to CRM`);
-}
 
-function importVisibleImLeads(){
-  const list = window.__imlFiltered||[];
-  const pending = list.filter(l=>!l.imported);
-  if(!pending.length){ alert("No new leads to import — all visible leads are already in CRM."); return; }
-  if(!confirm(`Import ${pending.length} lead(s) into CRM?`)) return;
-  if(!D.crm) D.crm=[];
-  const phones = new Set(D.crm.map(c=>c.phone).filter(Boolean));
-  const ids = new Set(D.crm.map(c=>c.id));
-  let added=0;
-  pending.forEach(l=>{
-    if(ids.has("im_"+l.qid) || (l.phone && phones.has(l.phone))){ l.imported=true; return; }
-    D.crm.push(imLeadToContact(l));
-    if(l.phone) phones.add(l.phone);
-    ids.add("im_"+l.qid);
-    l.imported = true; added++;
-  });
-  saveAllCrmChunks(); autoSave("imLeads");
-  R.imleads();
-  alert(`✅ Imported ${added} lead(s) to CRM (${pending.length-added} were duplicates)`);
-}
 
-function waImLead(qid){
-  const l = (D.imLeads||[]).find(x=>String(x.qid)===String(qid));
-  if(!l || !l.phone){ alert("No phone number"); return; }
-  let tpl = (localStorage.getItem("crm_tpl")||"").trim();
-  tpl = tpl.replace(/\{name\}/gi, l.name||"").replace(/\{city\}/gi, l.city||"");
-  window.open("https://wa.me/"+l.phone + (tpl?"?text="+encodeURIComponent(tpl):""), "_blank");
-}
 
-function viewImLead(qid){
-  const l = (D.imLeads||[]).find(x=>String(x.qid)===String(qid));
-  if(!l) return;
-  document.getElementById("crm-mo-t").textContent = "🏭 " + (l.name||"Lead");
-  document.getElementById("crm-mo-b").innerHTML = `
-    <div style="font-size:13px;line-height:2;margin-bottom:12px">
-      ${l.person?`<div><b>Person:</b> ${l.person}</div>`:""}
-      ${l.phone?`<div><b>Phone:</b> <span style="font-family:'JetBrains Mono'">${l.phone}</span> <span style="font-size:11px;color:var(--muted)">(${l.rawPhone||""})</span></div>`:""}
-      ${l.email?`<div><b>Email:</b> ${l.email}</div>`:""}
-      ${l.city?`<div><b>Location:</b> ${[l.city,l.state,l.country].filter(Boolean).join(", ")}</div>`:""}
-      ${l.address?`<div><b>Address:</b> ${l.address}</div>`:""}
-      ${l.queryTime?`<div><b>Enquiry Time:</b> ${l.queryTime}</div>`:""}
-      ${l.subject?`<div><b>Type:</b> ${l.subject}</div>`:""}
-      ${l.callDuration?`<div><b>Call Duration:</b> ${l.callDuration}s</div>`:""}
-    </div>
-    ${l.product||l.mcat?`<div style="background:#eff6ff;border:1px solid #c7d2fe;border-radius:8px;padding:10px 12px;margin-bottom:12px;font-size:13px">
-      <div style="font-weight:700;color:#3730a3">${l.product||l.mcat}</div>
-      ${l.mcat&&l.product?`<div style="font-size:11.5px;color:var(--muted)">Category: ${l.mcat}</div>`:""}
-    </div>`:""}
-    ${l.message?`<div style="background:var(--s2);border-radius:8px;padding:10px 12px;font-size:12.5px;white-space:pre-wrap;line-height:1.6;margin-bottom:12px;max-height:160px;overflow-y:auto">${l.message}</div>`:""}
-    <div style="display:flex;gap:8px;justify-content:flex-end;padding-bottom:8px;flex-wrap:wrap">
-      <button class="btn" onclick="closeCrmMo()">Close</button>
-      ${l.phone?`<button class="btn" style="background:#25D366;color:#fff;border-color:#25D366" onclick="waImLead('${l.qid}')">💬 WhatsApp</button>`:""}
-      ${!l.imported?`<button class="btn btn-p" onclick="importOneImLead('${l.qid}');closeCrmMo()">➕ Add to CRM</button>`:'<span class="pill pg" style="align-self:center">✅ Already in CRM</span>'}
-    </div>`;
-  document.getElementById("crm-mo").style.display="flex";
-}
 
 // ══════════════════════════════════════════
 // INDIAMART — fetch ALL leads, filter locally
@@ -7549,14 +7444,7 @@ function fetchAllImLeads(){
       existing.add(qid);
       stored++;
     });
-    // Guard against Firestore 1MB doc limit — keep newest 3000 leads
-    if(D.imLeads.length > 3000){
-      D.imLeads.sort((a,b)=>(b.queryTime||"").localeCompare(a.queryTime||""));
-      const dropped = D.imLeads.length - 3000;
-      D.imLeads = D.imLeads.slice(0, 3000);
-      console.warn(`imLeads capped: dropped ${dropped} oldest leads`);
-    }
-    if(stored) autoSave("imLeads");
+    if(stored) saveAllImlChunks();
     status.style.color="var(--green)";
     status.textContent = `✅ Fetched ${allLeads.length} leads (${stored} new saved) — filter below`;
     document.getElementById("im-results").style.display="block";
@@ -7632,7 +7520,7 @@ function importImLeads(){
   // Mark corresponding stored leads as imported
   const importedQids = new Set(list.map(l=>String(l.UNIQUE_QUERY_ID||l.QUERY_ID||"")));
   (D.imLeads||[]).forEach(l=>{ if(importedQids.has(String(l.qid))) l.imported = true; });
-  if(D.imLeads) autoSave("imLeads");
+  if(D.imLeads) saveAllImlChunks();
   saveAllCrmChunks();
   closeImMo();
   R.crm();
