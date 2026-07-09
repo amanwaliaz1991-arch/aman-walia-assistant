@@ -5602,6 +5602,12 @@ function autoSave(collection) {
   }, 300);
 }
 
+// Force an immediate write — used before navigating away (e.g. opening WhatsApp)
+function flushNow(){
+  clearTimeout(saveDebounceTimer);
+  return flushSaves();
+}
+
 async function flushSaves() {
   if(!pendingSaves.size) return;
   const toSave = new Set(pendingSaves);
@@ -7105,38 +7111,47 @@ function saveCrmContact(id){
 function openWA(id){
   const c = (D.crm||[]).find(x=>x.id===id);
   if(!c || !c.phone){ alert("No phone number"); return; }
-  let tpl = (document.getElementById("crm-tpl")?.value || "").trim();
-  tpl = tpl.replace(/\{name\}/gi, c.name||"").replace(/\{city\}/gi, c.city||"");
-  const url = "https://wa.me/" + c.phone + (tpl ? "?text=" + encodeURIComponent(tpl) : "");
-  window.open(url, "_blank");
-  // bump daily counter
-  const dk = "crm_daily_" + new Date().toDateString();
-  const n = parseInt(localStorage.getItem(dk)||"0")+1;
-  localStorage.setItem(dk, n);
-  const dEl=document.getElementById("crm-daily"); if(dEl) dEl.textContent=n;
-  // stamp lastContact + auto-mark as contacted
+
+  // Record FIRST, then navigate. Opening WhatsApp backgrounds this app, so
+  // anything after window.open may never run (and pending writes get killed).
   const today = new Date().toISOString().slice(0,10);
   c.lastContact = today;
   c.contactCount = (c.contactCount || 0) + 1;
   if(!c.contactLog) c.contactLog = [];
-  c.contactLog.push({date: today, time: new Date().toLocaleTimeString("en-IN",{hour:"2-digit",minute:"2-digit"}), via:"WhatsApp"});
-  if(c.contactLog.length > 30) c.contactLog = c.contactLog.slice(-30); // cap history
-  const wasPending = c.status === "pending";
-  if(wasPending) c.status = "done";
+  c.contactLog.push({
+    date: today,
+    time: new Date().toLocaleTimeString("en-IN",{hour:"2-digit",minute:"2-digit"}),
+    via: "WhatsApp"
+  });
+  if(c.contactLog.length > 30) c.contactLog = c.contactLog.slice(-30);
+  if(c.status === "pending") c.status = "done";
+
   saveCrmContact(id);
+  flushNow();   // write immediately, don't wait for the 300ms debounce
+
+  const dk = "crm_daily_" + new Date().toDateString();
+  const n = parseInt(localStorage.getItem(dk)||"0")+1;
+  localStorage.setItem(dk, n);
+  const dEl=document.getElementById("crm-daily"); if(dEl) dEl.textContent=n;
+
   R.crm();
-  crmToast(`✅ ${c.name} — contact #${c.contactCount}`);
+  crmToast(`\u2705 ${c.name} \u2014 contact #${c.contactCount}`);
+
+  let tpl = (document.getElementById("crm-tpl")?.value || "").trim();
+  tpl = tpl.replace(/\{name\}/gi, c.name||"").replace(/\{city\}/gi, c.city||"");
+  const url = "https://wa.me/" + c.phone + (tpl ? "?text=" + encodeURIComponent(tpl) : "");
+  setTimeout(()=>window.open(url, "_blank"), 120);
 }
 
 function crmMarkDone(id){
   const c=(D.crm||[]).find(x=>x.id===id); if(!c) return;
   c.status="done"; c.lastContact = c.lastContact || new Date().toISOString().slice(0,10);
-  saveCrmContact(id); R.crm();
+  saveCrmContact(id); flushNow(); R.crm();
   crmToast(`✅ ${c.name} marked as contacted`);
 }
 function crmUndo(id){
   const c=(D.crm||[]).find(x=>x.id===id); if(!c) return;
-  c.status="pending"; c.lastContact=""; saveCrmContact(id); R.crm();
+  c.status="pending"; c.lastContact=""; saveCrmContact(id); flushNow(); R.crm();
   crmToast(`↩ ${c.name} moved back to Pending`);
 }
 
@@ -7247,7 +7262,7 @@ function saveCrmDetail(id){
   }
   c.status    = document.getElementById("crm-status").value;
   c.isKri     = document.getElementById("crm-kri").checked;
-  saveCrmContact(id);
+  saveCrmContact(id); flushNow();
   closeCrmMo(); R.crm();
 }
 function delCrmContact(id){
@@ -7343,7 +7358,7 @@ function showContactLog(id){
 function setCrmInterest(id, lvl){
   const c=(D.crm||[]).find(x=>x.id===id); if(!c) return;
   c.interest = lvl;
-  saveCrmContact(id); R.crm();
+  saveCrmContact(id); flushNow(); R.crm();
   crmToast(`${c.name} → ${INTEREST_LEVELS[lvl]?.label||lvl}`);
 }
 
@@ -7793,6 +7808,12 @@ function qtFillFromCrm(){
   const ad = document.getElementById("qt-addr");  if(ad && !ad.value) ad.value = [c.address,c.city].filter(Boolean).join(", ");
 }
 
+
+// Persist pending changes if the app is backgrounded or closed
+document.addEventListener("visibilitychange", ()=>{
+  if(document.visibilityState === "hidden" && pendingSaves.size) flushNow();
+});
+window.addEventListener("pagehide", ()=>{ if(pendingSaves.size) flushNow(); });
 
 // ── INIT ──
 R_home();
