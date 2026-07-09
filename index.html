@@ -264,6 +264,7 @@ mark{background:#fef08a;border-radius:2px;padding:0 2px;}
 .gst-rate-btn.active,.btn.active{background:var(--ac);color:#fff;border-color:var(--ac);}
 .seg-n{font-size:11px;font-weight:700;background:rgba(0,0,0,.12);padding:1px 6px;border-radius:9px;margin-left:3px}
 .btn-p .seg-n{background:rgba(255,255,255,.25)}
+@media(max-width:820px){#lg-grid{grid-template-columns:1fr!important}}
 </style>
   <!-- Firebase SDK -->
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
@@ -2042,6 +2043,40 @@ mark{background:#fef08a;border-radius:2px;padding:0 2px;}
 
 </div>
 
+
+<!-- ████ SECURE LEDGER (hidden module) ████ -->
+<div class="mod" id="mod-ledger">
+  <div class="ph">
+    <div><div class="pt">SECURE <span>LEDGER</span></div>
+    <div class="pt-sub">🔐 Encrypted · auto-locks after 5 min idle</div></div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <button class="btn" onclick="lgLock(false);go('home')">🔒 Lock</button>
+      <button class="btn btn-p" onclick="lgPartyForm()">+ New Party</button>
+    </div>
+  </div>
+
+  <div class="g4" id="lg-stats" style="margin-bottom:14px"></div>
+
+  <div style="display:grid;grid-template-columns:280px 1fr;gap:14px" id="lg-grid">
+    <!-- Party list -->
+    <div class="card" style="align-self:start">
+      <div class="card-hdr">Parties</div>
+      <div style="padding:8px 10px">
+        <input class="inp" id="lg-search" placeholder="🔍 Search party" oninput="R.ledger()" style="width:100%;font-size:13px">
+      </div>
+      <div id="lg-parties" style="max-height:60vh;overflow-y:auto"></div>
+    </div>
+
+    <!-- Ledger for selected party -->
+    <div>
+      <div class="card">
+        <div class="card-hdr" id="lg-party-hdr">Select a party</div>
+        <div id="lg-party-body"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
 </div><!-- /main -->
 
 </div><!-- /body -->
@@ -2106,6 +2141,8 @@ function doUndo(){
 
 // ── NAV ──
 function go(id){
+  if(id === "ledger" && !LG.unlocked){ lgPrompt(); return; }
+  if(id !== "ledger" && typeof LG !== "undefined" && LG.unlocked) lgLock(false);
   // Employee access guard — only Stock allowed
   if(typeof currentRole!=="undefined" && currentRole==="employee" && id!=="stock" && id!=="production"){ id = "stock"; }
   document.querySelectorAll(".mod").forEach(m=>m.classList.remove("on"));
@@ -2121,7 +2158,7 @@ function go(id){
     itax:R.itax,tds:R.tds,gst:R.gst,itc:R.itc,future:R.future,tracker:initTracker,
     health:R.health,badminton:R.badminton,self:R.self,quotes:R.quotes,
     mustdo:R.mustdo,accounts:R.accounts,costing:R.costing,kb:R.kb,orders:R.orders,purchase:R.purchase,production:R.production,
-    expenses:R.expenses,scanner:R.scanner,stock:R.stock,utilities:initUtilities,quotation:R.quotation,brands:R.brands,crm:R.crm};
+    expenses:R.expenses,scanner:R.scanner,stock:R.stock,utilities:initUtilities,quotation:R.quotation,brands:R.brands,crm:R.crm,ledger:R.ledger};
   rmap[id]?.();
 }
 
@@ -2243,6 +2280,8 @@ const D={
   crmMeta:{},
   imLeadsMeta:{},
   imConfig:{},
+  ledgerCfg:{},
+  ledgerVault:null,
   imInbox:[],
   imLeads:[],
   scanHistory:[],
@@ -3446,6 +3485,88 @@ const R={
     if(dEl) dEl.textContent = localStorage.getItem(dk) || "0";
     const tEl = document.getElementById("crm-tpl");
     if(tEl && !tEl.value) tEl.value = localStorage.getItem("crm_tpl") || "";
+  },
+  ledger(){
+    if(!LG.unlocked){ go("home"); return; }
+    lgTouch();
+    const parties = LG.data.parties||[];
+    const entries = LG.data.entries||[];
+    const sq = (document.getElementById("lg-search")?.value||"").toLowerCase();
+
+    const balOf = pid => (entries.filter(e=>e.pid===pid)
+      .reduce((s,e)=>s + (parseFloat(e.debit)||0) - (parseFloat(e.credit)||0), 0));
+
+    const totalRecv = parties.reduce((s,p)=>{ const b=balOf(p.id); return s + (b>0?b:0); },0);
+    const totalPay  = parties.reduce((s,p)=>{ const b=balOf(p.id); return s + (b<0?-b:0); },0);
+    document.getElementById("lg-stats").innerHTML =
+      sc("var(--ac)","Parties",parties.length) +
+      sc("var(--green)","Receivable",fa(Math.round(totalRecv)),"They owe you") +
+      sc("var(--red)","Payable",fa(Math.round(totalPay)),"You owe them") +
+      sc("var(--gold)","Entries",entries.length);
+
+    // Party list
+    const shown = parties.filter(p=>!sq || (p.name||"").toLowerCase().includes(sq) || (p.phone||"").includes(sq));
+    document.getElementById("lg-parties").innerHTML = shown.length ? shown
+      .slice().sort((a,b)=>Math.abs(balOf(b.id))-Math.abs(balOf(a.id)))
+      .map(p=>{
+        const b = balOf(p.id);
+        const sel = LG.party===p.id;
+        return `<div onclick="lgSelectParty('${p.id}')" style="padding:10px 12px;border-bottom:1px solid var(--b1);cursor:pointer;${sel?"background:var(--s2);border-left:3px solid var(--ac)":""}">
+          <div style="font-size:13.5px;font-weight:700">${p.name}</div>
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:6px;margin-top:2px">
+            <span style="font-size:11px;color:var(--muted)">${p.city||p.phone||""}</span>
+            <span style="font-family:'JetBrains Mono';font-size:12px;font-weight:700;color:${b>0?"var(--green)":b<0?"var(--red)":"var(--muted)"}">
+              ${b===0?"—":fa(Math.abs(Math.round(b)))} ${b>0?"Dr":b<0?"Cr":""}</span>
+          </div>
+        </div>`;
+      }).join("")
+      : `<div style="padding:18px;text-align:center;color:var(--muted);font-size:13px">${parties.length?"No match":"No parties yet"}</div>`;
+
+    // Selected party ledger
+    const hdr = document.getElementById("lg-party-hdr");
+    const body = document.getElementById("lg-party-body");
+    const p = parties.find(x=>x.id===LG.party);
+    if(!p){
+      hdr.textContent = "Select a party";
+      body.innerHTML = `<div class="es" style="padding:40px"><div class="em">🔐</div>Pick a party on the left, or add a new one.</div>`;
+      return;
+    }
+    const rows = entries.filter(e=>e.pid===p.id).slice().sort((a,b)=>(a.date||"").localeCompare(b.date||""));
+    let run = 0;
+    hdr.innerHTML = `${p.name} <span style="font-weight:400;font-size:12px;color:var(--muted)">${[p.city,p.phone,p.gstin].filter(Boolean).join(" · ")}</span>
+      <span style="float:right;display:flex;gap:6px">
+        <button class="btn btn-sm btn-p" onclick="lgEntryForm()">+ Entry</button>
+        <button class="btn-e" onclick="lgPartyForm('${p.id}')">✏️</button>
+        <button class="btn-d" onclick="lgDelParty('${p.id}')">🗑</button>
+      </span>`;
+    body.innerHTML = rows.length ? `
+      <div class="tbl-scroll"><table class="tbl">
+        <thead><tr><th style="width:92px">Date</th><th>Particulars</th><th style="width:110px;text-align:right">Debit</th><th style="width:110px;text-align:right">Credit</th><th style="width:120px;text-align:right">Balance</th><th style="width:60px"></th></tr></thead>
+        <tbody>${rows.map(e=>{
+          const d = parseFloat(e.debit)||0, c = parseFloat(e.credit)||0;
+          run += d - c;
+          return `<tr>
+            <td style="font-size:12.5px;white-space:nowrap">${fd(e.date)}</td>
+            <td style="font-size:13px">${e.particulars||"—"}${e.ref?`<div style="font-size:11px;color:var(--muted)">Ref: ${e.ref}</div>`:""}</td>
+            <td class="amt" style="text-align:right;color:var(--green)">${d?fa(d):"—"}</td>
+            <td class="amt" style="text-align:right;color:var(--red)">${c?fa(c):"—"}</td>
+            <td class="amt" style="text-align:right;font-weight:700">${fa(Math.abs(Math.round(run)))} ${run>0?"Dr":run<0?"Cr":""}</td>
+            <td style="white-space:nowrap">
+              <button class="btn-e" onclick="lgEntryForm('${e.id}')">✏️</button>
+              <button class="btn-d" onclick="lgDelEntry('${e.id}')">🗑</button>
+            </td>
+          </tr>`;
+        }).join("")}</tbody>
+        <tfoot><tr style="background:var(--s2);font-weight:800">
+          <td colspan="2" style="text-align:right">Closing Balance</td>
+          <td class="amt" style="text-align:right">${fa(rows.reduce((s,e)=>s+(parseFloat(e.debit)||0),0))}</td>
+          <td class="amt" style="text-align:right">${fa(rows.reduce((s,e)=>s+(parseFloat(e.credit)||0),0))}</td>
+          <td class="amt" style="text-align:right;color:${run>0?"var(--green)":run<0?"var(--red)":"inherit"}">${fa(Math.abs(Math.round(run)))} ${run>0?"Dr":run<0?"Cr":""}</td>
+          <td></td>
+        </tr></tfoot>
+      </table></div>`
+      : `<div class="es" style="padding:34px"><div class="em">📒</div>No entries for ${p.name}.
+         <div style="margin-top:12px"><button class="btn btn-p" onclick="lgEntryForm()">+ Add first entry</button></div></div>`;
   },
   accounts(){
     const sf = document.getElementById("acc-status-f")?.value||"";
@@ -5385,7 +5506,7 @@ function reRenderCurrent() {
     health:R.health, badminton:R.badminton, self:R.self, quotes:R.quotes,
     mustdo:R.mustdo, accounts:R.accounts, costing:R.costing, kb:R.kb,
     orders:R.orders, purchase:R.purchase, production:R.production,
-    expenses:R.expenses, scanner:R.scanner, stock:R.stock, quotation:R.quotation, brands:R.brands, crm:R.crm
+    expenses:R.expenses, scanner:R.scanner, stock:R.stock, quotation:R.quotation, brands:R.brands, crm:R.crm, ledger:R.ledger
   };
   rmap[id]?.();
 }
@@ -5399,7 +5520,7 @@ function loadAllFromFirebase() {
     "deadstock","rd","compliance","itax","tds","gst","itc","future",
     "dayData","healthHabits","healthGoals","bdmGames","bdmSkills",
     "bdmDrills","selfGoals","books","weeklyReviews","quotes","uid",
-    "mustdo","accounts","costing","costCats","kb","stock","stockCats","stockLog","menuOrder","quotations","brandMilestones","crm_1","crm_2","crm_3","crm_4","crm_5","crm_6","crm_7","crm_8","crm_9","crm_10","crm_11","crm_12","crmMeta","imLeads_1","imLeads_2","imLeads_3","imLeads_4","imLeads_5","imLeads_6","imLeads_7","imLeads_8","imLeads_9","imLeads_10","imLeads_11","imLeads_12","imLeads_13","imLeads_14","imLeads_15","imLeads_16","imLeads_17","imLeads_18","imLeads_19","imLeads_20","imLeadsMeta","imLeads","imConfig","imInbox","orders","purchase","production","prodStock","expenses","scanHistory"
+    "mustdo","accounts","costing","costCats","kb","stock","stockCats","stockLog","menuOrder","quotations","brandMilestones","crm_1","crm_2","crm_3","crm_4","crm_5","crm_6","crm_7","crm_8","crm_9","crm_10","crm_11","crm_12","crmMeta","imLeads_1","imLeads_2","imLeads_3","imLeads_4","imLeads_5","imLeads_6","imLeads_7","imLeads_8","imLeads_9","imLeads_10","imLeads_11","imLeads_12","imLeads_13","imLeads_14","imLeads_15","imLeads_16","imLeads_17","imLeads_18","imLeads_19","imLeads_20","imLeadsMeta","imLeads","imConfig","imInbox","ledgerCfg","ledgerVault","orders","purchase","production","prodStock","expenses","scanHistory"
   ];
 
   let initialLoadDone = false;
@@ -5428,6 +5549,8 @@ function loadAllFromFirebase() {
       else if (col === "crmMeta") { D.crmMeta = parsed || {}; }
       else if (col === "imLeadsMeta") { D.imLeadsMeta = parsed || {}; }
       else if (col === "imConfig") { D.imConfig = parsed || {}; }
+      else if (col === "ledgerCfg") { D.ledgerCfg = parsed || {}; }
+      else if (col === "ledgerVault") { D.ledgerVault = parsed || null; }
       else if (col === "imInbox") { D.imInbox = parsed || []; if(D.imInbox.length) setTimeout(drainImInbox, 2500); }
       else if (col === "imLeads") {
         // Legacy single-doc storage — migrate into chunks once
@@ -6211,6 +6334,10 @@ function gsHighlight(items) {
 }
 
 function runGlobalSearch() {
+  // Hidden ledger: typing the codeword unlocks it (checked silently, no UI hint)
+  const _q = document.getElementById("gs-inp")?.value || "";
+  if(_q.trim().length >= 3){ lgTryCodeword(_q).then(hit=>{ if(hit) return; }); }
+
   const q = document.getElementById("gs-inp")?.value?.trim().toLowerCase();
   const res = document.getElementById("gs-results");
   gsActiveIdx = -1;
@@ -7059,6 +7186,356 @@ function crmDaysAgo(dstr){
   return ` · ${Math.floor(days/365)}y ago`;
 }
 
+
+// ══════════════════════════════════════════════════════════
+// SECURE LEDGER — encrypted at rest
+//
+// Data is encrypted in the browser with a key derived from the
+// password (PBKDF2 → AES-256-GCM). Firestore only ever stores
+// ciphertext. The password is never stored or transmitted.
+// If the password is lost, the data cannot be recovered.
+// ══════════════════════════════════════════════════════════
+const LG = { unlocked:false, key:null, data:{parties:[],entries:[]}, idleTimer:null, party:null };
+const LG_IDLE_MS = 5 * 60 * 1000;   // auto-lock after 5 minutes idle
+const PBKDF2_ITER = 250000;
+
+const _enc = new TextEncoder();
+const _dec = new TextDecoder();
+const b64 = (buf) => btoa(String.fromCharCode(...new Uint8Array(buf)));
+const unb64 = (s) => Uint8Array.from(atob(s), c=>c.charCodeAt(0));
+
+async function sha256Hex(str){
+  const h = await crypto.subtle.digest("SHA-256", _enc.encode(str));
+  return [...new Uint8Array(h)].map(b=>b.toString(16).padStart(2,"0")).join("");
+}
+
+async function deriveKey(password, saltB64){
+  const base = await crypto.subtle.importKey("raw", _enc.encode(password), "PBKDF2", false, ["deriveKey"]);
+  return crypto.subtle.deriveKey(
+    { name:"PBKDF2", salt:unb64(saltB64), iterations:PBKDF2_ITER, hash:"SHA-256" },
+    base,
+    { name:"AES-GCM", length:256 },
+    false,
+    ["encrypt","decrypt"]
+  );
+}
+
+async function lgEncrypt(key, obj){
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const ct = await crypto.subtle.encrypt({name:"AES-GCM", iv}, key, _enc.encode(JSON.stringify(obj)));
+  return { iv:b64(iv), ct:b64(ct) };
+}
+
+async function lgDecrypt(key, blob){
+  const pt = await crypto.subtle.decrypt({name:"AES-GCM", iv:unb64(blob.iv)}, key, unb64(blob.ct));
+  return JSON.parse(_dec.decode(pt));
+}
+
+// ── Idle auto-lock ──
+function lgTouch(){
+  clearTimeout(LG.idleTimer);
+  if(LG.unlocked) LG.idleTimer = setTimeout(()=>lgLock(true), LG_IDLE_MS);
+}
+function lgLock(auto){
+  LG.unlocked = false; LG.key = null; LG.party = null;
+  LG.data = {parties:[],entries:[]};
+  clearTimeout(LG.idleTimer);
+  const m = document.getElementById("mod-ledger");
+  if(m && m.classList.contains("active")) go("home");
+  if(auto) crmToast("🔒 Ledger locked (idle)");
+}
+document.addEventListener("visibilitychange", ()=>{ if(document.visibilityState==="hidden" && LG.unlocked) lgLock(false); });
+
+// ── Entry points: codeword in global search, or 5 taps on the logo ──
+async function lgTryCodeword(text){
+  const cfg = D.ledgerCfg||{};
+  if(!cfg.cwHash) return false;
+  const h = await sha256Hex(text.trim().toLowerCase());
+  if(h !== cfg.cwHash) return false;
+  closeGlobalSearch();
+  lgPrompt();
+  return true;
+}
+
+let __lgTaps = 0, __lgTapTimer = null;
+function lgSecretTap(){
+  if(typeof currentRole!=="undefined" && currentRole==="employee") return;
+  __lgTaps++;
+  clearTimeout(__lgTapTimer);
+  __lgTapTimer = setTimeout(()=>{ __lgTaps = 0; }, 1500);
+  if(__lgTaps >= 5){
+    __lgTaps = 0;
+    lgPrompt();
+  }
+}
+
+// ── Unlock / setup dialog ──
+function lgPrompt(){
+  if(typeof currentRole!=="undefined" && currentRole==="employee") return;
+  const cfg = D.ledgerCfg||{};
+  const first = !cfg.cwHash;
+  document.getElementById("crm-mo-t").textContent = first ? "🔐 Set Up Secure Ledger" : "🔐 Locked";
+  document.getElementById("crm-mo-b").innerHTML = first ? `
+    <div style="background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:11px 14px;margin-bottom:14px;font-size:12.5px;color:#78350f;line-height:1.6">
+      <b>Read this carefully.</b> Your ledger is encrypted with this password before it leaves your device.
+      Nobody — not me, not Anthropic, not Google — can recover it if you forget the password.
+      <b>Write it down somewhere physical.</b>
+    </div>
+    <div class="fg" style="margin-bottom:10px"><label>Codeword <span style="font-size:10px;color:var(--muted)">— type this in search (Ctrl+K) to reveal the module</span></label>
+      <input class="inp" id="lg-cw" placeholder="e.g. blue peacock" style="width:100%" autocomplete="off"></div>
+    <div class="fg" style="margin-bottom:10px"><label>Password <span style="font-size:10px;color:var(--muted)">— encrypts the data</span></label>
+      <input class="inp" id="lg-pw" type="password" placeholder="Long passphrase, 12+ characters" style="width:100%" autocomplete="new-password"></div>
+    <div class="fg" style="margin-bottom:14px"><label>Confirm Password</label>
+      <input class="inp" id="lg-pw2" type="password" style="width:100%" autocomplete="new-password"></div>
+    <div id="lg-msg" style="font-size:12.5px;margin-bottom:10px"></div>
+    <div style="display:flex;gap:8px;justify-content:flex-end;padding-bottom:8px">
+      <button class="btn" onclick="closeCrmMo()">Cancel</button>
+      <button class="btn btn-p" onclick="lgSetup()">🔐 Create Ledger</button>
+    </div>` : `
+    <div class="fg" style="margin-bottom:12px"><label>Password</label>
+      <input class="inp" id="lg-pw" type="password" style="width:100%" autocomplete="current-password"
+             onkeydown="if(event.key==='Enter')lgUnlock()"></div>
+    <div id="lg-msg" style="font-size:12.5px;margin-bottom:10px"></div>
+    <div style="display:flex;gap:8px;justify-content:space-between;padding-bottom:8px">
+      <button class="btn" onclick="lgChangePrompt()" style="font-size:12px">Change codeword/password</button>
+      <div style="display:flex;gap:8px">
+        <button class="btn" onclick="closeCrmMo()">Cancel</button>
+        <button class="btn btn-p" onclick="lgUnlock()">🔓 Unlock</button>
+      </div>
+    </div>`;
+  document.getElementById("crm-mo").style.display="flex";
+  setTimeout(()=>document.getElementById(first?"lg-cw":"lg-pw")?.focus(), 90);
+}
+
+async function lgSetup(){
+  const cw = document.getElementById("lg-cw").value.trim();
+  const pw = document.getElementById("lg-pw").value;
+  const pw2 = document.getElementById("lg-pw2").value;
+  const msg = document.getElementById("lg-msg");
+  msg.style.color = "var(--red)";
+  if(cw.length < 3){ msg.textContent = "Codeword must be at least 3 characters."; return; }
+  if(pw.length < 8){ msg.textContent = "Password must be at least 8 characters."; return; }
+  if(pw !== pw2){ msg.textContent = "Passwords do not match."; return; }
+
+  msg.style.color = "var(--muted)";
+  msg.textContent = "⏳ Deriving encryption key…";
+  const salt = b64(crypto.getRandomValues(new Uint8Array(16)));
+  const key = await deriveKey(pw, salt);
+  const verifier = await lgEncrypt(key, {v:"ledger-ok"});
+
+  D.ledgerCfg = { cwHash: await sha256Hex(cw.toLowerCase()), salt, verifier, createdAt:new Date().toISOString().slice(0,10) };
+  autoSave("ledgerCfg");
+
+  LG.key = key; LG.unlocked = true; LG.data = {parties:[],entries:[]};
+  await lgSave();
+  flushNow();
+  closeCrmMo();
+  lgTouch();
+  go("ledger");
+  crmToast("🔐 Secure ledger created");
+}
+
+async function lgUnlock(){
+  const pw = document.getElementById("lg-pw").value;
+  const msg = document.getElementById("lg-msg");
+  const cfg = D.ledgerCfg||{};
+  msg.style.color = "var(--muted)";
+  msg.textContent = "⏳ Verifying…";
+  try {
+    const key = await deriveKey(pw, cfg.salt);
+    const check = await lgDecrypt(key, cfg.verifier);   // throws if wrong password
+    if(check.v !== "ledger-ok") throw new Error("bad");
+    LG.key = key;
+    const vault = D.ledgerVault;
+    LG.data = (vault && vault.ct) ? await lgDecrypt(key, vault) : {parties:[],entries:[]};
+    if(!LG.data.parties) LG.data.parties = [];
+    if(!LG.data.entries) LG.data.entries = [];
+    LG.unlocked = true;
+    closeCrmMo();
+    lgTouch();
+    go("ledger");
+  } catch(e){
+    msg.style.color = "var(--red)";
+    msg.textContent = "❌ Wrong password.";
+  }
+}
+
+async function lgSave(){
+  if(!LG.unlocked || !LG.key) return;
+  D.ledgerVault = await lgEncrypt(LG.key, LG.data);
+  autoSave("ledgerVault");
+  lgTouch();
+}
+
+function lgChangePrompt(){
+  document.getElementById("crm-mo-t").textContent = "🔐 Change Codeword / Password";
+  document.getElementById("crm-mo-b").innerHTML = `
+    <div style="background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:10px 13px;margin-bottom:14px;font-size:12.5px;color:#78350f">
+      You must enter the current password. Changing the password re-encrypts all ledger data.
+    </div>
+    <div class="fg" style="margin-bottom:10px"><label>Current Password</label>
+      <input class="inp" id="lgc-old" type="password" style="width:100%"></div>
+    <div class="fg" style="margin-bottom:10px"><label>New Codeword</label>
+      <input class="inp" id="lgc-cw" placeholder="Leave blank to keep current" style="width:100%" autocomplete="off"></div>
+    <div class="fg" style="margin-bottom:10px"><label>New Password</label>
+      <input class="inp" id="lgc-pw" type="password" placeholder="Leave blank to keep current" style="width:100%"></div>
+    <div id="lg-msg" style="font-size:12.5px;margin-bottom:10px"></div>
+    <div style="display:flex;gap:8px;justify-content:flex-end;padding-bottom:8px">
+      <button class="btn" onclick="lgPrompt()">Back</button>
+      <button class="btn btn-p" onclick="lgChange()">💾 Update</button>
+    </div>`;
+}
+
+async function lgChange(){
+  const oldPw = document.getElementById("lgc-old").value;
+  const newCw = document.getElementById("lgc-cw").value.trim();
+  const newPw = document.getElementById("lgc-pw").value;
+  const msg = document.getElementById("lg-msg");
+  const cfg = D.ledgerCfg||{};
+  msg.style.color="var(--muted)"; msg.textContent="⏳ Verifying…";
+  let data;
+  try {
+    const oldKey = await deriveKey(oldPw, cfg.salt);
+    await lgDecrypt(oldKey, cfg.verifier);
+    data = (D.ledgerVault && D.ledgerVault.ct) ? await lgDecrypt(oldKey, D.ledgerVault) : {parties:[],entries:[]};
+  } catch(e){ msg.style.color="var(--red)"; msg.textContent="❌ Current password incorrect."; return; }
+
+  if(newPw && newPw.length < 8){ msg.style.color="var(--red)"; msg.textContent="New password must be 8+ characters."; return; }
+
+  const cw = newCw || null;
+  if(newPw){
+    msg.textContent = "⏳ Re-encrypting…";
+    const salt = b64(crypto.getRandomValues(new Uint8Array(16)));
+    const key = await deriveKey(newPw, salt);
+    D.ledgerCfg = { ...cfg, salt, verifier: await lgEncrypt(key, {v:"ledger-ok"}) };
+    LG.key = key;
+    LG.data = data; LG.unlocked = true;
+    D.ledgerVault = await lgEncrypt(key, data);
+    autoSave("ledgerVault");
+  }
+  if(cw) D.ledgerCfg = { ...(D.ledgerCfg||cfg), cwHash: await sha256Hex(cw.toLowerCase()) };
+  autoSave("ledgerCfg"); flushNow();
+  closeCrmMo();
+  crmToast("🔐 Updated");
+}
+
+
+// ── Ledger: parties & entries ──
+function lgSelectParty(pid){ LG.party = pid; R.ledger(); }
+
+function lgPartyForm(pid){
+  lgTouch();
+  const p = pid ? (LG.data.parties||[]).find(x=>x.id===pid) : null;
+  document.getElementById("crm-mo-t").textContent = p ? "✏️ Edit Party" : "➕ New Party";
+  document.getElementById("crm-mo-b").innerHTML = `
+    <div class="fg" style="margin-bottom:10px"><label>Party Name *</label>
+      <input class="inp" id="lgp-name" value="${p?(p.name||"").replace(/"/g,"&quot;"):""}" style="width:100%"></div>
+    <div class="fr" style="margin-bottom:10px">
+      <div class="fg"><label>City</label><input class="inp" id="lgp-city" value="${p?p.city||"":""}" style="width:100%"></div>
+      <div class="fg"><label>Phone</label><input class="inp" id="lgp-phone" value="${p?p.phone||"":""}" style="width:100%"></div>
+    </div>
+    <div class="fg" style="margin-bottom:10px"><label>GSTIN</label>
+      <input class="inp" id="lgp-gstin" value="${p?p.gstin||"":""}" style="width:100%"></div>
+    <div class="fg" style="margin-bottom:14px"><label>Notes</label>
+      <input class="inp" id="lgp-note" value="${p?(p.note||"").replace(/"/g,"&quot;"):""}" style="width:100%"></div>
+    <div style="display:flex;gap:8px;justify-content:flex-end;padding-bottom:8px">
+      <button class="btn" onclick="closeCrmMo()">Cancel</button>
+      <button class="btn btn-p" onclick="lgSaveParty(${p?`'${p.id}'`:"null"})">💾 Save</button>
+    </div>`;
+  document.getElementById("crm-mo").style.display="flex";
+  setTimeout(()=>document.getElementById("lgp-name")?.focus(),80);
+}
+
+async function lgSaveParty(pid){
+  const name = document.getElementById("lgp-name").value.trim();
+  if(!name){ alert("Party name required"); return; }
+  const rec = {
+    name, city:document.getElementById("lgp-city").value.trim(),
+    phone:document.getElementById("lgp-phone").value.trim(),
+    gstin:document.getElementById("lgp-gstin").value.trim(),
+    note:document.getElementById("lgp-note").value.trim(),
+  };
+  if(!LG.data.parties) LG.data.parties = [];
+  if(pid){
+    const i = LG.data.parties.findIndex(x=>x.id===pid);
+    if(i>-1) LG.data.parties[i] = {...LG.data.parties[i], ...rec};
+  } else {
+    rec.id = "lp_"+Date.now();
+    LG.data.parties.push(rec);
+    LG.party = rec.id;
+  }
+  await lgSave(); flushNow();
+  closeCrmMo(); R.ledger();
+}
+
+async function lgDelParty(pid){
+  const p = (LG.data.parties||[]).find(x=>x.id===pid);
+  const n = (LG.data.entries||[]).filter(e=>e.pid===pid).length;
+  if(!p || !confirm(`Delete "${p.name}" and its ${n} entr${n===1?"y":"ies"}? This cannot be undone.`)) return;
+  LG.data.parties = LG.data.parties.filter(x=>x.id!==pid);
+  LG.data.entries = (LG.data.entries||[]).filter(e=>e.pid!==pid);
+  if(LG.party===pid) LG.party = null;
+  await lgSave(); flushNow();
+  R.ledger();
+}
+
+function lgEntryForm(eid){
+  lgTouch();
+  if(!LG.party){ alert("Select a party first"); return; }
+  const e = eid ? (LG.data.entries||[]).find(x=>x.id===eid) : null;
+  document.getElementById("crm-mo-t").textContent = e ? "✏️ Edit Entry" : "➕ New Entry";
+  document.getElementById("crm-mo-b").innerHTML = `
+    <div class="fr" style="margin-bottom:10px">
+      <div class="fg"><label>Date *</label>
+        <input class="inp" id="lge-date" type="date" value="${e?e.date||"":new Date().toISOString().slice(0,10)}" style="width:100%"></div>
+      <div class="fg"><label>Reference</label>
+        <input class="inp" id="lge-ref" value="${e?e.ref||"":""}" placeholder="Bill no. / UTR" style="width:100%"></div>
+    </div>
+    <div class="fg" style="margin-bottom:10px"><label>Particulars *</label>
+      <input class="inp" id="lge-part" value="${e?(e.particulars||"").replace(/"/g,"&quot;"):""}" placeholder="e.g. Sale — 50 bats" style="width:100%"></div>
+    <div class="fr" style="margin-bottom:6px">
+      <div class="fg"><label>Debit <span style="font-size:10px;color:var(--green)">(they owe you)</span></label>
+        <input class="inp" id="lge-debit" type="number" value="${e?e.debit||"":""}" placeholder="0" style="width:100%"></div>
+      <div class="fg"><label>Credit <span style="font-size:10px;color:var(--red)">(payment received)</span></label>
+        <input class="inp" id="lge-credit" type="number" value="${e?e.credit||"":""}" placeholder="0" style="width:100%"></div>
+    </div>
+    <div style="font-size:11px;color:var(--muted);margin-bottom:14px">Fill one side only. Sale/invoice → Debit. Payment received → Credit.</div>
+    <div style="display:flex;gap:8px;justify-content:flex-end;padding-bottom:8px">
+      <button class="btn" onclick="closeCrmMo()">Cancel</button>
+      <button class="btn btn-p" onclick="lgSaveEntry(${e?`'${e.id}'`:"null"})">💾 Save</button>
+    </div>`;
+  document.getElementById("crm-mo").style.display="flex";
+  setTimeout(()=>document.getElementById("lge-part")?.focus(),80);
+}
+
+async function lgSaveEntry(eid){
+  const date = document.getElementById("lge-date").value;
+  const particulars = document.getElementById("lge-part").value.trim();
+  const debit = parseFloat(document.getElementById("lge-debit").value)||0;
+  const credit = parseFloat(document.getElementById("lge-credit").value)||0;
+  if(!date || !particulars){ alert("Date and particulars required"); return; }
+  if(!debit && !credit){ alert("Enter a debit or credit amount"); return; }
+  if(debit && credit){ alert("Fill only one side — debit OR credit"); return; }
+  const rec = { pid:LG.party, date, particulars, ref:document.getElementById("lge-ref").value.trim(), debit, credit };
+  if(!LG.data.entries) LG.data.entries = [];
+  if(eid){
+    const i = LG.data.entries.findIndex(x=>x.id===eid);
+    if(i>-1) LG.data.entries[i] = {...LG.data.entries[i], ...rec};
+  } else {
+    rec.id = "le_"+Date.now();
+    LG.data.entries.push(rec);
+  }
+  await lgSave(); flushNow();
+  closeCrmMo(); R.ledger();
+}
+
+async function lgDelEntry(eid){
+  if(!confirm("Delete this entry?")) return;
+  LG.data.entries = (LG.data.entries||[]).filter(x=>x.id!==eid);
+  await lgSave(); flushNow();
+  R.ledger();
+}
+
 // ══════════════════════════════════════════
 // CRM / CUSTOMERS
 // ══════════════════════════════════════════
@@ -7814,6 +8291,12 @@ document.addEventListener("visibilitychange", ()=>{
   if(document.visibilityState === "hidden" && pendingSaves.size) flushNow();
 });
 window.addEventListener("pagehide", ()=>{ if(pendingSaves.size) flushNow(); });
+
+// Hidden ledger entry point: 5 quick taps on the sync-status dot
+(function(){
+  const el = document.getElementById("sync-status");
+  if(el){ el.style.cursor = "default"; el.addEventListener("click", lgSecretTap); }
+})();
 
 // ── INIT ──
 R_home();
