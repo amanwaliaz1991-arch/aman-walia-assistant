@@ -265,6 +265,32 @@ mark{background:#fef08a;border-radius:2px;padding:0 2px;}
 .seg-n{font-size:11px;font-weight:700;background:rgba(0,0,0,.12);padding:1px 6px;border-radius:9px;margin-left:3px}
 .btn-p .seg-n{background:rgba(255,255,255,.25)}
 @media(max-width:820px){#lg-grid{grid-template-columns:1fr!important}}
+
+/* ── Secure Ledger: sheet tabs + grid ── */
+.lg-tab{background:var(--s2);border:1px solid var(--b1);border-bottom:none;border-radius:8px 8px 0 0;
+  padding:8px 14px;font-size:13px;font-weight:600;cursor:pointer;color:var(--muted);
+  white-space:nowrap;margin-bottom:-2px;transition:all .12s}
+.lg-tab:hover{background:#fff;color:var(--ink)}
+.lg-tab.on{background:#fff;color:var(--ac);border-color:var(--b1);border-bottom:2px solid #fff;font-weight:800}
+table.lg-grid{border-collapse:separate;border-spacing:0}
+table.lg-grid td{padding:0;vertical-align:middle}
+table.lg-grid td .lg-c{width:100%;border:none;outline:none;background:transparent;
+  padding:8px 9px;font-size:13px;font-family:inherit;color:var(--ink);box-sizing:border-box}
+table.lg-grid td .lg-c:focus{background:#eef2ff;box-shadow:inset 0 0 0 2px var(--ac);border-radius:3px}
+table.lg-grid td .amt-in{text-align:right;font-family:'JetBrains Mono',monospace;font-size:12.5px}
+table.lg-grid td .lg-c[data-f="debit"]{color:#15803d}
+table.lg-grid td .lg-c[data-f="credit"]{color:#b91c1c}
+table.lg-grid .lg-bal{text-align:right;padding:8px 10px;font-family:'JetBrains Mono',monospace;
+  font-size:12.5px;font-weight:700;background:var(--s2)}
+table.lg-grid tr.lg-open{background:#fffbeb}
+table.lg-grid tr.lg-open td{padding:2px 0}
+table.lg-grid tr:hover td{background:rgba(79,70,229,.03)}
+table.lg-grid tr.lg-open:hover td{background:#fffbeb}
+table.lg-grid td button.btn-d{padding:2px 7px;font-size:12px}
+@media(max-width:820px){
+  .lg-tab{padding:7px 11px;font-size:12px}
+  table.lg-grid td .lg-c{padding:7px 6px;font-size:12.5px}
+}
 </style>
   <!-- Firebase SDK -->
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
@@ -2050,33 +2076,16 @@ mark{background:#fef08a;border-radius:2px;padding:0 2px;}
     <div><div class="pt">SECURE <span>LEDGER</span></div>
     <div class="pt-sub">🔐 Encrypted · auto-locks after 10 min idle or when app is backgrounded</div></div>
     <div style="display:flex;gap:8px;flex-wrap:wrap">
-      <button class="btn" onclick="lgLock(false);go('home')">🔒 Lock</button>
+      <span id="lg-savestate" style="font-size:12px;color:var(--muted);align-self:center"></span>
       <button class="btn" onclick="lgImportForm()">📋 Paste Import</button>
-      <button class="btn" onclick="lgImportForm()">📋 Paste Import</button>
-      <button class="btn btn-p" onclick="lgPartyForm()">+ New Party</button>
+      <button class="btn" onclick="lgLock(false)">🔒 Lock</button>
     </div>
   </div>
 
-  <div class="g4" id="lg-stats" style="margin-bottom:14px"></div>
+  <!-- SHEET TABS -->
+  <div id="lg-tabs" style="display:flex;gap:4px;align-items:center;overflow-x:auto;border-bottom:2px solid var(--b1);padding-bottom:0;margin-bottom:12px;white-space:nowrap"></div>
 
-  <div style="display:grid;grid-template-columns:280px 1fr;gap:14px" id="lg-grid">
-    <!-- Party list -->
-    <div class="card" style="align-self:start">
-      <div class="card-hdr">Parties</div>
-      <div style="padding:8px 10px">
-        <input class="inp" id="lg-search" placeholder="🔍 Search party" oninput="R.ledger()" style="width:100%;font-size:13px">
-      </div>
-      <div id="lg-parties" style="max-height:60vh;overflow-y:auto"></div>
-    </div>
-
-    <!-- Ledger for selected party -->
-    <div>
-      <div class="card">
-        <div class="card-hdr" id="lg-party-hdr">Select a party</div>
-        <div id="lg-party-body"></div>
-      </div>
-    </div>
-  </div>
+  <div id="lg-sheet"></div>
 </div>
 
 </div><!-- /main -->
@@ -2145,9 +2154,7 @@ function doUndo(){
 function go(id){
   if(id === "ledger" && !LG.unlocked){ lgPrompt(); return; }
   if(id !== "ledger" && typeof LG !== "undefined" && LG.unlocked){
-    // Leaving the module wipes the key + decrypted data from memory
-    LG.unlocked=false; LG.key=null; LG.party=null; LG.data={parties:[],entries:[]};
-    clearTimeout(LG.idleTimer);
+    lgFlushThenWipe();   // saves pending grid edits, then clears the key from memory
   }
   // Employee access guard — only Stock allowed
   if(typeof currentRole!=="undefined" && currentRole==="employee" && id!=="stock" && id!=="production"){ id = "stock"; }
@@ -3496,93 +3503,22 @@ const R={
     if(!LG.unlocked){ lgLock(false); lgPrompt(); return; }
     lgTouch();
     const parties = LG.data.parties||[];
-    const entries = LG.data.entries||[];
-    const sq = (document.getElementById("lg-search")?.value||"").toLowerCase();
+    if(!LG.sheet) LG.sheet = "summary";
+    if(LG.sheet !== "summary" && !parties.find(p=>p.id===LG.sheet)) LG.sheet = "summary";
 
-    const openOf = pid => parseFloat((parties.find(p=>p.id===pid)||{}).opening) || 0;
-    const balOf = pid => openOf(pid) + (entries.filter(e=>e.pid===pid)
-      .reduce((s,e)=>s + (parseFloat(e.debit)||0) - (parseFloat(e.credit)||0), 0));
+    // ── Sheet tabs ──
+    const tab = (id,label,active) => `<button class="lg-tab${active?" on":""}" onclick="lgSheet('${id}')">${label}</button>`;
+    document.getElementById("lg-tabs").innerHTML =
+      tab("summary","📊 Summary", LG.sheet==="summary") +
+      parties.map(p=>tab(p.id, p.name, LG.sheet===p.id)).join("") +
+      `<button class="lg-tab" style="color:var(--ac);font-weight:700" onclick="lgPartyForm()">＋ Party</button>`;
 
-    const totalRecv = parties.reduce((s,p)=>{ const b=balOf(p.id); return s + (b>0?b:0); },0);
-    const totalPay  = parties.reduce((s,p)=>{ const b=balOf(p.id); return s + (b<0?-b:0); },0);
-    document.getElementById("lg-stats").innerHTML =
-      sc("var(--ac)","Parties",parties.length) +
-      sc("var(--green)","Receivable",fa(Math.round(totalRecv)),"They owe you") +
-      sc("var(--red)","Payable",fa(Math.round(totalPay)),"You owe them") +
-      sc("var(--gold)","Entries",entries.length);
-
-    // Party list
-    const shown = parties.filter(p=>!sq || (p.name||"").toLowerCase().includes(sq) || (p.phone||"").includes(sq));
-    document.getElementById("lg-parties").innerHTML = shown.length ? shown
-      .slice().sort((a,b)=>Math.abs(balOf(b.id))-Math.abs(balOf(a.id)))
-      .map(p=>{
-        const b = balOf(p.id);
-        const sel = LG.party===p.id;
-        return `<div onclick="lgSelectParty('${p.id}')" style="padding:10px 12px;border-bottom:1px solid var(--b1);cursor:pointer;${sel?"background:var(--s2);border-left:3px solid var(--ac)":""}">
-          <div style="font-size:13.5px;font-weight:700">${p.name}</div>
-          <div style="display:flex;justify-content:space-between;align-items:center;gap:6px;margin-top:2px">
-            <span style="font-size:11px;color:var(--muted)">${p.city||p.phone||""}</span>
-            <span style="font-family:'JetBrains Mono';font-size:12px;font-weight:700;color:${b>0?"var(--green)":b<0?"var(--red)":"var(--muted)"}">
-              ${b===0?"—":fa(Math.abs(Math.round(b)))} ${b>0?"Dr":b<0?"Cr":""}</span>
-          </div>
-        </div>`;
-      }).join("")
-      : `<div style="padding:18px;text-align:center;color:var(--muted);font-size:13px">${parties.length?"No match":"No parties yet"}</div>`;
-
-    // Selected party ledger
-    const hdr = document.getElementById("lg-party-hdr");
-    const body = document.getElementById("lg-party-body");
-    const p = parties.find(x=>x.id===LG.party);
-    if(!p){
-      hdr.textContent = "Select a party";
-      body.innerHTML = `<div class="es" style="padding:40px"><div class="em">🔐</div>Pick a party on the left, or add a new one.</div>`;
-      return;
-    }
-    const rows = entries.filter(e=>e.pid===p.id).slice().sort((a,b)=>(a.date||"").localeCompare(b.date||""));
-    const opening = parseFloat(p.opening)||0;
-    let run = opening;
-    hdr.innerHTML = `${p.name} <span style="font-weight:400;font-size:12px;color:var(--muted)">${[p.city,p.phone,p.gstin].filter(Boolean).join(" · ")}</span>
-      <span style="float:right;display:flex;gap:6px">
-        <button class="btn btn-sm btn-p" onclick="lgEntryForm()">+ Entry</button>
-        <button class="btn-e" onclick="lgPartyForm('${p.id}')">✏️</button>
-        <button class="btn-d" onclick="lgDelParty('${p.id}')">🗑</button>
-      </span>`;
-    body.innerHTML = rows.length ? `
-      <div class="tbl-scroll"><table class="tbl">
-        <thead><tr><th style="width:92px">Date</th><th>Particulars</th><th style="width:110px;text-align:right">Debit</th><th style="width:110px;text-align:right">Credit</th><th style="width:120px;text-align:right">Balance</th><th style="width:60px"></th></tr></thead>
-        <tbody>${opening?`<tr style="background:var(--s2)">
-            <td style="font-size:12.5px">—</td>
-            <td style="font-size:13px;font-weight:700">Opening Balance</td>
-            <td class="amt" style="text-align:right">—</td>
-            <td class="amt" style="text-align:right">—</td>
-            <td class="amt" style="text-align:right;font-weight:700">${fa(Math.abs(opening))} ${opening>0?"Dr":"Cr"}</td>
-            <td></td></tr>`:""}
-          ${rows.map(e=>{
-          const d = parseFloat(e.debit)||0, c = parseFloat(e.credit)||0;
-          run += d - c;
-          return `<tr>
-            <td style="font-size:12.5px;white-space:nowrap">${fd(e.date)}</td>
-            <td style="font-size:13px">${e.particulars||"—"}${e.ref?`<div style="font-size:11px;color:var(--muted)">Ref: ${e.ref}</div>`:""}</td>
-            <td class="amt" style="text-align:right;color:var(--green)">${d?fa(d):"—"}</td>
-            <td class="amt" style="text-align:right;color:var(--red)">${c?fa(c):"—"}</td>
-            <td class="amt" style="text-align:right;font-weight:700">${fa(Math.abs(Math.round(run)))} ${run>0?"Dr":run<0?"Cr":""}</td>
-            <td style="white-space:nowrap">
-              <button class="btn-e" onclick="lgEntryForm('${e.id}')">✏️</button>
-              <button class="btn-d" onclick="lgDelEntry('${e.id}')">🗑</button>
-            </td>
-          </tr>`;
-        }).join("")}</tbody>
-        <tfoot><tr style="background:var(--s2);font-weight:800">
-          <td colspan="2" style="text-align:right">Closing Balance${opening?` <span style="font-weight:400;font-size:11px;color:var(--muted)">(incl. opening ${fa(Math.abs(opening))})</span>`:""}</td>
-          <td class="amt" style="text-align:right">${fa(rows.reduce((s,e)=>s+(parseFloat(e.debit)||0),0) + (opening>0?opening:0))}</td>
-          <td class="amt" style="text-align:right">${fa(rows.reduce((s,e)=>s+(parseFloat(e.credit)||0),0) + (opening<0?-opening:0))}</td>
-          <td class="amt" style="text-align:right;color:${run>0?"var(--green)":run<0?"var(--red)":"inherit"}">${fa(Math.abs(Math.round(run)))} ${run>0?"Dr":run<0?"Cr":""}</td>
-          <td></td>
-        </tr></tfoot>
-      </table></div>`
-      : `<div class="es" style="padding:34px"><div class="em">📒</div>${opening?`Opening balance <b>${fa(Math.abs(opening))} ${opening>0?"Dr":"Cr"}</b>. `:""}No entries for ${p.name}.
-         <div style="margin-top:12px"><button class="btn btn-p" onclick="lgEntryForm()">+ Add first entry</button></div></div>`;
+    const sheet = document.getElementById("lg-sheet");
+    if(LG.sheet === "summary"){ sheet.innerHTML = lgSummaryHTML(); return; }
+    sheet.innerHTML = lgGridHTML(parties.find(p=>p.id===LG.sheet));
+    lgRecalc();
   },
+
   accounts(){
     const sf = document.getElementById("acc-status-f")?.value||"";
     const cf = document.getElementById("acc-cat-f")?.value||"";
@@ -7210,7 +7146,8 @@ function crmDaysAgo(dstr){
 // ciphertext. The password is never stored or transmitted.
 // If the password is lost, the data cannot be recovered.
 // ══════════════════════════════════════════════════════════
-const LG = { unlocked:false, key:null, data:{parties:[],entries:[]}, idleTimer:null, party:null };
+const LG = { unlocked:false, key:null, data:{parties:[],entries:[]}, idleTimer:null, party:null, sheet:null };
+var __lgSaveTimer = null;
 const LG_IDLE_MS = 10 * 60 * 1000;  // auto-lock after 10 minutes idle
 const PBKDF2_ITER = 250000;
 
@@ -7251,19 +7188,34 @@ function lgTouch(){
   clearTimeout(LG.idleTimer);
   if(LG.unlocked) LG.idleTimer = setTimeout(()=>lgLock(true), LG_IDLE_MS);
 }
-function lgLock(auto){
-  const wasOnLedger = document.getElementById("mod-ledger")?.classList.contains("on");
-  LG.unlocked = false; LG.key = null; LG.party = null;
+function lgWipe(){
+  LG.unlocked = false; LG.key = null; LG.party = null; LG.sheet = null;
   LG.data = {parties:[],entries:[]};
   clearTimeout(LG.idleTimer);
-  if(wasOnLedger){
-    // Leave the module immediately — never leave stale data on screen
-    document.querySelectorAll(".mod").forEach(m=>m.classList.remove("on"));
-    document.getElementById("mod-home")?.classList.add("on");
-    document.getElementById("n-home")?.classList.add("on");
-    if(typeof R_home==="function") R_home();
-  }
-  if(auto) crmToast("🔒 Ledger locked — 10 min idle");
+}
+
+// Save any pending grid edits BEFORE destroying the key, then wipe.
+function lgFlushThenWipe(done){
+  const pending = !!(typeof __lgSaveTimer!=="undefined" && __lgSaveTimer);
+  if(typeof __lgSaveTimer!=="undefined"){ clearTimeout(__lgSaveTimer); __lgSaveTimer = null; }
+  const finish = ()=>{ lgWipe(); if(done) done(); };
+  if(pending && LG.unlocked && LG.key){
+    lgSave().then(()=>{ flushNow(); finish(); }).catch(finish);
+  } else finish();
+}
+
+function lgLock(auto){
+  const wasOnLedger = document.getElementById("mod-ledger")?.classList.contains("on");
+  lgFlushThenWipe(()=>{
+    if(wasOnLedger){
+      document.querySelectorAll(".mod").forEach(m=>m.classList.remove("on"));
+      document.querySelectorAll(".sb-item,.bnav-item").forEach(m=>m.classList.remove("on"));
+      document.getElementById("mod-home")?.classList.add("on");
+      document.getElementById("n-home")?.classList.add("on");
+      if(typeof R_home==="function") R_home();
+    }
+    if(auto) crmToast("🔒 Ledger locked — 10 min idle");
+  });
 }
 document.addEventListener("visibilitychange", ()=>{ if(document.visibilityState==="hidden" && LG.unlocked) lgLock(false); });
 
@@ -7449,34 +7401,6 @@ async function lgChange(){
 
 
 // ── Ledger: parties & entries ──
-function lgSelectParty(pid){ LG.party = pid; R.ledger(); }
-
-function lgPartyForm(pid){
-  lgTouch();
-  const p = pid ? (LG.data.parties||[]).find(x=>x.id===pid) : null;
-  document.getElementById("crm-mo-t").textContent = p ? "✏️ Edit Party" : "➕ New Party";
-  document.getElementById("crm-mo-b").innerHTML = `
-    <div class="fg" style="margin-bottom:10px"><label>Party Name *</label>
-      <input class="inp" id="lgp-name" value="${p?(p.name||"").replace(/"/g,"&quot;"):""}" style="width:100%"></div>
-    <div class="fr" style="margin-bottom:10px">
-      <div class="fg"><label>City</label><input class="inp" id="lgp-city" value="${p?p.city||"":""}" style="width:100%"></div>
-      <div class="fg"><label>Phone</label><input class="inp" id="lgp-phone" value="${p?p.phone||"":""}" style="width:100%"></div>
-    </div>
-    <div class="fr" style="margin-bottom:10px">
-      <div class="fg"><label>GSTIN</label>
-        <input class="inp" id="lgp-gstin" value="${p?p.gstin||"":""}" style="width:100%"></div>
-      <div class="fg"><label>Opening Balance <span style="font-size:10px;color:var(--muted)">(+ = they owe you)</span></label>
-        <input class="inp" id="lgp-opening" type="number" value="${p?p.opening||0:0}" style="width:100%"></div>
-    </div>
-    <div class="fg" style="margin-bottom:14px"><label>Notes</label>
-      <input class="inp" id="lgp-note" value="${p?(p.note||"").replace(/"/g,"&quot;"):""}" style="width:100%"></div>
-    <div style="display:flex;gap:8px;justify-content:flex-end;padding-bottom:8px">
-      <button class="btn" onclick="closeCrmMo()">Cancel</button>
-      <button class="btn btn-p" onclick="lgSaveParty(${p?`'${p.id}'`:"null"})">💾 Save</button>
-    </div>`;
-  document.getElementById("crm-mo").style.display="flex";
-  setTimeout(()=>document.getElementById("lgp-name")?.focus(),80);
-}
 
 async function lgSaveParty(pid){
   const name = document.getElementById("lgp-name").value.trim();
@@ -7495,7 +7419,7 @@ async function lgSaveParty(pid){
   } else {
     rec.id = "lp_"+Date.now();
     LG.data.parties.push(rec);
-    LG.party = rec.id;
+    LG.sheet = rec.id;
   }
   await lgSave(); flushNow();
   closeCrmMo(); R.ledger();
@@ -7507,67 +7431,13 @@ async function lgDelParty(pid){
   if(!p || !confirm(`Delete "${p.name}" and its ${n} entr${n===1?"y":"ies"}? This cannot be undone.`)) return;
   LG.data.parties = LG.data.parties.filter(x=>x.id!==pid);
   LG.data.entries = (LG.data.entries||[]).filter(e=>e.pid!==pid);
-  if(LG.party===pid) LG.party = null;
+  if(LG.sheet===pid) LG.sheet = "summary";
   await lgSave(); flushNow();
   R.ledger();
 }
 
-function lgEntryForm(eid){
-  lgTouch();
-  if(!LG.party){ alert("Select a party first"); return; }
-  const e = eid ? (LG.data.entries||[]).find(x=>x.id===eid) : null;
-  document.getElementById("crm-mo-t").textContent = e ? "✏️ Edit Entry" : "➕ New Entry";
-  document.getElementById("crm-mo-b").innerHTML = `
-    <div class="fr" style="margin-bottom:10px">
-      <div class="fg"><label>Date *</label>
-        <input class="inp" id="lge-date" type="date" value="${e?e.date||"":new Date().toISOString().slice(0,10)}" style="width:100%"></div>
-      <div class="fg"><label>Reference</label>
-        <input class="inp" id="lge-ref" value="${e?e.ref||"":""}" placeholder="Bill no. / UTR" style="width:100%"></div>
-    </div>
-    <div class="fg" style="margin-bottom:10px"><label>Particulars *</label>
-      <input class="inp" id="lge-part" value="${e?(e.particulars||"").replace(/"/g,"&quot;"):""}" placeholder="e.g. Sale — 50 bats" style="width:100%"></div>
-    <div class="fr" style="margin-bottom:6px">
-      <div class="fg"><label>Debit <span style="font-size:10px;color:var(--green)">(they owe you)</span></label>
-        <input class="inp" id="lge-debit" type="number" value="${e?e.debit||"":""}" placeholder="0" style="width:100%"></div>
-      <div class="fg"><label>Credit <span style="font-size:10px;color:var(--red)">(payment received)</span></label>
-        <input class="inp" id="lge-credit" type="number" value="${e?e.credit||"":""}" placeholder="0" style="width:100%"></div>
-    </div>
-    <div style="font-size:11px;color:var(--muted);margin-bottom:14px">Fill one side only. Sale/invoice → Debit. Payment received → Credit.</div>
-    <div style="display:flex;gap:8px;justify-content:flex-end;padding-bottom:8px">
-      <button class="btn" onclick="closeCrmMo()">Cancel</button>
-      <button class="btn btn-p" onclick="lgSaveEntry(${e?`'${e.id}'`:"null"})">💾 Save</button>
-    </div>`;
-  document.getElementById("crm-mo").style.display="flex";
-  setTimeout(()=>document.getElementById("lge-part")?.focus(),80);
-}
 
-async function lgSaveEntry(eid){
-  const date = document.getElementById("lge-date").value;
-  const particulars = document.getElementById("lge-part").value.trim();
-  const debit = parseFloat(document.getElementById("lge-debit").value)||0;
-  const credit = parseFloat(document.getElementById("lge-credit").value)||0;
-  if(!date || !particulars){ alert("Date and particulars required"); return; }
-  if(!debit && !credit){ alert("Enter a debit or credit amount"); return; }
-  if(debit && credit){ alert("Fill only one side — debit OR credit"); return; }
-  const rec = { pid:LG.party, date, particulars, ref:document.getElementById("lge-ref").value.trim(), debit, credit };
-  if(!LG.data.entries) LG.data.entries = [];
-  if(eid){
-    const i = LG.data.entries.findIndex(x=>x.id===eid);
-    if(i>-1) LG.data.entries[i] = {...LG.data.entries[i], ...rec};
-  } else {
-    rec.id = "le_"+Date.now();
-    LG.data.entries.push(rec);
-  }
-  await lgSave(); flushNow();
-  closeCrmMo(); R.ledger();
-}
 
-async function lgDelEntry(eid){
-  if(!confirm("Delete this entry?")) return;
-  LG.data.entries = (LG.data.entries||[]).filter(x=>x.id!==eid);
-  await lgSave(); flushNow();
-  R.ledger();
-}
 
 
 // ── Paste importer: tab/comma separated ledger rows ──
@@ -7721,6 +7591,256 @@ async function lgDoImport(){
 }
 
 
+
+// ══════════════════════════════════════════
+// LEDGER GRID — spreadsheet-style entry
+// Rows edit in place; balances recompute live.
+// Never re-renders the grid while typing (focus).
+// ══════════════════════════════════════════
+function lgSheet(id){ LG.sheet = id; R.ledger(); }
+
+function lgOpening(p){ return parseFloat(p?.opening)||0; }
+function lgRowsFor(pid){ return (LG.data.entries||[]).filter(e=>e.pid===pid); }
+function lgBalOf(pid){
+  const p = (LG.data.parties||[]).find(x=>x.id===pid);
+  return lgOpening(p) + lgRowsFor(pid).reduce((s,e)=>s+(parseFloat(e.debit)||0)-(parseFloat(e.credit)||0),0);
+}
+const drcr = n => n>0 ? "Dr" : n<0 ? "Cr" : "";
+
+// ── Summary sheet ──
+function lgSummaryHTML(){
+  const parties = LG.data.parties||[];
+  const recv = parties.reduce((s,p)=>{const b=lgBalOf(p.id); return s+(b>0?b:0);},0);
+  const pay  = parties.reduce((s,p)=>{const b=lgBalOf(p.id); return s+(b<0?-b:0);},0);
+  const entries = (LG.data.entries||[]).length;
+
+  if(!parties.length) return `<div class="es" style="padding:50px"><div class="em">📒</div>
+    No parties yet.<div style="margin-top:14px;display:flex;gap:8px;justify-content:center">
+    <button class="btn btn-p" onclick="lgPartyForm()">+ New Party</button>
+    <button class="btn" onclick="lgImportForm()">📋 Paste Import</button></div></div>`;
+
+  return `<div class="g4" style="margin-bottom:14px">
+      ${sc("var(--ac)","Parties",parties.length)}
+      ${sc("var(--green)","Receivable",fa(Math.round(recv)),"They owe you")}
+      ${sc("var(--red)","Payable",fa(Math.round(pay)),"You owe them")}
+      ${sc("var(--gold)","Total Entries",entries)}
+    </div>
+    <div class="card"><div class="card-hdr">All Parties</div>
+    <div class="tbl-scroll"><table class="tbl">
+      <thead><tr><th>Party</th><th>City</th><th style="text-align:right">Opening</th>
+        <th style="text-align:right">Debit</th><th style="text-align:right">Credit</th>
+        <th style="text-align:right">Closing</th><th style="width:50px"></th></tr></thead>
+      <tbody>${parties.slice().sort((a,b)=>Math.abs(lgBalOf(b.id))-Math.abs(lgBalOf(a.id))).map(p=>{
+        const rows = lgRowsFor(p.id);
+        const d = rows.reduce((s,e)=>s+(parseFloat(e.debit)||0),0);
+        const c = rows.reduce((s,e)=>s+(parseFloat(e.credit)||0),0);
+        const bal = lgBalOf(p.id);
+        return `<tr style="cursor:pointer" onclick="lgSheet('${p.id}')">
+          <td><b>${p.name}</b>${p.gstin?`<div style="font-size:11px;color:var(--muted)">${p.gstin}</div>`:""}</td>
+          <td style="font-size:12.5px">${p.city||"—"}</td>
+          <td class="amt" style="text-align:right">${lgOpening(p)?fa(Math.abs(lgOpening(p)))+" "+drcr(lgOpening(p)):"—"}</td>
+          <td class="amt" style="text-align:right;color:var(--green)">${d?fa(d):"—"}</td>
+          <td class="amt" style="text-align:right;color:var(--red)">${c?fa(c):"—"}</td>
+          <td class="amt" style="text-align:right;font-weight:800;color:${bal>0?"var(--green)":bal<0?"var(--red)":"inherit"}">${fa(Math.abs(Math.round(bal)))} ${drcr(bal)}</td>
+          <td onclick="event.stopPropagation()"><button class="btn-e" onclick="lgPartyForm('${p.id}')">✏️</button></td>
+        </tr>`;
+      }).join("")}</tbody>
+      <tfoot><tr style="background:var(--s2);font-weight:800">
+        <td colspan="5" style="text-align:right">Net Position</td>
+        <td class="amt" style="text-align:right;color:${recv-pay>=0?"var(--green)":"var(--red)"}">${fa(Math.abs(Math.round(recv-pay)))} ${drcr(recv-pay)}</td><td></td>
+      </tr></tfoot>
+    </table></div></div>`;
+}
+
+// ── Grid sheet for one party ──
+function lgGridHTML(p){
+  if(!p) return "";
+  const rows = lgRowsFor(p.id).slice().sort((a,b)=>(a.date||"9999").localeCompare(b.date||"9999"));
+  return `
+  <div class="card" style="margin-bottom:12px">
+    <div class="card-hdr">
+      ${p.name}
+      <span style="font-weight:400;font-size:12px;color:var(--muted)">${[p.city,p.phone,p.gstin].filter(Boolean).join(" · ")}</span>
+      <span style="float:right;display:flex;gap:6px">
+        <button class="btn btn-sm" onclick="lgSortRows()">↕ Sort by date</button>
+        <button class="btn-e" onclick="lgPartyForm('${p.id}')">✏️</button>
+        <button class="btn-d" onclick="lgDelParty('${p.id}')">🗑</button>
+      </span>
+    </div>
+    <div class="tbl-scroll">
+      <table class="tbl lg-grid">
+        <thead><tr>
+          <th style="width:118px">Date</th>
+          <th>Particulars</th>
+          <th style="width:100px">Ref</th>
+          <th style="width:118px;text-align:right">Debit</th>
+          <th style="width:118px;text-align:right">Credit</th>
+          <th style="width:130px;text-align:right">Balance</th>
+          <th style="width:38px"></th>
+        </tr></thead>
+        <tbody id="lg-body">
+          <tr class="lg-open">
+            <td style="color:var(--muted);font-size:12.5px">—</td>
+            <td style="font-weight:700">Opening Balance</td>
+            <td></td>
+            <td><input class="lg-c amt-in" data-f="opening" value="${lgOpening(p)>0?lgOpening(p):""}" placeholder="0" inputmode="decimal"></td>
+            <td><input class="lg-c amt-in" data-f="openingCr" value="${lgOpening(p)<0?-lgOpening(p):""}" placeholder="0" inputmode="decimal"></td>
+            <td class="lg-bal">—</td>
+            <td></td>
+          </tr>
+          ${rows.map(e=>lgRowHTML(e)).join("")}
+        </tbody>
+        <tfoot><tr style="background:var(--s2);font-weight:800">
+          <td colspan="3" style="text-align:right">Totals</td>
+          <td class="amt" style="text-align:right" id="lg-td">—</td>
+          <td class="amt" style="text-align:right" id="lg-tc">—</td>
+          <td class="amt" style="text-align:right" id="lg-tb">—</td>
+          <td></td>
+        </tr></tfoot>
+      </table>
+    </div>
+    <div style="padding:10px 14px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+      <button class="btn btn-p btn-sm" onclick="lgAddRow()">+ Add Row</button>
+      <span style="font-size:11.5px;color:var(--muted)">Tip: press <b>Enter</b> in the last row to add another. Sale → Debit. Payment received → Credit.</span>
+    </div>
+  </div>`;
+}
+
+function lgRowHTML(e){
+  return `<tr data-id="${e.id}">
+    <td><input class="lg-c" type="date" data-f="date" value="${e.date||""}"></td>
+    <td><input class="lg-c" data-f="particulars" value="${(e.particulars||"").replace(/"/g,"&quot;")}" placeholder="Description"></td>
+    <td><input class="lg-c" data-f="ref" value="${(e.ref||"").replace(/"/g,"&quot;")}" placeholder="Bill / UTR"></td>
+    <td><input class="lg-c amt-in" data-f="debit" value="${e.debit||""}" placeholder="0" inputmode="decimal"></td>
+    <td><input class="lg-c amt-in" data-f="credit" value="${e.credit||""}" placeholder="0" inputmode="decimal"></td>
+    <td class="lg-bal">—</td>
+    <td><button class="btn-d" onclick="lgDelRow('${e.id}')">✕</button></td>
+  </tr>`;
+}
+
+// ── Live recalculation (balance column + footer) without re-rendering inputs ──
+function lgRecalc(){
+  const p = (LG.data.parties||[]).find(x=>x.id===LG.sheet);
+  if(!p) return;
+  const body = document.getElementById("lg-body");
+  if(!body) return;
+
+  const openRow = body.querySelector("tr.lg-open");
+  const openDr = parseFloat(openRow?.querySelector('[data-f="opening"]')?.value)||0;
+  const openCr = parseFloat(openRow?.querySelector('[data-f="openingCr"]')?.value)||0;
+  let run = openDr - openCr;
+  if(openRow) openRow.querySelector(".lg-bal").textContent = run ? `${fa(Math.abs(run))} ${drcr(run)}` : "—";
+
+  let totD = openDr, totC = openCr;
+  body.querySelectorAll("tr[data-id]").forEach(tr=>{
+    const d = parseFloat(tr.querySelector('[data-f="debit"]')?.value)||0;
+    const c = parseFloat(tr.querySelector('[data-f="credit"]')?.value)||0;
+    totD += d; totC += c;
+    run += d - c;
+    const bal = tr.querySelector(".lg-bal");
+    if(bal){
+      bal.textContent = `${fa(Math.abs(Math.round(run)))} ${drcr(run)}`;
+      bal.style.color = run>0 ? "var(--green)" : run<0 ? "var(--red)" : "var(--muted)";
+    }
+  });
+  document.getElementById("lg-td").textContent = totD?fa(Math.round(totD)):"—";
+  document.getElementById("lg-tc").textContent = totC?fa(Math.round(totC)):"—";
+  const tb = document.getElementById("lg-tb");
+  tb.textContent = `${fa(Math.abs(Math.round(run)))} ${drcr(run)}`;
+  tb.style.color = run>0 ? "var(--green)" : run<0 ? "var(--red)" : "inherit";
+}
+
+// ── Edit handling (delegated, so new rows work automatically) ──
+function lgMarkDirty(){
+  const s = document.getElementById("lg-savestate");
+  if(s){ s.textContent = "● unsaved"; s.style.color = "var(--orange)"; }
+  clearTimeout(__lgSaveTimer);
+  __lgSaveTimer = setTimeout(async ()=>{
+    await lgSave(); flushNow();
+    const el = document.getElementById("lg-savestate");
+    if(el){ el.textContent = "✓ saved"; el.style.color = "var(--green)"; setTimeout(()=>{ if(el.textContent==="✓ saved") el.textContent=""; }, 2500); }
+  }, 900);
+}
+
+document.addEventListener("input", (ev)=>{
+  const inp = ev.target;
+  if(!inp.classList || !inp.classList.contains("lg-c")) return;
+  if(!LG.unlocked) return;
+  const f = inp.dataset.f;
+  const tr = inp.closest("tr");
+  const p = (LG.data.parties||[]).find(x=>x.id===LG.sheet);
+  if(!p) return;
+
+  if(tr.classList.contains("lg-open")){
+    const dr = parseFloat(tr.querySelector('[data-f="opening"]').value)||0;
+    const cr = parseFloat(tr.querySelector('[data-f="openingCr"]').value)||0;
+    p.opening = dr - cr;
+  } else {
+    const id = tr.dataset.id;
+    const e = (LG.data.entries||[]).find(x=>x.id===id);
+    if(!e) return;
+    if(f==="debit" || f==="credit"){
+      e[f] = parseFloat(inp.value)||0;
+      // one side only — clear the other
+      const other = f==="debit" ? "credit" : "debit";
+      if(e[f]){ e[other] = 0; const oi = tr.querySelector(`[data-f="${other}"]`); if(oi) oi.value = ""; }
+    } else {
+      e[f] = inp.value;
+    }
+  }
+  lgRecalc();
+  lgMarkDirty();
+  lgTouch();
+});
+
+// Enter in the last row adds a new one
+document.addEventListener("keydown", (ev)=>{
+  if(!LG.unlocked) return;
+  const inp = ev.target;
+  if(!inp.classList || !inp.classList.contains("lg-c")) return;
+  if(ev.key !== "Enter") return;
+  ev.preventDefault();
+  const body = document.getElementById("lg-body");
+  const rows = body.querySelectorAll("tr[data-id]");
+  const last = rows[rows.length-1];
+  if(!last || last.contains(inp)) lgAddRow();
+  else {
+    const next = inp.closest("tr").nextElementSibling;
+    next?.querySelector('[data-f="particulars"]')?.focus();
+  }
+});
+
+function lgAddRow(){
+  const p = (LG.data.parties||[]).find(x=>x.id===LG.sheet);
+  if(!p){ alert("Open a party sheet first"); return; }
+  const prev = lgRowsFor(p.id);
+  const lastDate = prev.length ? prev[prev.length-1].date : new Date().toISOString().slice(0,10);
+  const e = { id:"le_"+Date.now()+"_"+Math.floor(Math.random()*1000), pid:p.id,
+              date:lastDate||new Date().toISOString().slice(0,10), particulars:"", ref:"", debit:0, credit:0 };
+  if(!LG.data.entries) LG.data.entries = [];
+  LG.data.entries.push(e);
+  const body = document.getElementById("lg-body");
+  body.insertAdjacentHTML("beforeend", lgRowHTML(e));
+  lgRecalc();
+  lgMarkDirty();
+  body.querySelector(`tr[data-id="${e.id}"] [data-f="particulars"]`)?.focus();
+}
+
+function lgDelRow(id){
+  const e = (LG.data.entries||[]).find(x=>x.id===id);
+  const filled = e && (e.particulars || e.debit || e.credit);
+  if(filled && !confirm("Delete this row?")) return;
+  LG.data.entries = (LG.data.entries||[]).filter(x=>x.id!==id);
+  document.querySelector(`tr[data-id="${id}"]`)?.remove();
+  lgRecalc();
+  lgMarkDirty();
+}
+
+function lgSortRows(){
+  R.ledger();   // rows are rendered date-sorted
+  crmToast("Sorted by date");
+}
+
 // ══════════════════════════════════════════
 // LEDGER PASTE IMPORT
 // Paste a tab/comma separated table, map the
@@ -7873,7 +7993,7 @@ async function lgDoImport(){
     LG.data.entries.push({ id:"le_"+Date.now()+"_"+(i++), pid, date:r.date, particulars:r.particulars, ref:"", debit:r.debit, credit:r.credit });
   });
 
-  LG.party = pid;
+  LG.sheet = pid;
   await lgSave(); flushNow();
   closeCrmMo(); R.ledger();
   crmToast(`✅ Imported ${rows.length} entries`);
@@ -8633,7 +8753,7 @@ function qtFillFromCrm(){
 document.addEventListener("visibilitychange", ()=>{
   if(document.visibilityState === "hidden" && pendingSaves.size) flushNow();
 });
-window.addEventListener("pagehide", ()=>{ if(pendingSaves.size) flushNow(); });
+window.addEventListener("pagehide", ()=>{ if(typeof __lgSaveTimer!=="undefined" && __lgSaveTimer && LG.unlocked) lgFlushThenWipe(); if(pendingSaves.size) flushNow(); });
 
 // Hidden ledger entry point: 5 quick taps on the sync-status dot
 (function(){
