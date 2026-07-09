@@ -1999,7 +1999,7 @@ mark{background:#fef08a;border-radius:2px;padding:0 2px;}
     <div class="mo-title"><span>📥 IndiaMart Leads</span><button class="mo-x" onclick="closeImMo()">✕</button></div>
     <div id="im-mo-b">
       <div style="background:#eff6ff;border:1px solid #c7d2fe;border-radius:8px;padding:10px 14px;margin-bottom:14px;font-size:12.5px;color:#3730a3">
-        Fetches <b>ALL</b> leads from IndiaMart in the date range. Filter by keyword/city afterwards — nothing gets missed.
+        Fetches <b>ALL</b> leads from IndiaMart in the date range, then you filter by keyword/city here — nothing gets missed.<br><b>Note:</b> IndiaMart allows a maximum <b>7-day</b> window per fetch.
       </div>
       <div class="fr">
         <div class="fg" style="flex:2"><label>IndiaMart CRM Key *</label>
@@ -7234,9 +7234,20 @@ function setCrmInterest(id, lvl){
 // ══════════════════════════════════════════
 window.__imFetched = [];
 
+
+// Normalise IndiaMart phone: "+91-9390160191" -> "919390160191"
+function imPhone(l){
+  const raw = l.SENDER_MOBILE || l.SENDER_MOBILE_ALT || l.SENDER_PHONE || "";
+  let d = String(raw).replace(/\D/g,"");
+  if(!d) return "";
+  if(d.length > 10) d = d.slice(-10);   // strip country code / leading zeros
+  if(d.length !== 10) return "";
+  return "91" + d;
+}
+
 function openImFetch(){
   document.getElementById("im-key").value = localStorage.getItem("im_key")||"";
-  const to = new Date(), from = new Date(Date.now()-7*86400000);
+  const to = new Date(), from = new Date(Date.now()-6*86400000);
   document.getElementById("im-to").value = to.toISOString().slice(0,10);
   document.getElementById("im-from").value = from.toISOString().slice(0,10);
   document.getElementById("im-results").style.display="none";
@@ -7255,8 +7266,20 @@ function fetchAllImLeads(){
 
   const fromV = document.getElementById("im-from").value;
   const toV   = document.getElementById("im-to").value;
-  const from = fromV ? new Date(fromV) : new Date(Date.now()-7*86400000);
+  const from = fromV ? new Date(fromV) : new Date(Date.now()-6*86400000);
   const to   = toV ? new Date(toV) : new Date();
+  // IndiaMart hard limit: max 7 days between start and end
+  const spanDays = (to - from)/86400000;
+  if(spanDays > 6.5){
+    status.style.color="var(--red)";
+    status.textContent = "❌ IndiaMart allows max 7 days. Narrow the date range.";
+    return;
+  }
+  if(spanDays < 0){
+    status.style.color="var(--red)";
+    status.textContent = "❌ 'From' date must be before 'To' date.";
+    return;
+  }
   const fmt = (d,eod)=>{
     const p=n=>String(n).padStart(2,"0");
     return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}${eod?" 23:59:59":" 00:00:00"}`;
@@ -7318,11 +7341,12 @@ function renderImLeads(){
   document.getElementById("im-count").innerHTML =
     `Showing <b>${list.length}</b> of ${(window.__imFetched||[]).length} fetched leads`;
   document.getElementById("im-list").innerHTML = list.length ? list.slice(0,150).map(l=>{
-    const ph = (l.SENDER_MOBILE||"").replace(/\D/g,"");
+    const ph = imPhone(l);
     const dup = existingPhones.has(ph);
     return `<div style="padding:9px 12px;border-bottom:1px solid var(--b1);font-size:12.5px;${dup?"opacity:.5":""}">
       <div style="font-weight:700">${l.SENDER_COMPANY||l.SENDER_NAME||"—"} ${dup?'<span style="font-size:10px;color:var(--orange)">(already in CRM)</span>':""}</div>
-      <div style="color:var(--muted)">${l.SENDER_CITY||""} · ${ph||"no phone"} · ${l.QUERY_PRODUCT_NAME||""}</div>
+      <div style="color:var(--muted)">${l.SENDER_CITY||""} · ${ph||"no phone"} · ${l.QUERY_PRODUCT_NAME||l.QUERY_MCAT_NAME||""}</div>
+      ${l.QUERY_TIME?`<div style="font-size:11px;color:var(--dim)">${l.QUERY_TIME}</div>`:""}
     </div>`;
   }).join("") + (list.length>150?`<div style="padding:8px;text-align:center;font-size:12px;color:var(--muted)">+${list.length-150} more (all will import)</div>`:"")
    : `<div style="padding:20px;text-align:center;color:var(--muted);font-size:13px">No leads match these filters</div>`;
@@ -7336,22 +7360,27 @@ function importImLeads(){
   let added = 0;
   if(!D.crm) D.crm=[];
   list.forEach(l=>{
-    const ph = (l.SENDER_MOBILE||"").replace(/\D/g,"");
+    const ph = imPhone(l);
     const id = "im_" + (l.UNIQUE_QUERY_ID || l.QUERY_ID || Date.now()+Math.random());
     if(existingIds.has(id)) return;
     if(ph && existingPhones.has(ph)) return;
     D.crm.push({
       id, name: l.SENDER_COMPANY || l.SENDER_NAME || "Unknown",
-      city: l.SENDER_CITY||"", phone: ph, email: l.SENDER_EMAIL||"",
+      city: l.SENDER_CITY||"", phone: ph, email: l.SENDER_EMAIL || l.SENDER_EMAIL_ALT || "",
       address: [l.SENDER_ADDRESS,l.SENDER_CITY,l.SENDER_STATE,l.SENDER_PINCODE].filter(Boolean).join(", "),
-      country:"IN", bizType:"retailer", source:"indiamart", category:"sports",
+      country: l.SENDER_COUNTRY_ISO || "IN", bizType:"retailer", source:"indiamart",
+      category: l.QUERY_MCAT_NAME || "sports",
       priority:"⚡ HIGH", score:50, instagram:"", followers:"", rank:"",
       note: [l.QUERY_PRODUCT_NAME?"Product: "+l.QUERY_PRODUCT_NAME:"",
-             l.QUERY_MESSAGE?"Message: "+l.QUERY_MESSAGE:"",
-             l.SENDER_EMAIL?"Email: "+l.SENDER_EMAIL:"",
+             l.QUERY_MCAT_NAME?"Category: "+l.QUERY_MCAT_NAME:"",
+             l.QUERY_MESSAGE?"Message: "+String(l.QUERY_MESSAGE).trim():"",
+             l.SUBJECT?"Type: "+l.SUBJECT:"",
+             l.CALL_DURATION?"Call duration: "+l.CALL_DURATION+"s":"",
+             (l.SENDER_EMAIL||l.SENDER_EMAIL_ALT)?"Email: "+(l.SENDER_EMAIL||l.SENDER_EMAIL_ALT):"",
              l.QUERY_TIME?"Date: "+l.QUERY_TIME:""].filter(Boolean).join("\n"),
       leadDate: (l.QUERY_TIME||"").slice(0,10),
-      status:"pending", isKri:false, response:"", userNotes:"", lastContact:""
+      status:"pending", isKri:false, response:"", userNotes:"", lastContact:"",
+      contactCount:0, contactLog:[], interest:""
     });
     if(ph) existingPhones.add(ph);
     existingIds.add(id);
