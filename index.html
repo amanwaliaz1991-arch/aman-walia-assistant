@@ -402,6 +402,7 @@ mark{background:#fef08a;border-radius:2px;padding:0 2px;}
   </div>
   <div class="sb-grp">
     <div class="sb-lbl">Operations</div>
+    <div class="sb-item" id="n-crm" onclick="go('crm')"><span class="sb-ico">👥</span>CRM / Customers</div>
     <div class="sb-item" id="n-orders" onclick="go('orders')"><span class="sb-ico">📦</span>Order Tracker<span class="sb-bdg o" id="b-orders">0</span></div>
     <div class="sb-item" id="n-urgent" onclick="go('urgent')"><span class="sb-ico">🚨</span>Urgent Orders<span class="sb-bdg o" id="b-urgent">0</span></div>
     <div class="sb-item" id="n-cod" onclick="go('cod')"><span class="sb-ico">💳</span>COD of Parties</div>
@@ -1796,8 +1797,9 @@ mark{background:#fef08a;border-radius:2px;padding:0 2px;}
         </div>
         <div style="font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin:16px 0 8px">Party Details</div>
         <div class="fr">
-          <div class="fg" style="flex:2"><label>Party Name *</label>
-            <input class="inp" id="qt-party" placeholder="M/s Sharma Trading Co." style="width:100%"></div>
+          <div class="fg" style="flex:2"><label>Party Name * <span style="font-size:10px;color:var(--muted)">(type to search CRM)</span></label>
+            <input class="inp" id="qt-party" placeholder="M/s Sharma Trading Co." list="qt-party-list" style="width:100%" onchange="qtFillFromCrm()">
+            <datalist id="qt-party-list"></datalist></div>
           <div class="fg"><label>Phone</label>
             <input class="inp" id="qt-phone" placeholder="98xxxxxxxx" style="width:100%"></div>
         </div>
@@ -1902,6 +1904,119 @@ mark{background:#fef08a;border-radius:2px;padding:0 2px;}
   </div>
 </div>
 
+
+<!-- ████ CRM / CUSTOMERS ████ -->
+<div class="mod" id="mod-crm">
+  <div class="ph">
+    <div><div class="pt">CRM / <span>CUSTOMERS</span></div>
+    <div class="pt-sub" id="crm-subtitle">Loading contacts…</div></div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+      <button class="btn" onclick="openImFetch()">📥 IndiaMart Leads</button>
+      <button class="btn btn-p" onclick="openCrmForm()">+ Add Contact</button>
+    </div>
+  </div>
+
+  <div class="g4" id="crm-stats" style="margin-bottom:12px"></div>
+
+  <!-- SEGMENTS -->
+  <div style="display:flex;gap:10px;margin-bottom:12px;flex-wrap:wrap">
+    <button class="btn btn-p" id="crm-seg-retailer" onclick="setCrmSegment('retailer')">🏪 Retailers &amp; Wholesalers</button>
+    <button class="btn" id="crm-seg-manufacturer" onclick="setCrmSegment('manufacturer')">🏭 Bat Manufacturers</button>
+  </div>
+
+  <!-- WHATSAPP TEMPLATE -->
+  <div class="card" style="margin-bottom:12px">
+    <div style="padding:10px 14px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+      <span style="font-size:12px;color:var(--muted);white-space:nowrap;font-weight:600">💬 WA Template:</span>
+      <input class="inp" id="crm-tpl" placeholder="Hi {name}, this is Aman from Kuldip Rubber Industries…" style="flex:1;min-width:220px;font-size:13px" oninput="saveCrmTpl()">
+      <span style="font-size:11px;color:var(--dim)">Use {name} {city}</span>
+      <span style="font-size:12px;color:var(--green);font-weight:700;white-space:nowrap">Sent today: <span id="crm-daily">0</span></span>
+    </div>
+  </div>
+
+  <!-- TABS -->
+  <div style="display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap;border-bottom:2px solid var(--b1);padding-bottom:8px">
+    <button class="btn btn-sm btn-p" id="crm-tab-pending" onclick="setCrmTab('pending')">⏳ Pending</button>
+    <button class="btn btn-sm" id="crm-tab-done" onclick="setCrmTab('done')">✅ Done</button>
+    <button class="btn btn-sm" id="crm-tab-kri" onclick="setCrmTab('kri')">⭐ KRI Customers</button>
+    <button class="btn btn-sm" id="crm-tab-issues" onclick="setCrmTab('issues')">⚠️ Issues</button>
+    <button class="btn btn-sm" id="crm-tab-all" onclick="setCrmTab('all')">📋 All</button>
+  </div>
+
+  <!-- FILTERS -->
+  <div class="card" style="margin-bottom:12px">
+    <div style="padding:10px 14px;display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+      <input class="inp" id="crm-search" placeholder="🔍 Name, phone, address…" oninput="R.crm()" style="flex:1;min-width:170px;font-size:13px">
+      <select class="sel" id="crm-f-country" onchange="R.crm()" style="width:120px;font-size:13px"><option value="">All Countries</option></select>
+      <select class="sel" id="crm-f-city" onchange="R.crm()" style="width:140px;font-size:13px"><option value="">All Cities</option></select>
+      <select class="sel" id="crm-f-priority" onchange="R.crm()" style="width:130px;font-size:13px">
+        <option value="">All Priority</option><option value="🔥 HOT">🔥 HOT</option><option value="⚡ HIGH">⚡ HIGH</option>
+        <option value="✅ MEDIUM">✅ MEDIUM</option><option value="📋 LOW">📋 LOW</option><option value="❓ COLD">❓ COLD</option>
+      </select>
+      <select class="sel" id="crm-f-source" onchange="R.crm()" style="width:130px;font-size:13px">
+        <option value="">All Sources</option><option value="instagram">Instagram</option><option value="indiamart">IndiaMart</option>
+        <option value="websearch">Web Research</option><option value="visiting_card">Visiting Card</option><option value="manual">Manual</option>
+      </select>
+      <button class="btn btn-sm" onclick="clearCrmFilters()">✕ Clear</button>
+    </div>
+  </div>
+
+  <div id="crm-list"></div>
+  <div id="crm-loadmore" style="text-align:center;padding:14px"></div>
+  <div id="crm-empty" class="es" style="display:none"><div class="em">👥</div>No contacts match your filters.</div>
+</div>
+
+<!-- CRM CONTACT MODAL -->
+<div class="mo" id="crm-mo" onclick="if(event.target===this)closeCrmMo()">
+  <div class="mo-box" style="max-width:520px">
+    <div class="mo-handle"></div>
+    <div class="mo-title"><span id="crm-mo-t">Contact</span><button class="mo-x" onclick="closeCrmMo()">✕</button></div>
+    <div id="crm-mo-b"></div>
+  </div>
+</div>
+
+<!-- INDIAMART FETCH MODAL -->
+<div class="mo" id="im-mo" onclick="if(event.target===this)closeImMo()">
+  <div class="mo-box" style="max-width:640px">
+    <div class="mo-handle"></div>
+    <div class="mo-title"><span>📥 IndiaMart Leads</span><button class="mo-x" onclick="closeImMo()">✕</button></div>
+    <div id="im-mo-b">
+      <div style="background:#eff6ff;border:1px solid #c7d2fe;border-radius:8px;padding:10px 14px;margin-bottom:14px;font-size:12.5px;color:#3730a3">
+        Fetches <b>ALL</b> leads from IndiaMart in the date range. Filter by keyword/city afterwards — nothing gets missed.
+      </div>
+      <div class="fr">
+        <div class="fg" style="flex:2"><label>IndiaMart CRM Key *</label>
+          <input class="inp" id="im-key" placeholder="Your glusr_crm_key" style="width:100%"></div>
+      </div>
+      <div class="fr" style="margin-top:10px">
+        <div class="fg"><label>From Date</label><input class="inp" id="im-from" type="date" style="width:100%"></div>
+        <div class="fg"><label>To Date</label><input class="inp" id="im-to" type="date" style="width:100%"></div>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:14px;align-items:center;flex-wrap:wrap">
+        <button class="btn btn-p" onclick="fetchAllImLeads()">📥 Fetch All Leads</button>
+        <span id="im-status" style="font-size:13px;color:var(--muted)"></span>
+      </div>
+
+      <!-- Fetched leads + local filters -->
+      <div id="im-results" style="display:none;margin-top:16px">
+        <div style="border-top:2px solid var(--b1);padding-top:14px">
+          <div style="font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">Filter Fetched Leads</div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">
+            <input class="inp" id="im-f-kw" placeholder="Keywords: cricket, bat, sports (comma sep)" style="flex:1;min-width:180px;font-size:13px" oninput="renderImLeads()">
+            <input class="inp" id="im-f-city" placeholder="City filter" style="width:130px;font-size:13px" oninput="renderImLeads()">
+          </div>
+          <div id="im-count" style="font-size:13px;color:var(--muted);margin-bottom:8px"></div>
+          <div id="im-list" style="max-height:38vh;overflow-y:auto;border:1px solid var(--b1);border-radius:8px"></div>
+          <div style="display:flex;gap:8px;margin-top:12px;justify-content:flex-end">
+            <button class="btn" onclick="closeImMo()">Cancel</button>
+            <button class="btn btn-p" onclick="importImLeads()">➕ Import Filtered Leads to CRM</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
 </div><!-- /main -->
 
 </div><!-- /body -->
@@ -1981,7 +2096,7 @@ function go(id){
     itax:R.itax,tds:R.tds,gst:R.gst,itc:R.itc,future:R.future,tracker:initTracker,
     health:R.health,badminton:R.badminton,self:R.self,quotes:R.quotes,
     mustdo:R.mustdo,accounts:R.accounts,costing:R.costing,kb:R.kb,orders:R.orders,purchase:R.purchase,production:R.production,
-    expenses:R.expenses,scanner:R.scanner,stock:R.stock,utilities:initUtilities,quotation:R.quotation,brands:R.brands};
+    expenses:R.expenses,scanner:R.scanner,stock:R.stock,utilities:initUtilities,quotation:R.quotation,brands:R.brands,crm:R.crm};
   rmap[id]?.();
 }
 
@@ -2099,6 +2214,9 @@ const D={
   menuOrder:[],
   quotations:[],
   brandMilestones:[],
+  crm:[],
+  crmMeta:{},
+  imLeads:[],
   scanHistory:[],
   purchase:[],
 
@@ -3157,6 +3275,119 @@ const R={
         }).join("") : `<div style="padding:14px;text-align:center;font-size:13px;color:var(--muted)">No milestones. <span style="color:var(--ac);cursor:pointer;font-weight:600" onclick="openBrMilestone(null,'${b}')">+ Add first →</span></div>`}
       </div>`;
     }).join("");
+  },
+  crm(){
+    const all = D.crm||[];
+    const seg = window.__crmSeg || "retailer";
+    const tab = window.__crmTab || "pending";
+    const sq  = (document.getElementById("crm-search")?.value||"").toLowerCase();
+    const fC  = document.getElementById("crm-f-country")?.value||"";
+    const fCity = document.getElementById("crm-f-city")?.value||"";
+    const fP  = document.getElementById("crm-f-priority")?.value||"";
+    const fS  = document.getElementById("crm-f-source")?.value||"";
+
+    // Subtitle
+    const sub = document.getElementById("crm-subtitle");
+    if(sub) sub.textContent = all.length
+      ? `${all.length.toLocaleString()} contacts · WhatsApp outreach · IndiaMart leads`
+      : "Loading contacts from cloud…";
+
+    // Populate country / city dropdowns once
+    const cSel = document.getElementById("crm-f-country");
+    if(cSel && cSel.options.length<=1 && all.length){
+      const countries = [...new Set(all.map(c=>c.country).filter(Boolean))].sort();
+      const FLAGS={IN:"🇮🇳",UK:"🇬🇧",AU:"🇦🇺",ZA:"🇿🇦",NZ:"🇳🇿",PK:"🇵🇰",BD:"🇧🇩",SL:"🇱🇰",US:"🇺🇸",UAE:"🇦🇪",WI:"🏏"};
+      cSel.innerHTML = '<option value="">All Countries</option>' + countries.map(c=>`<option value="${c}">${FLAGS[c]||"🌐"} ${c}</option>`).join("");
+    }
+    const citySel = document.getElementById("crm-f-city");
+    if(citySel && citySel.options.length<=1 && all.length){
+      const cities = [...new Set(all.map(c=>c.city).filter(Boolean))].sort();
+      citySel.innerHTML = '<option value="">All Cities</option>' + cities.map(c=>`<option value="${c}">${c}</option>`).join("");
+    }
+
+    // Segment + tab + filters
+    let list = all.filter(c=> seg==="manufacturer" ? c.bizType==="manufacturer" : c.bizType!=="manufacturer");
+    if(tab==="pending")     list = list.filter(c=>c.status==="pending" && !c.isKri);
+    else if(tab==="done")   list = list.filter(c=>c.status==="done");
+    else if(tab==="kri")    list = list.filter(c=>c.isKri);
+    else if(tab==="issues") list = list.filter(c=>["wrong_number","no_whatsapp","no_number"].includes(c.status));
+    if(fC)    list = list.filter(c=>c.country===fC);
+    if(fCity) list = list.filter(c=>c.city===fCity);
+    if(fP)    list = list.filter(c=>c.priority===fP);
+    if(fS)    list = list.filter(c=>c.source===fS);
+    if(sq)    list = list.filter(c=>((c.name||"")+(c.phone||"")+(c.address||"")+(c.city||"")+(c.note||"")).toLowerCase().includes(sq));
+
+    // Stats
+    const segAll = all.filter(c=> seg==="manufacturer" ? c.bizType==="manufacturer" : c.bizType!=="manufacturer");
+    document.getElementById("crm-stats").innerHTML =
+      sc("var(--ac)","Total in Segment",segAll.length.toLocaleString()) +
+      sc("var(--green)","Contacted",segAll.filter(c=>c.status==="done").length) +
+      sc("var(--gold)","KRI Customers",segAll.filter(c=>c.isKri).length) +
+      sc("var(--orange)","Showing",list.length.toLocaleString(),"After filters");
+
+    // Sort: score desc
+    list = list.slice().sort((a,b)=>(b.score||0)-(a.score||0));
+
+    // Pagination (render 60 at a time for speed with 2000+ contacts)
+    const shown = window.__crmShown || 60;
+    const page = list.slice(0, shown);
+    const container = document.getElementById("crm-list");
+    const empty = document.getElementById("crm-empty");
+    if(!list.length){ container.innerHTML=""; empty.style.display="block"; document.getElementById("crm-loadmore").innerHTML=""; return; }
+    empty.style.display="none";
+
+    const PRI_COL = {"🔥 HOT":"var(--red)","⚡ HIGH":"var(--orange)","✅ MEDIUM":"var(--green)","📋 LOW":"var(--ac)","❓ COLD":"var(--muted)"};
+    const FLAGS={IN:"🇮🇳",UK:"🇬🇧",AU:"🇦🇺",ZA:"🇿🇦",NZ:"🇳🇿",PK:"🇵🇰",BD:"🇧🇩",SL:"🇱🇰",US:"🇺🇸",UAE:"🇦🇪",WI:"🏏"};
+    const SRC={instagram:"📷 IG",indiamart:"🏭 IM",websearch:"🔍 Web",visiting_card:"💳 Card",manual:"✍️ Manual"};
+    const RESP={interested:'<span class="pill pg" style="font-size:10px">👍 Interested</span>',
+                not_interested:'<span class="pill pr" style="font-size:10px">👎 Not Interested</span>',
+                callback:'<span class="pill py" style="font-size:10px">📞 Callback</span>'};
+
+    container.innerHTML = '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px">' +
+      page.map(c=>{
+        const done = c.status==="done";
+        const noWa = ["wrong_number","no_whatsapp","no_number"].includes(c.status);
+        return `<div class="card" style="padding:13px;${done?"opacity:.62;":""}${c.isKri?"border-color:var(--gold);background:linear-gradient(135deg,#fffbeb,#fff);":""}">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:6px;margin-bottom:6px">
+            <div style="display:flex;gap:5px;align-items:center;flex-wrap:wrap">
+              <span style="font-size:10px;font-weight:700;padding:2px 7px;border-radius:12px;background:${PRI_COL[c.priority]||"var(--muted)"}18;color:${PRI_COL[c.priority]||"var(--muted)"}">${c.priority||"—"}</span>
+              ${c.isKri?'<span class="pill" style="font-size:10px;background:linear-gradient(90deg,#c8860a,#f6d860);color:#1a1200;font-weight:800">⭐ KRI</span>':""}
+              <span style="font-size:10px;color:var(--dim)">${SRC[c.source]||c.source}</span>
+            </div>
+            <span style="font-size:13px">${FLAGS[c.country]||"🌐"}</span>
+          </div>
+          <div style="font-size:14.5px;font-weight:700;line-height:1.3">${c.name||"—"}</div>
+          <div style="font-size:12px;color:var(--green);font-weight:600">${c.city||""}</div>
+          ${c.address?`<div style="font-size:11px;color:var(--muted);line-height:1.45;margin-top:3px;max-height:32px;overflow:hidden">${c.address}</div>`:""}
+          <div style="display:flex;gap:5px;flex-wrap:wrap;margin:7px 0">
+            ${c.phone?`<span style="font-size:11px;background:var(--s2);padding:2px 7px;border-radius:5px;font-family:'JetBrains Mono'">${c.phone}</span>`:'<span style="font-size:11px;color:var(--red)">No phone</span>'}
+            ${c.instagram?`<span style="font-size:11px;background:var(--s2);padding:2px 7px;border-radius:5px">${c.instagram}</span>`:""}
+            ${c.followers?`<span style="font-size:11px;color:var(--muted)">${c.followers} followers</span>`:""}
+          </div>
+          ${c.response?`<div style="margin-bottom:6px">${RESP[c.response]||""}</div>`:""}
+          ${c.userNotes?`<div style="font-size:11px;color:#7c3aed;background:rgba(124,58,237,.07);border-left:2px solid #7c3aed;padding:3px 7px;border-radius:3px;margin-bottom:6px">${c.userNotes}</div>`:""}
+          ${c.lastContact?`<div style="font-size:10px;color:var(--dim);margin-bottom:6px">Last: ${fd(c.lastContact)}</div>`:""}
+          <div style="display:flex;gap:5px;flex-wrap:wrap">
+            ${c.phone && !noWa ? `<button class="btn btn-sm" style="background:#25D366;color:#fff;border-color:#25D366;flex:1;font-size:12px" onclick="openWA('${c.id}')">💬 WhatsApp</button>` : ""}
+            <button class="btn btn-sm" style="font-size:12px" onclick="openCrmDetail('${c.id}')">👁 Details</button>
+            ${done ? `<button class="btn btn-sm" style="font-size:12px" onclick="crmUndo('${c.id}')">↩</button>`
+                   : `<button class="btn btn-sm" style="border-color:var(--green);color:var(--green);font-size:12px" onclick="crmMarkDone('${c.id}')">✓</button>`}
+          </div>
+        </div>`;
+      }).join("") + '</div>';
+
+    // Load more
+    const lm = document.getElementById("crm-loadmore");
+    lm.innerHTML = list.length > shown
+      ? `<button class="btn" onclick="window.__crmShown=(window.__crmShown||60)+60;R.crm()">Load more (${(list.length-shown).toLocaleString()} remaining)</button>`
+      : (list.length>60 ? `<span style="font-size:12px;color:var(--muted)">All ${list.length.toLocaleString()} shown</span>` : "");
+
+    // Daily counter + template
+    const dk = "crm_daily_" + new Date().toDateString();
+    const dEl = document.getElementById("crm-daily");
+    if(dEl) dEl.textContent = localStorage.getItem(dk) || "0";
+    const tEl = document.getElementById("crm-tpl");
+    if(tEl && !tEl.value) tEl.value = localStorage.getItem("crm_tpl") || "";
   },
   accounts(){
     const sf = document.getElementById("acc-status-f")?.value||"";
@@ -5096,7 +5327,7 @@ function reRenderCurrent() {
     health:R.health, badminton:R.badminton, self:R.self, quotes:R.quotes,
     mustdo:R.mustdo, accounts:R.accounts, costing:R.costing, kb:R.kb,
     orders:R.orders, purchase:R.purchase, production:R.production,
-    expenses:R.expenses, scanner:R.scanner, stock:R.stock, quotation:R.quotation, brands:R.brands
+    expenses:R.expenses, scanner:R.scanner, stock:R.stock, quotation:R.quotation, brands:R.brands, crm:R.crm
   };
   rmap[id]?.();
 }
@@ -5110,7 +5341,7 @@ function loadAllFromFirebase() {
     "deadstock","rd","compliance","itax","tds","gst","itc","future",
     "dayData","healthHabits","healthGoals","bdmGames","bdmSkills",
     "bdmDrills","selfGoals","books","weeklyReviews","quotes","uid",
-    "mustdo","accounts","costing","costCats","kb","stock","stockCats","stockLog","menuOrder","quotations","brandMilestones","orders","purchase","production","prodStock","expenses","scanHistory"
+    "mustdo","accounts","costing","costCats","kb","stock","stockCats","stockLog","menuOrder","quotations","brandMilestones","crm_1","crm_2","crm_3","crm_4","crm_5","crmMeta","imLeads","orders","purchase","production","prodStock","expenses","scanHistory"
   ];
 
   let initialLoadDone = false;
@@ -5120,6 +5351,13 @@ function loadAllFromFirebase() {
   function applyData(col, parsed) {
     try {
       if (col === "uid") { if (parsed > D.uid) D.uid = parsed; }
+      else if (col.startsWith("crm_")) {
+        // Chunked CRM contacts — merge into D.crm keyed by chunk index
+        if(!window.__crmChunks) window.__crmChunks = {};
+        window.__crmChunks[col] = parsed || [];
+        D.crm = Object.keys(window.__crmChunks).sort().reduce((a,k)=>a.concat(window.__crmChunks[k]),[]);
+      }
+      else if (col === "crmMeta") { D.crmMeta = parsed || {}; }
       else if (col === "dayData") { D.dayData = parsed || {}; }
       else if (col === "prodStock") { D.prodStock = parsed || []; }
       else if (Array.isArray(D[col])) { D[col] = parsed || []; }
@@ -5234,7 +5472,7 @@ function loadAllFromFirebase() {
 // ── LOCALSTORAGE FALLBACK ──
 function saveToLocal() {
   try {
-    const save = {urgent:D.urgent,cod:D.cod,transport:D.transport,payment:D.payment,defaulter:D.defaulter,banking:D.banking,deadstock:D.deadstock,rd:D.rd,compliance:D.compliance,itax:D.itax,tds:D.tds,gst:D.gst,itc:D.itc,future:D.future,dayData:D.dayData,healthHabits:D.healthHabits,healthGoals:D.healthGoals,bdmGames:D.bdmGames,bdmSkills:D.bdmSkills,bdmDrills:D.bdmDrills,selfGoals:D.selfGoals,books:D.books,weeklyReviews:D.weeklyReviews,quotes:D.quotes,uid:D.uid,orders:D.orders,purchase:D.purchase,production:D.production,prodStock:D.prodStock,expenses:D.expenses,scanHistory:D.scanHistory,mustdo:D.mustdo,accounts:D.accounts,costing:D.costing,costCats:D.costCats,kb:D.kb,stock:D.stock,stockCats:D.stockCats,stockLog:D.stockLog,menuOrder:D.menuOrder,quotations:D.quotations,brandMilestones:D.brandMilestones};
+    const save = {urgent:D.urgent,cod:D.cod,transport:D.transport,payment:D.payment,defaulter:D.defaulter,banking:D.banking,deadstock:D.deadstock,rd:D.rd,compliance:D.compliance,itax:D.itax,tds:D.tds,gst:D.gst,itc:D.itc,future:D.future,dayData:D.dayData,healthHabits:D.healthHabits,healthGoals:D.healthGoals,bdmGames:D.bdmGames,bdmSkills:D.bdmSkills,bdmDrills:D.bdmDrills,selfGoals:D.selfGoals,books:D.books,weeklyReviews:D.weeklyReviews,quotes:D.quotes,uid:D.uid,orders:D.orders,purchase:D.purchase,production:D.production,prodStock:D.prodStock,expenses:D.expenses,scanHistory:D.scanHistory,mustdo:D.mustdo,accounts:D.accounts,costing:D.costing,costCats:D.costCats,kb:D.kb,stock:D.stock,stockCats:D.stockCats,stockLog:D.stockLog,menuOrder:D.menuOrder,quotations:D.quotations,brandMilestones:D.brandMilestones,imLeads:D.imLeads};
     localStorage.setItem("aman_walia_data", JSON.stringify(save));
   } catch(e) { console.warn("LocalStorage save failed:", e); }
 }
@@ -5291,7 +5529,10 @@ async function flushSaves() {
 
   for(const collection of toSave) {
     try {
-      const data = collection === "uid" ? D.uid : D[collection];
+      let data;
+      if(collection === "uid") data = D.uid;
+      else if(collection.startsWith("crm_")) data = (window.__crmChunks||{})[collection];
+      else data = D[collection];
       if(data === undefined) continue;
       await db.collection("aman_assistant").doc(collection).set({
         data: JSON.stringify(data),
@@ -6110,6 +6351,7 @@ const MENU_META = {
   stock:{label:"Stock",icon:"📦",group:"Home"},
   utilities:{label:"Utilities",icon:"🧮",group:"Home"},
   scanner:{label:"Paper Scanner",icon:"📷",group:"Home"},
+  crm:{label:"CRM / Customers",icon:"👥",group:"Operations"},
   orders:{label:"Order Tracker",icon:"📦",group:"Operations"},
   urgent:{label:"Urgent Orders",icon:"🚨",group:"Operations"},
   cod:{label:"COD of Parties",icon:"💳",group:"Operations"},
@@ -6318,6 +6560,7 @@ function newQuotation(){
   document.getElementById("qt-freight").value = "0";
   document.getElementById("qt-rows").innerHTML = "";
   qtPopulateCostPick();
+  qtPopulatePartyList();
   qtAddRow();
   qtRecalc();
   document.getElementById("qt-form").style.display = "block";
@@ -6624,6 +6867,372 @@ function delBrMilestone(id){
 function payAgingFilter(key){
   window.__payAgingFilter = (window.__payAgingFilter===key) ? "" : key;
   R.payment();
+}
+
+
+
+// ══════════════════════════════════════════
+// CRM / CUSTOMERS
+// ══════════════════════════════════════════
+window.__crmSeg = "retailer";
+window.__crmTab = "pending";
+window.__crmShown = 60;
+
+function setCrmSegment(s){
+  window.__crmSeg = s; window.__crmShown = 60;
+  ["retailer","manufacturer"].forEach(x=>{
+    const b=document.getElementById("crm-seg-"+x);
+    if(b){ b.classList.toggle("btn-p", x===s); b.classList.toggle("btn", x!==s); }
+  });
+  R.crm();
+}
+function setCrmTab(t){
+  window.__crmTab = t; window.__crmShown = 60;
+  ["pending","done","kri","issues","all"].forEach(x=>{
+    const b=document.getElementById("crm-tab-"+x);
+    if(b){ b.classList.toggle("btn-p", x===t); }
+  });
+  R.crm();
+}
+function clearCrmFilters(){
+  ["crm-search","crm-f-country","crm-f-city","crm-f-priority","crm-f-source"].forEach(id=>{
+    const e=document.getElementById(id); if(e) e.value="";
+  });
+  window.__crmShown = 60;
+  R.crm();
+}
+function saveCrmTpl(){
+  localStorage.setItem("crm_tpl", document.getElementById("crm-tpl").value);
+}
+
+// ── CRM chunk save helper (writes the chunk containing this contact) ──
+function saveCrmContact(id){
+  const idx = (D.crm||[]).findIndex(c=>c.id===id);
+  if(idx<0) return;
+  const chunkNo = Math.floor(idx/500)+1;
+  const chunk = (D.crm||[]).slice((chunkNo-1)*500, chunkNo*500);
+  if(!window.__crmChunks) window.__crmChunks = {};
+  window.__crmChunks["crm_"+chunkNo] = chunk;
+  autoSave("crm_"+chunkNo);
+}
+
+// ── WHATSAPP ──
+function openWA(id){
+  const c = (D.crm||[]).find(x=>x.id===id);
+  if(!c || !c.phone){ alert("No phone number"); return; }
+  let tpl = (document.getElementById("crm-tpl")?.value || "").trim();
+  tpl = tpl.replace(/\{name\}/gi, c.name||"").replace(/\{city\}/gi, c.city||"");
+  const url = "https://wa.me/" + c.phone + (tpl ? "?text=" + encodeURIComponent(tpl) : "");
+  window.open(url, "_blank");
+  // bump daily counter
+  const dk = "crm_daily_" + new Date().toDateString();
+  const n = parseInt(localStorage.getItem(dk)||"0")+1;
+  localStorage.setItem(dk, n);
+  const dEl=document.getElementById("crm-daily"); if(dEl) dEl.textContent=n;
+  // stamp lastContact
+  c.lastContact = new Date().toISOString().slice(0,10);
+  saveCrmContact(id);
+  R.crm();
+}
+
+function crmMarkDone(id){
+  const c=(D.crm||[]).find(x=>x.id===id); if(!c) return;
+  c.status="done"; c.lastContact = c.lastContact || new Date().toISOString().slice(0,10);
+  saveCrmContact(id); R.crm();
+}
+function crmUndo(id){
+  const c=(D.crm||[]).find(x=>x.id===id); if(!c) return;
+  c.status="pending"; saveCrmContact(id); R.crm();
+}
+
+// ── DETAIL MODAL ──
+function openCrmDetail(id){
+  const c=(D.crm||[]).find(x=>x.id===id); if(!c) return;
+  // Linked business data
+  const orders = (D.orders||[]).filter(o=>(o.party||"").toLowerCase()===(c.name||"").toLowerCase());
+  const pays   = (D.payment||[]).filter(p=>(p.party||"").toLowerCase()===(c.name||"").toLowerCase());
+  const quotes = (D.quotations||[]).filter(q=>(q.party||"").toLowerCase()===(c.name||"").toLowerCase());
+  const outstanding = pays.filter(p=>p.status!=="collected").reduce((s,p)=>s+(parseInt((p.amt||"0").toString().replace(/[^\d]/g,""))||0),0);
+
+  document.getElementById("crm-mo-t").textContent = c.name || "Contact";
+  document.getElementById("crm-mo-b").innerHTML = `
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px">
+      <span class="pill pb" style="font-size:11px">${c.priority||"—"}</span>
+      <span class="pill" style="font-size:11px;background:var(--s2);color:var(--muted)">${c.source||""}</span>
+      <span class="pill" style="font-size:11px;background:var(--s2);color:var(--muted)">${c.bizType==="manufacturer"?"🏭 Manufacturer":"🏪 Retailer"}</span>
+      ${c.isKri?'<span class="pill" style="font-size:11px;background:linear-gradient(90deg,#c8860a,#f6d860);color:#1a1200;font-weight:800">⭐ KRI Customer</span>':""}
+    </div>
+    <div style="font-size:13px;line-height:2;margin-bottom:12px">
+      ${c.city?`<div><b>City:</b> ${c.city}, ${c.country||""}</div>`:""}
+      ${c.phone?`<div><b>Phone:</b> <span style="font-family:'JetBrains Mono'">${c.phone}</span></div>`:""}
+      ${c.email?`<div><b>Email:</b> ${c.email}</div>`:""}
+      ${c.address?`<div><b>Address:</b> ${c.address}</div>`:""}
+      ${c.instagram?`<div><b>Instagram:</b> ${c.instagram} ${c.followers?`(${c.followers} followers)`:""}</div>`:""}
+      ${c.score?`<div><b>Score:</b> ${c.score}</div>`:""}
+    </div>
+    ${c.note?`<div style="background:var(--s2);border-radius:8px;padding:10px 12px;font-size:12.5px;white-space:pre-wrap;line-height:1.6;margin-bottom:12px;max-height:140px;overflow-y:auto">${c.note}</div>`:""}
+
+    <!-- Linked business data -->
+    ${(orders.length||pays.length||quotes.length) ? `
+    <div style="background:#eff6ff;border:1px solid #c7d2fe;border-radius:8px;padding:10px 12px;margin-bottom:12px;font-size:12.5px">
+      <div style="font-weight:700;color:#3730a3;margin-bottom:5px">📊 Business with this party</div>
+      <div>Orders: <b>${orders.length}</b> · Quotations: <b>${quotes.length}</b></div>
+      ${outstanding?`<div style="color:var(--red)">Outstanding: <b>${fa(outstanding)}</b></div>`:""}
+    </div>` : ""}
+
+    <div class="fg" style="margin-bottom:10px">
+      <label>Your Notes</label>
+      <textarea class="ta" id="crm-note-inp" rows="2" style="width:100%;font-size:13px">${c.userNotes||""}</textarea>
+    </div>
+    <div class="fr" style="margin-bottom:10px">
+      <div class="fg"><label>Response</label>
+        <select class="sel" id="crm-resp" style="width:100%">
+          <option value="">—</option>
+          <option value="interested"     ${c.response==="interested"?"selected":""}>👍 Interested</option>
+          <option value="not_interested" ${c.response==="not_interested"?"selected":""}>👎 Not Interested</option>
+          <option value="callback"       ${c.response==="callback"?"selected":""}>📞 Callback Later</option>
+        </select></div>
+      <div class="fg"><label>Status</label>
+        <select class="sel" id="crm-status" style="width:100%">
+          <option value="pending"      ${c.status==="pending"?"selected":""}>⏳ Pending</option>
+          <option value="done"         ${c.status==="done"?"selected":""}>✅ Done</option>
+          <option value="wrong_number" ${c.status==="wrong_number"?"selected":""}>❌ Wrong Number</option>
+          <option value="no_whatsapp"  ${c.status==="no_whatsapp"?"selected":""}>📵 No WhatsApp</option>
+          <option value="no_number"    ${c.status==="no_number"?"selected":""}>🚫 No Number</option>
+        </select></div>
+    </div>
+    <label style="display:flex;align-items:center;gap:8px;font-size:13px;margin-bottom:14px;cursor:pointer">
+      <input type="checkbox" id="crm-kri" ${c.isKri?"checked":""} style="width:16px;height:16px"> ⭐ Mark as KRI Customer
+    </label>
+    <div style="display:flex;gap:8px;justify-content:space-between;padding-bottom:8px">
+      <button class="btn btn-d" onclick="delCrmContact('${c.id}')" style="color:var(--red);border-color:var(--red)">🗑 Delete</button>
+      <div style="display:flex;gap:8px">
+        <button class="btn" onclick="closeCrmMo()">Cancel</button>
+        <button class="btn btn-p" onclick="saveCrmDetail('${c.id}')">💾 Save</button>
+      </div>
+    </div>`;
+  document.getElementById("crm-mo").style.display="flex";
+}
+function closeCrmMo(){ document.getElementById("crm-mo").style.display="none"; }
+
+function saveCrmDetail(id){
+  const c=(D.crm||[]).find(x=>x.id===id); if(!c) return;
+  c.userNotes = document.getElementById("crm-note-inp").value.trim();
+  c.response  = document.getElementById("crm-resp").value;
+  c.status    = document.getElementById("crm-status").value;
+  c.isKri     = document.getElementById("crm-kri").checked;
+  saveCrmContact(id);
+  closeCrmMo(); R.crm();
+}
+function delCrmContact(id){
+  const c=(D.crm||[]).find(x=>x.id===id); if(!c) return;
+  if(!confirm(`Delete "${c.name}"?`)) return;
+  D.crm = D.crm.filter(x=>x.id!==id);
+  // rewrite all chunks
+  saveAllCrmChunks();
+  closeCrmMo(); R.crm();
+}
+function saveAllCrmChunks(){
+  const all = D.crm||[];
+  if(!window.__crmChunks) window.__crmChunks = {};
+  const n = Math.max(1, Math.ceil(all.length/500));
+  for(let i=0;i<n;i++){
+    const key = "crm_"+(i+1);
+    window.__crmChunks[key] = all.slice(i*500,(i+1)*500);
+    autoSave(key);
+  }
+}
+
+// ── ADD CONTACT ──
+function openCrmForm(){
+  document.getElementById("crm-mo-t").textContent = "➕ New Contact";
+  document.getElementById("crm-mo-b").innerHTML = `
+    <div class="fr"><div class="fg" style="flex:2"><label>Name *</label><input class="inp" id="nc-name" style="width:100%"></div>
+    <div class="fg"><label>City</label><input class="inp" id="nc-city" style="width:100%"></div></div>
+    <div class="fr" style="margin-top:10px">
+      <div class="fg"><label>Phone (with 91)</label><input class="inp" id="nc-phone" placeholder="919876543210" style="width:100%"></div>
+      <div class="fg"><label>Email</label><input class="inp" id="nc-email" style="width:100%"></div></div>
+    <div class="fg" style="margin-top:10px"><label>Address</label><input class="inp" id="nc-addr" style="width:100%"></div>
+    <div class="fr" style="margin-top:10px">
+      <div class="fg"><label>Type</label><select class="sel" id="nc-biz" style="width:100%"><option value="retailer">🏪 Retailer</option><option value="manufacturer">🏭 Manufacturer</option></select></div>
+      <div class="fg"><label>Priority</label><select class="sel" id="nc-pri" style="width:100%"><option>🔥 HOT</option><option>⚡ HIGH</option><option selected>✅ MEDIUM</option><option>📋 LOW</option></select></div>
+      <div class="fg"><label>Country</label><input class="inp" id="nc-country" value="IN" style="width:100%"></div></div>
+    <div class="fg" style="margin-top:10px"><label>Notes</label><textarea class="ta" id="nc-note" rows="2" style="width:100%"></textarea></div>
+    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:14px;padding-bottom:8px">
+      <button class="btn" onclick="closeCrmMo()">Cancel</button>
+      <button class="btn btn-p" onclick="saveNewCrmContact()">💾 Save Contact</button>
+    </div>`;
+  document.getElementById("crm-mo").style.display="flex";
+  setTimeout(()=>document.getElementById("nc-name")?.focus(),80);
+}
+function saveNewCrmContact(){
+  const name = document.getElementById("nc-name").value.trim();
+  if(!name){ alert("Name required"); return; }
+  const phone = document.getElementById("nc-phone").value.replace(/\D/g,"");
+  if(!D.crm) D.crm=[];
+  D.crm.push({
+    id: "man_"+Date.now(), name, city:document.getElementById("nc-city").value.trim(),
+    phone, email:document.getElementById("nc-email").value.trim(),
+    address:document.getElementById("nc-addr").value.trim(),
+    country:document.getElementById("nc-country").value.trim()||"IN",
+    bizType:document.getElementById("nc-biz").value, source:"manual",
+    category:"", priority:document.getElementById("nc-pri").value, score:50,
+    instagram:"",followers:"",rank:"",note:document.getElementById("nc-note").value.trim(),
+    status:"pending",isKri:false,response:"",userNotes:"",lastContact:""
+  });
+  saveAllCrmChunks();
+  closeCrmMo(); R.crm();
+}
+
+// ══════════════════════════════════════════
+// INDIAMART — fetch ALL leads, filter locally
+// ══════════════════════════════════════════
+window.__imFetched = [];
+
+function openImFetch(){
+  document.getElementById("im-key").value = localStorage.getItem("im_key")||"";
+  const to = new Date(), from = new Date(Date.now()-7*86400000);
+  document.getElementById("im-to").value = to.toISOString().slice(0,10);
+  document.getElementById("im-from").value = from.toISOString().slice(0,10);
+  document.getElementById("im-results").style.display="none";
+  document.getElementById("im-status").textContent="";
+  document.getElementById("im-mo").style.display="flex";
+}
+function closeImMo(){ document.getElementById("im-mo").style.display="none"; }
+
+function fetchAllImLeads(){
+  const key = document.getElementById("im-key").value.trim();
+  if(!key){ alert("Enter your IndiaMart CRM key"); return; }
+  localStorage.setItem("im_key", key);
+  const status = document.getElementById("im-status");
+  status.style.color="var(--muted)";
+  status.textContent="⏳ Fetching leads…";
+
+  const fromV = document.getElementById("im-from").value;
+  const toV   = document.getElementById("im-to").value;
+  const from = fromV ? new Date(fromV) : new Date(Date.now()-7*86400000);
+  const to   = toV ? new Date(toV) : new Date();
+  const fmt = (d,eod)=>{
+    const p=n=>String(n).padStart(2,"0");
+    return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}${eod?" 23:59:59":" 00:00:00"}`;
+  };
+  const baseUrl = "https://mapi.indiamart.com/wservce/crm/crmListing/v2/?glusr_crm_key="
+    + encodeURIComponent(key) + "&start_time=" + encodeURIComponent(fmt(from))
+    + "&end_time=" + encodeURIComponent(fmt(to,true));
+
+  const allLeads = [];
+  function fetchPage(page){
+    status.textContent = `⏳ Fetching page ${page}… (${allLeads.length} so far)`;
+    fetch("https://corsproxy.io/?" + encodeURIComponent(baseUrl + "&page_no=" + page))
+      .then(r=>r.json())
+      .then(data=>{
+        if(!data || data.CODE!==200){
+          if(page===1){
+            status.style.color="var(--red)";
+            status.textContent = "Error: " + (data && data.MESSAGE ? data.MESSAGE : "Invalid key or no response");
+            return;
+          }
+          finish(); return;
+        }
+        const pageLeads = data.RESPONSE || [];
+        allLeads.push(...pageLeads);
+        if(pageLeads.length >= 100) fetchPage(page+1);
+        else finish();
+      })
+      .catch(err=>{
+        status.style.color="var(--red)";
+        status.textContent = "Network error: " + err;
+      });
+  }
+  function finish(){
+    window.__imFetched = allLeads;
+    status.style.color="var(--green)";
+    status.textContent = `✅ Fetched ${allLeads.length} leads — now filter below`;
+    document.getElementById("im-results").style.display="block";
+    renderImLeads();
+  }
+  fetchPage(1);
+}
+
+function imFilteredLeads(){
+  const kwRaw = (document.getElementById("im-f-kw")?.value||"").trim().toLowerCase();
+  const cityF = (document.getElementById("im-f-city")?.value||"").trim().toLowerCase();
+  const kws = kwRaw ? kwRaw.split(",").map(k=>k.trim()).filter(Boolean) : [];
+  return (window.__imFetched||[]).filter(l=>{
+    const hay = ((l.SENDER_COMPANY||"")+" "+(l.SENDER_NAME||"")+" "+(l.QUERY_PRODUCT_NAME||"")+" "+(l.QUERY_MESSAGE||"")).toLowerCase();
+    const city = (l.SENDER_CITY||"").toLowerCase();
+    const kwOk = !kws.length || kws.some(k=>hay.includes(k));
+    const cityOk = !cityF || city.includes(cityF);
+    return kwOk && cityOk;
+  });
+}
+
+function renderImLeads(){
+  const list = imFilteredLeads();
+  const existingPhones = new Set((D.crm||[]).map(c=>c.phone).filter(Boolean));
+  document.getElementById("im-count").innerHTML =
+    `Showing <b>${list.length}</b> of ${(window.__imFetched||[]).length} fetched leads`;
+  document.getElementById("im-list").innerHTML = list.length ? list.slice(0,150).map(l=>{
+    const ph = (l.SENDER_MOBILE||"").replace(/\D/g,"");
+    const dup = existingPhones.has(ph);
+    return `<div style="padding:9px 12px;border-bottom:1px solid var(--b1);font-size:12.5px;${dup?"opacity:.5":""}">
+      <div style="font-weight:700">${l.SENDER_COMPANY||l.SENDER_NAME||"—"} ${dup?'<span style="font-size:10px;color:var(--orange)">(already in CRM)</span>':""}</div>
+      <div style="color:var(--muted)">${l.SENDER_CITY||""} · ${ph||"no phone"} · ${l.QUERY_PRODUCT_NAME||""}</div>
+    </div>`;
+  }).join("") + (list.length>150?`<div style="padding:8px;text-align:center;font-size:12px;color:var(--muted)">+${list.length-150} more (all will import)</div>`:"")
+   : `<div style="padding:20px;text-align:center;color:var(--muted);font-size:13px">No leads match these filters</div>`;
+}
+
+function importImLeads(){
+  const list = imFilteredLeads();
+  if(!list.length){ alert("No leads to import"); return; }
+  const existingPhones = new Set((D.crm||[]).map(c=>c.phone).filter(Boolean));
+  const existingIds = new Set((D.crm||[]).map(c=>c.id));
+  let added = 0;
+  if(!D.crm) D.crm=[];
+  list.forEach(l=>{
+    const ph = (l.SENDER_MOBILE||"").replace(/\D/g,"");
+    const id = "im_" + (l.UNIQUE_QUERY_ID || l.QUERY_ID || Date.now()+Math.random());
+    if(existingIds.has(id)) return;
+    if(ph && existingPhones.has(ph)) return;
+    D.crm.push({
+      id, name: l.SENDER_COMPANY || l.SENDER_NAME || "Unknown",
+      city: l.SENDER_CITY||"", phone: ph, email: l.SENDER_EMAIL||"",
+      address: [l.SENDER_ADDRESS,l.SENDER_CITY,l.SENDER_STATE,l.SENDER_PINCODE].filter(Boolean).join(", "),
+      country:"IN", bizType:"retailer", source:"indiamart", category:"sports",
+      priority:"⚡ HIGH", score:50, instagram:"", followers:"", rank:"",
+      note: [l.QUERY_PRODUCT_NAME?"Product: "+l.QUERY_PRODUCT_NAME:"",
+             l.QUERY_MESSAGE?"Message: "+l.QUERY_MESSAGE:"",
+             l.SENDER_EMAIL?"Email: "+l.SENDER_EMAIL:"",
+             l.QUERY_TIME?"Date: "+l.QUERY_TIME:""].filter(Boolean).join("\n"),
+      leadDate: (l.QUERY_TIME||"").slice(0,10),
+      status:"pending", isKri:false, response:"", userNotes:"", lastContact:""
+    });
+    if(ph) existingPhones.add(ph);
+    existingIds.add(id);
+    added++;
+  });
+  saveAllCrmChunks();
+  closeImMo();
+  R.crm();
+  alert(`✅ Imported ${added} new leads (${list.length-added} skipped as duplicates)`);
+}
+
+
+
+function qtPopulatePartyList(){
+  const dl = document.getElementById("qt-party-list");
+  if(!dl) return;
+  const top = (D.crm||[]).filter(c=>c.name).slice(0,800);
+  dl.innerHTML = top.map(c=>`<option value="${(c.name||"").replace(/"/g,"&quot;")}">`).join("");
+}
+function qtFillFromCrm(){
+  const name = document.getElementById("qt-party")?.value?.trim();
+  if(!name) return;
+  const c = (D.crm||[]).find(x=>(x.name||"").toLowerCase()===name.toLowerCase());
+  if(!c) return;
+  const ph = document.getElementById("qt-phone"); if(ph && !ph.value) ph.value = c.phone||"";
+  const ad = document.getElementById("qt-addr");  if(ad && !ad.value) ad.value = [c.address,c.city].filter(Boolean).join(", ");
 }
 
 
