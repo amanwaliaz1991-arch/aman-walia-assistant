@@ -7428,10 +7428,16 @@ function openImSettings(){
       <input type="checkbox" id="ims-autoimport" ${cfg.autoImport!==false?"checked":""} style="width:16px;height:16px">
       <span>➕ Auto-add new leads to CRM</span>
     </label>
-    ${cfg.lastRun?`<div style="background:var(--s2);border-radius:8px;padding:10px 12px;font-size:12.5px;margin-bottom:14px;line-height:1.8">
+    ${cfg.lastRun?`<div style="background:var(--s2);border-radius:8px;padding:10px 12px;font-size:12.5px;margin-bottom:10px;line-height:1.8">
       <div><b>Last run:</b> ${new Date(cfg.lastRun).toLocaleString("en-IN")}</div>
       <div><b>Leads seen:</b> ${cfg.lastTotal??"—"} · <b>New:</b> ${cfg.lastCount??"—"}</div>
-    </div>`:'<div style="font-size:12px;color:var(--muted);margin-bottom:14px">Daily job has not run yet.</div>'}
+    </div>`:'<div style="font-size:12px;color:var(--muted);margin-bottom:10px">Daily job has not run yet.</div>'}
+    ${cfg.lastError?`<div style="background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:9px 12px;font-size:12px;color:#991b1b;margin-bottom:14px">
+      <b>Last error:</b> ${cfg.lastError}
+    </div>`:""}
+    <div style="font-size:11.5px;color:var(--muted);margin-bottom:12px;line-height:1.6">
+      ⚠️ IndiaMart allows about <b>one API call every 5 minutes</b>. The daily job uses a 2-day overlapping window so no lead is missed.
+    </div>
     <div style="display:flex;gap:8px;justify-content:space-between;padding-bottom:8px;flex-wrap:wrap">
       <button class="btn" onclick="testImCron()">▶️ Run Now (test)</button>
       <div style="display:flex;gap:8px">
@@ -7465,6 +7471,11 @@ async function testImCron(){
   try {
     const r = await fetch("/api/cron-test");
     const d = await r.json();
+    if(d.rateLimited){
+      st.style.color = "var(--orange)";
+      st.textContent = "⏳ Rate limit — IndiaMart allows one call per 5 min. Try again shortly.";
+      return;
+    }
     if(d.error || d.skipped){
       st.style.color = "var(--orange)";
       st.textContent = "⚠️ " + (d.error || d.skipped);
@@ -7516,10 +7527,11 @@ async function imFetchViaProxy(key, startTime, endTime, page){
       const res = await fetch(r.url);
       if(!res.ok) { lastErr = `${r.name}: HTTP ${res.status}`; continue; }
       const data = await res.json();
-      if(data && (data.CODE===200 || data.CODE===400)){
+      if(data && data.CODE !== undefined){
         window.__imRoute = r.name;
-        return data;
+        return data;   // includes CODE 400 (bad range) and rate-limit messages
       }
+      if(data && data.error){ window.__imRoute = r.name; return {CODE:429, MESSAGE:data.error}; }
       lastErr = `${r.name}: unexpected response`;
     } catch(e){ lastErr = `${r.name}: ${e.message}`; }
   }
@@ -7570,23 +7582,32 @@ function fetchAllImLeads(){
     const p=n=>String(n).padStart(2,"0");
     return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}${eod?" 23:59:59":" 00:00:00"}`;
   };
+  // IndiaMart allows roughly ONE API call per 5 minutes per key.
+  // Enforce a local cooldown so we don't waste the allowance.
+  const lastAt = parseInt(localStorage.getItem("im_last_fetch")||"0");
+  const waitMs = 5*60*1000 - (Date.now()-lastAt);
+  if(lastAt && waitMs > 0){
+    status.style.color="var(--orange)";
+    status.textContent = `⏳ IndiaMart allows one fetch per 5 min. Try again in ${Math.ceil(waitMs/60000)} min.`;
+    return;
+  }
+
   const allLeads = [];
   function fetchPage(page){
-    status.textContent = `⏳ Fetching page ${page}… (${allLeads.length} so far)`;
+    status.textContent = "⏳ Fetching leads from IndiaMart…";
     imFetchViaProxy(key, fmt(from), fmt(to,true), page)
       .then(data=>{
         if(!data || data.CODE!==200){
-          if(page===1){
-            status.style.color="var(--red)";
-            status.textContent = "Error: " + (data && data.MESSAGE ? data.MESSAGE : "Invalid key or no response");
-            return;
-          }
-          finish(); return;
+          const msg = (data && data.MESSAGE) ? data.MESSAGE : "Invalid key or no response";
+          status.style.color="var(--red)";
+          status.textContent = msg.includes("5 minutes")
+            ? "⏳ Rate limit hit — IndiaMart allows one fetch per 5 minutes. Please wait."
+            : "❌ " + msg;
+          return;
         }
-        const pageLeads = data.RESPONSE || [];
-        allLeads.push(...pageLeads);
-        if(pageLeads.length >= 100) fetchPage(page+1);
-        else finish();
+        localStorage.setItem("im_last_fetch", String(Date.now()));
+        allLeads.push(...(data.RESPONSE||[]));
+        finish();
       })
       .catch(err=>{
         status.style.color="var(--red)";
