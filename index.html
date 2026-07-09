@@ -3318,8 +3318,10 @@ const R={
 
     // Subtitle
     const sub = document.getElementById("crm-subtitle");
-    if(sub) sub.textContent = all.length
+    const waiting = (D.imInbox||[]).length;
+    if(sub) sub.innerHTML = all.length
       ? `${all.length.toLocaleString()} contacts · WhatsApp outreach · IndiaMart leads`
+        + (waiting ? ` · <span style="color:var(--green);font-weight:700;cursor:pointer" onclick="drainImInbox(true)">📥 ${waiting} new lead${waiting>1?"s":""} — tap to add</span>` : "")
       : "Loading contacts from cloud…";
 
     // Populate country / city dropdowns once
@@ -7372,15 +7374,21 @@ function imLeadToContact(l){
 // ══════════════════════════════════════════
 let __drainedThisSession = false;
 
-async function drainImInbox(){
-  if(__drainedThisSession) return;
+async function drainImInbox(force){
+  if(__drainedThisSession && !force) return;
   const inbox = D.imInbox||[];
-  if(!inbox.length) return;
+  if(!inbox.length){
+    if(force) crmToast("No new leads waiting");
+    console.log("drainImInbox: inbox empty");
+    return;
+  }
 
   // CRITICAL: never write chunked collections before every chunk has loaded,
   // or a partial in-memory array would overwrite complete data in Firebase.
   if(!window.__fbInitialLoadDone){
-    setTimeout(drainImInbox, 2000);
+    console.log("drainImInbox: waiting for Firebase initial load…");
+    if(!force) setTimeout(()=>drainImInbox(), 2000);
+    else crmToast("⏳ Still loading data — try again in a moment");
     return;
   }
   // Extra safety: if we know the expected contact count, refuse to proceed
@@ -7388,9 +7396,11 @@ async function drainImInbox(){
   const expected = (D.crmMeta||{}).total || 0;
   if(expected && (D.crm||[]).length < expected * 0.9){
     console.warn(`drainImInbox aborted: only ${(D.crm||[]).length}/${expected} contacts loaded`);
-    setTimeout(drainImInbox, 3000);
+    if(!force) setTimeout(()=>drainImInbox(), 3000);
+    else crmToast(`⏳ Contacts still loading (${(D.crm||[]).length}/${expected})`);
     return;
   }
+  console.log(`drainImInbox: processing ${inbox.length} queued leads`);
   __drainedThisSession = true;
 
   if(!D.imLeads) D.imLeads = [];
@@ -7428,7 +7438,8 @@ async function drainImInbox(){
   D.imInbox = []; autoSave("imInbox");
 
   crmToast(`📥 ${fresh.length} new IndiaMart lead${fresh.length>1?"s":""}${imported?` · ${imported} added to CRM`:""}`);
-  if(typeof R.crm === "function" && document.getElementById("mod-crm")?.classList.contains("active")) R.crm();
+  console.log(`drainImInbox: archived ${fresh.length}, imported ${imported} to CRM`);
+  try { if(typeof R.crm === "function" && document.getElementById("mod-crm")) R.crm(); } catch(e){}
 }
 
 // ── Auto-fetch settings ──
@@ -7462,8 +7473,12 @@ function openImSettings(){
     <div style="font-size:11.5px;color:var(--muted);margin-bottom:12px;line-height:1.6">
       ⚠️ IndiaMart allows about <b>one API call every 5 minutes</b>. The daily job uses a 2-day overlapping window so no lead is missed.
     </div>
+    ${(D.imInbox||[]).length ? `<div style="background:#ecfdf5;border:1px solid #a7f3d0;border-radius:8px;padding:10px 12px;margin-bottom:12px;font-size:13px;color:#065f46;display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap">
+      <span><b>📥 ${(D.imInbox||[]).length} new lead${(D.imInbox||[]).length>1?"s":""}</b> waiting to be added</span>
+      <button class="btn btn-p btn-sm" onclick="drainImInbox(true);openImSettings()">⬇️ Sync Now</button>
+    </div>` : `<div style="font-size:12px;color:var(--muted);margin-bottom:12px">📥 No leads waiting in the queue.</div>`}
     <div style="display:flex;gap:8px;justify-content:space-between;padding-bottom:8px;flex-wrap:wrap">
-      <button class="btn" onclick="testImCron()">▶️ Run Now (test)</button>
+      <button class="btn" onclick="testImCron()">▶️ Fetch Now</button>
       <div style="display:flex;gap:8px">
         <button class="btn" onclick="closeCrmMo()">Cancel</button>
         <button class="btn btn-p" onclick="saveImSettings()">💾 Save</button>
@@ -7506,7 +7521,8 @@ async function testImCron(){
       return;
     }
     st.style.color = "var(--green)";
-    st.textContent = `✅ Fetched ${d.fetched} leads · ${d.added} new queued. Reopen CRM to see them.`;
+    st.textContent = `✅ Fetched ${d.fetched} leads · ${d.added} new queued. Tap "Sync Now" above (may take a few seconds to appear).`;
+    setTimeout(()=>{ if(document.getElementById("ims-key")) openImSettings(); }, 3500);
   } catch(e){
     st.style.color = "var(--red)";
     st.textContent = "❌ Worker not deployed yet, or route unavailable.";
