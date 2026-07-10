@@ -3503,7 +3503,16 @@ const R={
     if(tEl && !tEl.value) tEl.value = localStorage.getItem("crm_tpl") || "";
   },
   ledger(){
-    if(!LG.unlocked){ lgLock(false); lgPrompt(); return; }
+    if(!LG.unlocked){
+      // Never force-navigate here — this can be triggered by an unrelated
+      // background Firebase sync re-rendering whatever module is on screen.
+      // Only go('ledger') should prompt for the password.
+      const sheet = document.getElementById("lg-sheet");
+      if(sheet) sheet.innerHTML = `<div class="es" style="padding:50px"><div class="em">🔒</div>Locked.</div>`;
+      const tabs = document.getElementById("lg-tabs");
+      if(tabs) tabs.innerHTML = "";
+      return;
+    }
     lgTouch();
     const parties = LG.data.parties||[];
     if(!LG.sheet) LG.sheet = "summary";
@@ -5448,8 +5457,15 @@ function showUpdateToast(modName, modId) {
 
 function reRenderCurrent() {
   if(typeof applyMenuOrder==="function") applyMenuOrder();
+  // Don't redraw the page behind an open modal/form — that can wipe out
+  // whatever the user is mid-way through (e.g., the New Party dialog).
+  if(document.getElementById("crm-mo")?.style.display === "flex") return;
+  if(document.getElementById("im-mo")?.style.display === "flex") return;
   const active = document.querySelector(".mod.on");
   if (!active) return;
+  // Never silently re-render the ledger from a background sync — it should
+  // only refresh from the user's own actions inside the module.
+  if(active.id === "mod-ledger") return;
   const id = active.id.replace("mod-","");
   const rmap = {
     home:R_home, urgent:R.urgent, cod:R.cod, transport:R.transport,
@@ -7373,10 +7389,18 @@ function lgAutoTry(){
 }
 
 async function lgSave(){
-  if(!LG.unlocked || !LG.key) return;
-  D.ledgerVault = await lgEncrypt(LG.key, LG.data);
-  autoSave("ledgerVault");
-  lgTouch();
+  if(!LG.unlocked || !LG.key){
+    console.warn("lgSave: called while locked — nothing to save");
+    return;
+  }
+  try {
+    D.ledgerVault = await lgEncrypt(LG.key, LG.data);
+    autoSave("ledgerVault");
+    lgTouch();
+  } catch(e){
+    console.error("lgSave failed:", e);
+    crmToast("⚠️ Ledger save failed — see console");
+  }
 }
 
 function lgChangePrompt(){
@@ -7463,26 +7487,34 @@ function lgPartyForm(pid){
 }
 
 async function lgSaveParty(pid){
+  if(!LG.unlocked){ alert("Ledger is locked — please unlock it again."); closeCrmMo(); return; }
   const name = document.getElementById("lgp-name").value.trim();
   if(!name){ alert("Party name required"); return; }
-  const rec = {
-    name, city:document.getElementById("lgp-city").value.trim(),
-    phone:document.getElementById("lgp-phone").value.trim(),
-    gstin:document.getElementById("lgp-gstin").value.trim(),
-    opening:parseFloat(document.getElementById("lgp-opening").value)||0,
-    note:document.getElementById("lgp-note").value.trim(),
-  };
-  if(!LG.data.parties) LG.data.parties = [];
-  if(pid){
-    const i = LG.data.parties.findIndex(x=>x.id===pid);
-    if(i>-1) LG.data.parties[i] = {...LG.data.parties[i], ...rec};
-  } else {
-    rec.id = "lp_"+Date.now();
-    LG.data.parties.push(rec);
-    LG.sheet = rec.id;
+  try {
+    const rec = {
+      name, city:document.getElementById("lgp-city").value.trim(),
+      phone:document.getElementById("lgp-phone").value.trim(),
+      gstin:document.getElementById("lgp-gstin").value.trim(),
+      opening:parseFloat(document.getElementById("lgp-opening").value)||0,
+      note:document.getElementById("lgp-note").value.trim(),
+    };
+    if(!LG.data.parties) LG.data.parties = [];
+    if(pid){
+      const i = LG.data.parties.findIndex(x=>x.id===pid);
+      if(i>-1) LG.data.parties[i] = {...LG.data.parties[i], ...rec};
+    } else {
+      rec.id = "lp_"+Date.now();
+      LG.data.parties.push(rec);
+      LG.sheet = rec.id;
+    }
+    await lgSave(); flushNow();
+    closeCrmMo();
+    R.ledger();
+    crmToast(`✅ ${name} saved`);
+  } catch(e){
+    console.error("lgSaveParty failed:", e);
+    alert("Could not save the party — " + e.message);
   }
-  await lgSave(); flushNow();
-  closeCrmMo(); R.ledger();
 }
 
 async function lgDelParty(pid){
