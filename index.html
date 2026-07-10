@@ -7279,7 +7279,7 @@ function lgPrompt(){
     </div>` : `
     <div class="fg" style="margin-bottom:12px"><label>Password</label>
       <input class="inp" id="lg-pw" type="password" style="width:100%" autocomplete="current-password"
-             onkeydown="if(event.key==='Enter')lgUnlock()"></div>
+             oninput="lgAutoTry()" onkeydown="if(event.key==='Enter')lgUnlock()"></div>
     <div id="lg-msg" style="font-size:12.5px;margin-bottom:10px"></div>
     <div style="display:flex;gap:8px;justify-content:space-between;padding-bottom:8px">
       <button class="btn" onclick="lgChangePrompt()" style="font-size:12px">Change codeword/password</button>
@@ -7320,29 +7320,56 @@ async function lgSetup(){
   crmToast("🔐 Secure ledger created");
 }
 
-async function lgUnlock(){
-  const pw = document.getElementById("lg-pw").value;
-  const msg = document.getElementById("lg-msg");
+// Core unlock logic — returns true/false, never touches the UI.
+// Shared by the manual "Unlock" button and the silent auto-try-as-you-type.
+async function lgUnlockCore(pw){
   const cfg = D.ledgerCfg||{};
-  msg.style.color = "var(--muted)";
-  msg.textContent = "⏳ Verifying…";
   try {
     const key = await deriveKey(pw, cfg.salt);
     const check = await lgDecrypt(key, cfg.verifier);   // throws if wrong password
-    if(check.v !== "ledger-ok") throw new Error("bad");
+    if(check.v !== "ledger-ok") return false;
     LG.key = key;
     const vault = D.ledgerVault;
     LG.data = (vault && vault.ct) ? await lgDecrypt(key, vault) : {parties:[],entries:[]};
     if(!LG.data.parties) LG.data.parties = [];
     if(!LG.data.entries) LG.data.entries = [];
     LG.unlocked = true;
-    closeCrmMo();
-    lgTouch();
-    go("ledger");
-  } catch(e){
-    msg.style.color = "var(--red)";
-    msg.textContent = "❌ Wrong password.";
-  }
+    return true;
+  } catch(e){ return false; }
+}
+
+// Manual button / Enter key — shows a real error on failure.
+async function lgUnlock(){
+  const pw = document.getElementById("lg-pw").value;
+  const msg = document.getElementById("lg-msg");
+  msg.style.color = "var(--muted)";
+  msg.textContent = "⏳ Verifying…";
+  const ok = await lgUnlockCore(pw);
+  if(ok){ closeCrmMo(); lgTouch(); go("ledger"); }
+  else { msg.style.color = "var(--red)"; msg.textContent = "❌ Wrong password."; }
+}
+
+// Auto-try as you type — silent on failure (you're mid-typing), opens
+// the ledger the instant the password matches, no button press needed.
+let __lgAutoTimer = null;
+let __lgAutoBusy = false;
+function lgAutoTry(){
+  clearTimeout(__lgAutoTimer);
+  const inp = document.getElementById("lg-pw");
+  if(!inp || inp.value.length < 4) return;   // don't bother deriving on 1-2 chars
+  __lgAutoTimer = setTimeout(async ()=>{
+    if(__lgAutoBusy) return;
+    __lgAutoBusy = true;
+    const pw = inp.value;
+    const msg = document.getElementById("lg-msg");
+    if(msg){ msg.style.color = "var(--muted)"; msg.textContent = "⏳ Checking…"; }
+    const ok = await lgUnlockCore(pw);
+    __lgAutoBusy = false;
+    // Bail if the field changed while we were deriving, or the modal closed
+    if(!document.getElementById("lg-pw") || document.getElementById("lg-pw").value !== pw) return;
+    if(ok){ closeCrmMo(); lgTouch(); go("ledger"); }
+    else if(msg && msg.textContent === "⏳ Checking…"){ msg.textContent = ""; }
+  }, 380);
 }
 
 async function lgSave(){
