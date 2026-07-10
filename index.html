@@ -2020,7 +2020,7 @@ table.lg-grid td input[type="date"].lg-c{font-size:14.5px}
 
 <!-- CRM CONTACT MODAL -->
 <div class="mo" id="crm-mo" onclick="if(event.target===this)closeCrmMo()">
-  <div class="mo-box" style="max-width:520px">
+  <div class="mo-box" id="crm-mo-box" style="max-width:520px">
     <div class="mo-handle"></div>
     <div class="mo-title"><span id="crm-mo-t">Contact</span><button class="mo-x" onclick="closeCrmMo()">✕</button></div>
     <div id="crm-mo-b"></div>
@@ -2077,7 +2077,7 @@ table.lg-grid td input[type="date"].lg-c{font-size:14.5px}
 <div class="mod" id="mod-ledger">
   <div class="ph">
     <div><div class="pt">SECURE <span>LEDGER</span></div>
-    <div class="pt-sub">🔐 Encrypted · auto-locks after 10 min idle or when app is backgrounded</div></div>
+    <div class="pt-sub">🔐 Encrypted · stays open until you tap Lock, navigate away, or 10 min idle</div></div>
     <div style="display:flex;gap:8px;flex-wrap:wrap">
       <span id="lg-savestate" style="font-size:12px;color:var(--muted);align-self:center"></span>
       <button class="btn" onclick="lgImportForm()">📋 Paste Import</button>
@@ -7220,7 +7220,9 @@ function lgLock(auto){
     if(auto) crmToast("🔒 Ledger locked — 10 min idle");
   });
 }
-document.addEventListener("visibilitychange", ()=>{ if(document.visibilityState==="hidden" && LG.unlocked) lgLock(false); });
+// NOTE: we intentionally do NOT auto-lock on minimize/tab-switch —
+// only on the 10-min idle timer or the explicit Lock button. Minimizing
+// to check something else should not kick you out of the ledger.
 
 // Any interaction inside the ledger resets the idle timer
 ["click","keydown","input","touchstart"].forEach(ev=>{
@@ -7405,6 +7407,34 @@ async function lgChange(){
 
 // ── Ledger: parties & entries ──
 
+function lgPartyForm(pid){
+  lgTouch();
+  const _box = document.getElementById("crm-mo-box"); if(_box) _box.style.maxWidth = "680px";
+  const p = pid ? (LG.data.parties||[]).find(x=>x.id===pid) : null;
+  document.getElementById("crm-mo-t").textContent = p ? "✏️ Edit Party" : "➕ New Party";
+  document.getElementById("crm-mo-b").innerHTML = `
+    <div class="fg" style="margin-bottom:12px"><label>Party Name *</label>
+      <input class="inp" id="lgp-name" value="${p?(p.name||"").replace(/"/g,"&quot;"):""}" style="width:100%;font-size:16px;padding:12px"></div>
+    <div class="fr" style="margin-bottom:12px">
+      <div class="fg"><label>City</label><input class="inp" id="lgp-city" value="${p?p.city||"":""}" style="width:100%;font-size:16px;padding:12px"></div>
+      <div class="fg"><label>Phone</label><input class="inp" id="lgp-phone" value="${p?p.phone||"":""}" style="width:100%;font-size:16px;padding:12px"></div>
+    </div>
+    <div class="fr" style="margin-bottom:12px">
+      <div class="fg"><label>GSTIN</label>
+        <input class="inp" id="lgp-gstin" value="${p?p.gstin||"":""}" style="width:100%;font-size:16px;padding:12px"></div>
+      <div class="fg"><label>Opening Balance <span style="font-size:10px;color:var(--muted)">(+Dr / −Cr)</span></label>
+        <input class="inp" id="lgp-opening" type="number" value="${p?p.opening||0:0}" style="width:100%;font-size:16px;padding:12px"></div>
+    </div>
+    <div class="fg" style="margin-bottom:16px"><label>Notes</label>
+      <input class="inp" id="lgp-note" value="${p?(p.note||"").replace(/"/g,"&quot;"):""}" style="width:100%;font-size:16px;padding:12px"></div>
+    <div style="display:flex;gap:8px;justify-content:flex-end;padding-bottom:8px">
+      <button class="btn" onclick="closeCrmMo()">Cancel</button>
+      <button class="btn btn-p" onclick="lgSaveParty(${p?`'${p.id}'`:"null"})">💾 Save</button>
+    </div>`;
+  document.getElementById("crm-mo").style.display="flex";
+  setTimeout(()=>document.getElementById("lgp-name")?.focus(),80);
+}
+
 async function lgSaveParty(pid){
   const name = document.getElementById("lgp-name").value.trim();
   if(!name){ alert("Party name required"); return; }
@@ -7446,6 +7476,7 @@ async function lgDelParty(pid){
 // ── Paste importer: tab/comma separated ledger rows ──
 function lgImportForm(){
   lgTouch();
+  const _box = document.getElementById("crm-mo-box"); if(_box) _box.style.maxWidth = "760px";
   const parties = LG.data.parties||[];
   document.getElementById("crm-mo-t").textContent = "📋 Paste Ledger Import";
   document.getElementById("crm-mo-b").innerHTML = `
@@ -7851,6 +7882,7 @@ function lgSortRows(){
 // ══════════════════════════════════════════
 function lgImportForm(){
   lgTouch();
+  const _box = document.getElementById("crm-mo-box"); if(_box) _box.style.maxWidth = "760px";
   const parties = LG.data.parties||[];
   document.getElementById("crm-mo-t").textContent = "📋 Paste Import";
   document.getElementById("crm-mo-b").innerHTML = `
@@ -8190,7 +8222,11 @@ function openCrmDetail(id){
     </div>`;
   document.getElementById("crm-mo").style.display="flex";
 }
-function closeCrmMo(){ document.getElementById("crm-mo").style.display="none"; }
+function closeCrmMo(){
+  document.getElementById("crm-mo").style.display="none";
+  const _box = document.getElementById("crm-mo-box");
+  if(_box) _box.style.maxWidth = "520px";
+}
 
 function saveCrmDetail(id){
   const c=(D.crm||[]).find(x=>x.id===id); if(!c) return;
@@ -8756,7 +8792,13 @@ function qtFillFromCrm(){
 document.addEventListener("visibilitychange", ()=>{
   if(document.visibilityState === "hidden" && pendingSaves.size) flushNow();
 });
-window.addEventListener("pagehide", ()=>{ if(typeof __lgSaveTimer!=="undefined" && __lgSaveTimer && LG.unlocked) lgFlushThenWipe(); if(pendingSaves.size) flushNow(); });
+window.addEventListener("pagehide", ()=>{
+  // Save any pending ledger edit so nothing is lost, but do NOT lock —
+  // pagehide fires on minimize/tab-switch too, and the ledger should
+  // stay open until idle-timeout, Lock button, or navigating away.
+  if(typeof __lgSaveTimer!=="undefined" && __lgSaveTimer && LG.unlocked){ lgSave(); flushNow(); }
+  if(pendingSaves.size) flushNow();
+});
 
 // Hidden ledger entry point: 5 quick taps on the sync-status dot
 (function(){
