@@ -295,18 +295,42 @@ table.lg-grid td input[type="date"].lg-c{font-size:14.5px}
   table.lg-grid td .amt-in{font-size:14.5px}
 }
 
-/* ── Full-page ledger mode ── */
+/* ── Full-page ledger mode ──
+   Reclaims the app header, sidebar, bottom nav and page padding so the
+   grid gets essentially the whole viewport. A small floating Exit button
+   is the way back (the header is hidden). */
 body.lg-full .sb{display:none!important}
-body.lg-full .main{margin-left:0!important;max-width:100%!important;padding:10px 12px 70px!important}
-body.lg-full #mod-ledger .card{border-radius:10px}
-body.lg-full #mod-ledger .ph{margin-bottom:10px}
-body.lg-full #mod-ledger .tbl-scroll{max-height:calc(100vh - 260px);overflow-y:auto}
-body.lg-full #lg-tabs{position:sticky;top:0;background:var(--bg,#fff);z-index:5}
+body.lg-full .hdr{display:none!important}
+body.lg-full .bot-nav{display:none!important}
+body.lg-full .main{margin-left:0!important;max-width:100%!important;padding:4px 8px 6px!important}
+body.lg-full #mod-ledger .card{border-radius:8px;margin-bottom:0!important}
+body.lg-full #mod-ledger .ph{margin-bottom:6px;padding-bottom:0}
+body.lg-full #mod-ledger .pt{font-size:18px;line-height:1.1}
+body.lg-full #mod-ledger .pt-sub{display:none}
+body.lg-full #lg-tabs{margin-bottom:6px!important;position:sticky;top:0;background:#fff;z-index:5}
+body.lg-full #mod-ledger .card-hdr{padding-top:6px;padding-bottom:6px}
+body.lg-full #mod-ledger .tbl-scroll{max-height:calc(100vh - 132px);overflow-y:auto}
 body.lg-full #mod-ledger table.lg-grid thead th{position:sticky;top:0;background:var(--s2);z-index:4}
-#lg-fullbtn{cursor:pointer}
+/* Floating exit, since the header is gone in full-page mode */
+#lg-exitfull{display:none}
+body.lg-full #lg-exitfull{display:flex;position:fixed;right:12px;bottom:12px;z-index:600;
+  align-items:center;gap:6px;background:#111827;color:#fff;border:none;border-radius:24px;
+  padding:11px 16px;font-size:14px;font-weight:700;box-shadow:0 6px 20px rgba(0,0,0,.35);cursor:pointer}
+#lg-fullbtn,#lg-densebtn{cursor:pointer}
+
+/* ── Compact row density: ~2x the rows on screen ── */
+body.lg-dense table.lg-grid td .lg-c{padding:4px 8px!important;font-size:13.5px!important;min-height:24px!important}
+body.lg-dense table.lg-grid td .amt-in{font-size:13px!important}
+body.lg-dense table.lg-grid .lg-bal{padding:4px 10px!important;font-size:13px!important}
+body.lg-dense table.lg-grid th{padding:5px 8px!important;font-size:12.5px!important}
+body.lg-dense table.lg-grid td input[type="date"].lg-c{font-size:12.5px!important}
+body.lg-dense table.lg-grid tr.lg-open td{padding:1px 0!important}
+body.lg-dense table.lg-grid td button.btn-d{padding:2px 7px!important;font-size:12px!important}
+
 @media(max-width:820px){
-  body.lg-full .main{padding:8px 8px 70px!important}
-  body.lg-full #mod-ledger .tbl-scroll{max-height:calc(100vh - 230px)}
+  body.lg-full .main{padding:3px 5px 6px!important}
+  body.lg-full #mod-ledger .tbl-scroll{max-height:calc(100vh - 118px)}
+  body.lg-dense table.lg-grid td .lg-c{padding:4px 6px!important;font-size:13px!important;min-height:23px!important}
 }
 </style>
   <!-- Firebase SDK -->
@@ -2094,6 +2118,7 @@ body.lg-full #mod-ledger table.lg-grid thead th{position:sticky;top:0;background
     <div class="pt-sub">🔐 Encrypted · stays open until you tap Lock, navigate away, or 10 min idle</div></div>
     <div style="display:flex;gap:8px;flex-wrap:wrap">
       <span id="lg-savestate" style="font-size:12px;color:var(--muted);align-self:center"></span>
+      <button class="btn" id="lg-densebtn" onclick="lgToggleDense()">⇕ Compact</button>
       <button class="btn" id="lg-fullbtn" onclick="lgToggleFull()">⛶ Full Page</button>
       <button class="btn" onclick="lgImportForm()">📋 Paste Import</button>
       <button class="btn" onclick="lgLock(false)">🔒 Lock</button>
@@ -2107,6 +2132,8 @@ body.lg-full #mod-ledger table.lg-grid thead th{position:sticky;top:0;background
 </div>
 
 </div><!-- /main -->
+
+<button id="lg-exitfull" onclick="lgToggleFull()">⤢ Exit Full Page</button>
 
 </div><!-- /body -->
 
@@ -2179,7 +2206,8 @@ function go(id){
   document.querySelectorAll(".mod").forEach(m=>m.classList.remove("on"));
   document.querySelectorAll(".sb-item,.bnav-item").forEach(m=>m.classList.remove("on"));
   // Ledger runs full-page (no sidebar) — it's a spreadsheet, it needs the width
-  document.body.classList.toggle("lg-full", id === "ledger" && localStorage.getItem("lg_full") !== "0");
+  document.body.classList.toggle("lg-full", id === "ledger" && localStorage.getItem("lg_full") !== "0");   // default ON
+  document.body.classList.toggle("lg-dense", id === "ledger" && localStorage.getItem("lg_dense") === "1");
   document.getElementById("mod-"+id)?.classList.add("on");
   document.getElementById("n-"+id)?.classList.add("on");
   // bottom nav highlight
@@ -3520,6 +3548,12 @@ const R={
     if(tEl && !tEl.value) tEl.value = localStorage.getItem("crm_tpl") || "";
   },
   ledger(){
+    // restore saved layout prefs
+    document.body.classList.toggle("lg-dense", localStorage.getItem("lg_dense") === "1");
+    const _db = document.getElementById("lg-densebtn");
+    if(_db) _db.textContent = document.body.classList.contains("lg-dense") ? "⇕ Comfortable" : "⇕ Compact";
+    const _fb = document.getElementById("lg-fullbtn");
+    if(_fb) _fb.textContent = document.body.classList.contains("lg-full") ? "⛶ Exit Full Page" : "⛶ Full Page";
     if(!LG.unlocked){
       // Never force-navigate here — this can be triggered by an unrelated
       // background Firebase sync re-rendering whatever module is on screen.
@@ -7245,6 +7279,7 @@ function lgLock(auto){
   lgFlushThenWipe(()=>{
     if(wasOnLedger){
       document.body.classList.remove("lg-full");
+      document.body.classList.remove("lg-dense");
       document.querySelectorAll(".mod").forEach(m=>m.classList.remove("on"));
       document.querySelectorAll(".sb-item,.bnav-item").forEach(m=>m.classList.remove("on"));
       document.getElementById("mod-home")?.classList.add("on");
@@ -7725,6 +7760,13 @@ async function lgDoImport(){
 // Never re-renders the grid while typing (focus).
 // ══════════════════════════════════════════
 function lgSheet(id){ LG.sheet = id; R.ledger(); }
+
+function lgToggleDense(){
+  const on = document.body.classList.toggle("lg-dense");
+  localStorage.setItem("lg_dense", on ? "1" : "0");
+  const b = document.getElementById("lg-densebtn");
+  if(b) b.textContent = on ? "⇕ Comfortable" : "⇕ Compact";
+}
 
 function lgToggleFull(){
   const on = document.body.classList.toggle("lg-full");
