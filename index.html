@@ -7373,19 +7373,34 @@ function lgAutoTry(){
   clearTimeout(__lgAutoTimer);
   const inp = document.getElementById("lg-pw");
   if(!inp || inp.value.length < 4) return;   // don't bother deriving on 1-2 chars
-  __lgAutoTimer = setTimeout(async ()=>{
-    if(__lgAutoBusy) return;
+
+  // PBKDF2 (250k iterations) can take longer than the debounce on a phone.
+  // If a check is already running, WAIT for it rather than giving up —
+  // otherwise the last keystroke's attempt is dropped and nothing ever opens.
+  __lgAutoTimer = setTimeout(async function attempt(){
+    if(__lgAutoBusy){ __lgAutoTimer = setTimeout(attempt, 120); return; }
+
+    const cur0 = document.getElementById("lg-pw");
+    if(!cur0) return;
+    const pw = cur0.value;
+    if(pw.length < 4) return;
+
     __lgAutoBusy = true;
-    const pw = inp.value;
     const msg = document.getElementById("lg-msg");
     if(msg){ msg.style.color = "var(--muted)"; msg.textContent = "⏳ Checking…"; }
-    const ok = await lgUnlockCore(pw);
-    __lgAutoBusy = false;
-    // Bail if the field changed while we were deriving, or the modal closed
-    if(!document.getElementById("lg-pw") || document.getElementById("lg-pw").value !== pw) return;
-    if(ok){ closeCrmMo(); lgTouch(); go("ledger"); }
-    else if(msg && msg.textContent === "⏳ Checking…"){ msg.textContent = ""; }
-  }, 380);
+
+    let ok = false;
+    try { ok = await lgUnlockCore(pw); }
+    finally { __lgAutoBusy = false; }
+
+    // Correct password — open, even if a stray character was typed meanwhile.
+    if(ok){ closeCrmMo(); lgTouch(); go("ledger"); return; }
+
+    const cur = document.getElementById("lg-pw");
+    if(!cur) return;                              // modal was closed
+    if(cur.value !== pw){ lgAutoTry(); return; }  // they typed more — check again
+    if(msg && msg.textContent === "⏳ Checking…") msg.textContent = "";
+  }, 300);
 }
 
 async function lgSave(){
