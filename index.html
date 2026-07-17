@@ -8111,7 +8111,7 @@ function lgStatementImage(data){
     d:data.opening>0?data.opening:0, c:data.opening<0?-data.opening:0, bal:data.opening, open:true});
   data.lines.forEach(l=>rows.push({date:fd(l.date), part:l.particulars, ref:l.ref, d:l.debit, c:l.credit, bal:l.balance}));
 
-  const S=2, W=860, M=28, rowH=44, headH=42;
+  const S=2, W=920, M=28, rowH=44, headH=42;
   const sub=[data.p.city,data.p.phone,data.p.gstin].filter(Boolean).join("   ·   ");
   const yTitle=54, ySub=yTitle+26;
   const yBand=(sub?ySub:yTitle)+34, bandH=40;
@@ -8127,8 +8127,8 @@ function lgStatementImage(data){
   x.textBaseline="alphabetic";
 
   const L=M, Rr=W-M;
-  const cX={date:L+14, part:L+118, ref:L+430};
-  const cR={debit:L+610, credit:L+720, bal:Rr-14};
+  const cX={date:L+14, part:L+120, ref:L+420};
+  const cR={debit:Rr-320, credit:Rr-160, bal:Rr-14};
   const T=(px,py,t,fs,bold,fill,right)=>{
     x.font=(bold?"bold ":"")+fs+"px Arial"; x.fillStyle=fill;
     x.textAlign=right?"right":"left"; x.fillText(t, px, py);
