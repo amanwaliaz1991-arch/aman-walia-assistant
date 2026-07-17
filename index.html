@@ -8111,8 +8111,13 @@ function lgStatementImage(data){
     d:data.opening>0?data.opening:0, c:data.opening<0?-data.opening:0, bal:data.opening, open:true});
   data.lines.forEach(l=>rows.push({date:fd(l.date), part:l.particulars, ref:l.ref, d:l.debit, c:l.credit, bal:l.balance}));
 
-  const rowH=34, headH=110, footH=90, W=820;
-  const H = headH + rows.length*rowH + footH;
+  const sub=[data.p.city,data.p.phone,data.p.gstin].filter(Boolean).join("   |   ");
+  const rowH=36, footH=110, W=820;
+  // Header height grows if there's a sub-line; leaves clear gap before the table
+  const headTop = sub ? 150 : 128;       // y where the black header bar begins
+  const barH = 34;
+  const H = headTop + barH + rows.length*rowH + footH;
+
   const c = document.createElement("canvas");
   const scale = 2;                       // retina-sharp
   c.width=W*scale; c.height=H*scale;
@@ -8120,30 +8125,34 @@ function lgStatementImage(data){
   x.scale(scale,scale);
   x.fillStyle="#ffffff"; x.fillRect(0,0,W,H);
 
-  // Header
-  x.fillStyle="#141414"; x.font="bold 26px Arial";
-  x.fillText(String(data.p.name||"Account Statement"), 24, 40);
-  const sub=[data.p.city,data.p.phone,data.p.gstin].filter(Boolean).join("   |   ");
-  x.font="14px Arial"; x.fillStyle="#555";
-  if(sub) x.fillText(sub, 24, 62);
-  x.font="bold 15px Arial"; x.fillStyle="#141414";
-  x.fillText("ACCOUNT STATEMENT", 24, 88);
-  x.font="13px Arial"; x.fillStyle="#555"; x.textAlign="right";
-  x.fillText("As on "+fd(new Date().toISOString().slice(0,10)), W-24, 88);
+  // ── Header block (well above the table) ──
+  x.textAlign="left";
+  x.fillStyle="#141414"; x.font="bold 28px Arial";
+  x.fillText(String(data.p.name||"Account Statement"), 24, 46);
+  let hy = 74;
+  if(sub){
+    x.font="15px Arial"; x.fillStyle="#666";
+    x.fillText(sub, 24, hy); hy += 34;
+  } else { hy = 80; }
+  x.font="bold 16px Arial"; x.fillStyle="#141414";
+  x.fillText("ACCOUNT STATEMENT", 24, hy);
+  x.font="13px Arial"; x.fillStyle="#666"; x.textAlign="right";
+  x.fillText("As on "+fd(new Date().toISOString().slice(0,10)), W-24, hy);
   x.textAlign="left";
 
   // Column x-positions
-  const cols=[24, 110, 380, 470, 590, 710];  // date, part, ref, debit, credit, balance
+  const cols=[24, 118, 380, 470, 590, 710];  // date, part, ref, debit, credit, balance
   const colR=[null,null,null, 560, 680, 796]; // right-edge for right-aligned numeric
 
-  // Head row
-  let y=headH;
-  x.fillStyle="#282828"; x.fillRect(24, y-24, W-48, 30);
+  // ── Head bar ──
+  let y = headTop;
+  x.fillStyle="#282828"; x.fillRect(24, y, W-48, barH);
   x.fillStyle="#fff"; x.font="bold 13px Arial";
-  x.fillText("Date",cols[0]+6,y-4); x.fillText("Particulars",cols[1],y-4); x.fillText("Ref",cols[2],y-4);
-  x.textAlign="right"; x.fillText("Debit",colR[3],y-4); x.fillText("Credit",colR[4],y-4); x.fillText("Balance",colR[5],y-4);
+  const bt = y + 22;                      // baseline inside the bar
+  x.fillText("Date",cols[0]+6,bt); x.fillText("Particulars",cols[1],bt); x.fillText("Ref",cols[2],bt);
+  x.textAlign="right"; x.fillText("Debit",colR[3],bt); x.fillText("Credit",colR[4],bt); x.fillText("Balance",colR[5],bt);
   x.textAlign="left";
-  y+=8;
+  y += barH + 8;
 
   // Rows
   x.font="13px Arial";
