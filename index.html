@@ -7840,8 +7840,10 @@ function lgGridHTML(p){
     <div class="card-hdr">
       ${p.name}
       <span style="font-weight:400;font-size:12px;color:var(--muted)">${[p.city,p.phone,p.gstin].filter(Boolean).join(" · ")}</span>
-      <span style="float:right;display:flex;gap:6px">
-        <button class="btn btn-sm" onclick="lgSortRows()">↕ Sort by date</button>
+      <span style="float:right;display:flex;gap:6px;flex-wrap:wrap">
+        <button class="btn btn-sm" onclick="lgSortRows()">↕ Sort</button>
+        <button class="btn btn-sm btn-p" onclick="lgStatement('${p.id}','pdf')">📄 PDF</button>
+        <button class="btn btn-sm" onclick="lgStatement('${p.id}','img')">🖼️ Image</button>
         <button class="btn-e" onclick="lgPartyForm('${p.id}')">✏️</button>
         <button class="btn-d" onclick="lgDelParty('${p.id}')">🗑</button>
       </span>
@@ -8013,6 +8015,181 @@ function lgDelRow(id){
   document.querySelector(`tr[data-id="${id}"]`)?.remove();
   lgRecalc();
   lgMarkDirty();
+}
+
+function lgStatementData(pid){
+  const p = (LG.data.parties||[]).find(x=>x.id===pid);
+  if(!p) return null;
+  const opening = lgOpening(p);
+  const rows = lgRowsFor(pid).slice().sort((a,b)=>(a.date||"9999").localeCompare(b.date||"9999"));
+  let run = opening;
+  const lines = rows.map(e=>{
+    const d=parseFloat(e.debit)||0, c=parseFloat(e.credit)||0;
+    run += d - c;
+    return { date:e.date, particulars:e.particulars||"", ref:e.ref||"", debit:d, credit:c, balance:run };
+  });
+  const totD = rows.reduce((s,e)=>s+(parseFloat(e.debit)||0),0) + (opening>0?opening:0);
+  const totC = rows.reduce((s,e)=>s+(parseFloat(e.credit)||0),0) + (opening<0?-opening:0);
+  return { p, opening, lines, totD, totC, closing:run };
+}
+
+function lgStatement(pid, mode){
+  const data = lgStatementData(pid);
+  if(!data){ alert("Party not found"); return; }
+  if(mode==="img") return lgStatementImage(data);
+  return lgStatementPDF(data);
+}
+
+function lgStatementPDF(data){
+  loadJsPDF(()=>{
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+    const W = doc.internal.pageSize.getWidth();
+    const money = n => (n<0?"-":"") + Math.abs(Math.round(n)).toLocaleString("en-IN");
+    const dc = n => n>0?"Dr":n<0?"Cr":"";
+
+    // Plain header — party name + statement, no branding
+    doc.setTextColor(20,20,20);
+    doc.setFont("helvetica","bold"); doc.setFontSize(17);
+    doc.text(String(data.p.name||"Account Statement"), 14, 20);
+    doc.setFont("helvetica","normal"); doc.setFontSize(10);
+    const sub = [data.p.city, data.p.phone, data.p.gstin].filter(Boolean).join("  |  ");
+    if(sub) doc.text(sub, 14, 27);
+    doc.setFontSize(11); doc.setFont("helvetica","bold");
+    doc.text("ACCOUNT STATEMENT", 14, sub?36:33);
+    doc.setFont("helvetica","normal"); doc.setFontSize(9);
+    doc.text("As on " + fd(new Date().toISOString().slice(0,10)), W-14, sub?36:33, {align:"right"});
+
+    // Table
+    const body = [];
+    if(data.opening) body.push(["", "Opening Balance", "",
+      data.opening>0?money(data.opening):"", data.opening<0?money(-data.opening):"",
+      money(Math.abs(data.opening))+" "+dc(data.opening)]);
+    data.lines.forEach(l=>body.push([
+      fd(l.date), l.particulars, l.ref,
+      l.debit?money(l.debit):"", l.credit?money(l.credit):"",
+      money(Math.abs(l.balance))+" "+dc(l.balance)
+    ]));
+
+    doc.autoTable({
+      startY: sub?42:39,
+      head: [["Date","Particulars","Ref","Debit","Credit","Balance"]],
+      body,
+      theme:"grid",
+      headStyles:{fillColor:[40,40,40], fontSize:9.5, halign:"center"},
+      styles:{fontSize:9, cellPadding:2},
+      columnStyles:{0:{cellWidth:22},2:{cellWidth:20},
+        3:{cellWidth:26,halign:"right"},4:{cellWidth:26,halign:"right"},5:{cellWidth:32,halign:"right"}}
+    });
+
+    // Totals + closing
+    let y = doc.lastAutoTable.finalY + 8;
+    const rx = W-14;
+    doc.setFontSize(10);
+    doc.text(`Total Debit: ${money(data.totD)}`, rx, y, {align:"right"}); y+=6;
+    doc.text(`Total Credit: ${money(data.totC)}`, rx, y, {align:"right"}); y+=8;
+    doc.setFont("helvetica","bold"); doc.setFontSize(13);
+    doc.text(`Closing Balance: ${money(Math.abs(data.closing))} ${dc(data.closing)}`, rx, y, {align:"right"});
+
+    // Save / share
+    const fname = String(data.p.name||"statement").replace(/[^a-z0-9]+/gi,"_") + "_statement.pdf";
+    const blob = doc.output("blob");
+    const file = new File([blob], fname, {type:"application/pdf"});
+    if(navigator.canShare && navigator.canShare({files:[file]})){
+      navigator.share({files:[file], title:data.p.name+" — Statement"}).catch(()=>doc.save(fname));
+    } else {
+      doc.save(fname);
+    }
+  });
+}
+
+function lgStatementImage(data){
+  const money = n => (n<0?"-":"") + Math.abs(Math.round(n)).toLocaleString("en-IN");
+  const dc = n => n>0?"Dr":n<0?"Cr":"";
+  const rows = [];
+  if(data.opening) rows.push({date:"", part:"Opening Balance", ref:"",
+    d:data.opening>0?data.opening:0, c:data.opening<0?-data.opening:0, bal:data.opening, open:true});
+  data.lines.forEach(l=>rows.push({date:fd(l.date), part:l.particulars, ref:l.ref, d:l.debit, c:l.credit, bal:l.balance}));
+
+  const rowH=34, headH=110, footH=90, W=820;
+  const H = headH + rows.length*rowH + footH;
+  const c = document.createElement("canvas");
+  const scale = 2;                       // retina-sharp
+  c.width=W*scale; c.height=H*scale;
+  const x = c.getContext("2d");
+  x.scale(scale,scale);
+  x.fillStyle="#ffffff"; x.fillRect(0,0,W,H);
+
+  // Header
+  x.fillStyle="#141414"; x.font="bold 26px Arial";
+  x.fillText(String(data.p.name||"Account Statement"), 24, 40);
+  const sub=[data.p.city,data.p.phone,data.p.gstin].filter(Boolean).join("   |   ");
+  x.font="14px Arial"; x.fillStyle="#555";
+  if(sub) x.fillText(sub, 24, 62);
+  x.font="bold 15px Arial"; x.fillStyle="#141414";
+  x.fillText("ACCOUNT STATEMENT", 24, 88);
+  x.font="13px Arial"; x.fillStyle="#555"; x.textAlign="right";
+  x.fillText("As on "+fd(new Date().toISOString().slice(0,10)), W-24, 88);
+  x.textAlign="left";
+
+  // Column x-positions
+  const cols=[24, 110, 380, 470, 590, 710];  // date, part, ref, debit, credit, balance
+  const colR=[null,null,null, 560, 680, 796]; // right-edge for right-aligned numeric
+
+  // Head row
+  let y=headH;
+  x.fillStyle="#282828"; x.fillRect(24, y-24, W-48, 30);
+  x.fillStyle="#fff"; x.font="bold 13px Arial";
+  x.fillText("Date",cols[0]+6,y-4); x.fillText("Particulars",cols[1],y-4); x.fillText("Ref",cols[2],y-4);
+  x.textAlign="right"; x.fillText("Debit",colR[3],y-4); x.fillText("Credit",colR[4],y-4); x.fillText("Balance",colR[5],y-4);
+  x.textAlign="left";
+  y+=8;
+
+  // Rows
+  x.font="13px Arial";
+  rows.forEach((r,i)=>{
+    if(r.open){ x.fillStyle="#fffbeb"; x.fillRect(24,y-18,W-48,rowH); }
+    else if(i%2){ x.fillStyle="#f8fafc"; x.fillRect(24,y-18,W-48,rowH); }
+    x.fillStyle="#1f2937";
+    x.font = r.open?"bold 13px Arial":"13px Arial";
+    x.fillText(r.date, cols[0]+6, y+4);
+    x.fillText((r.part||"").slice(0,34), cols[1], y+4);
+    x.fillStyle="#64748b"; x.fillText((r.ref||"").slice(0,12), cols[2], y+4);
+    x.textAlign="right";
+    x.fillStyle="#15803d"; x.fillText(r.d?money(r.d):"", colR[3], y+4);
+    x.fillStyle="#b91c1c"; x.fillText(r.c?money(r.c):"", colR[4], y+4);
+    x.fillStyle="#111827"; x.font="bold 13px Arial";
+    x.fillText(money(Math.abs(r.bal))+" "+dc(r.bal), colR[5], y+4);
+    x.textAlign="left";
+    y+=rowH;
+  });
+
+  // Footer totals
+  y+=14; x.strokeStyle="#d1d5db"; x.beginPath(); x.moveTo(24,y-18); x.lineTo(W-24,y-18); x.stroke();
+  x.textAlign="right"; x.fillStyle="#374151"; x.font="14px Arial";
+  x.fillText("Total Debit: "+money(data.totD), W-24, y+4); y+=24;
+  x.fillText("Total Credit: "+money(data.totC), W-24, y+4); y+=30;
+  x.fillStyle="#111827"; x.font="bold 20px Arial";
+  x.fillText("Closing Balance: "+money(Math.abs(data.closing))+" "+dc(data.closing), W-24, y+4);
+  x.textAlign="left";
+
+  const fname = String(data.p.name||"statement").replace(/[^a-z0-9]+/gi,"_") + "_statement.png";
+  c.toBlob(blob=>{
+    if(!blob){ alert("Could not create image"); return; }
+    const file = new File([blob], fname, {type:"image/png"});
+    if(navigator.canShare && navigator.canShare({files:[file]})){
+      navigator.share({files:[file], title:data.p.name+" — Statement"}).catch(()=>lgDownloadBlob(blob,fname));
+    } else {
+      lgDownloadBlob(blob, fname);
+    }
+  }, "image/png");
+}
+
+function lgDownloadBlob(blob, fname){
+  const a=document.createElement("a");
+  a.href=URL.createObjectURL(blob); a.download=fname;
+  document.body.appendChild(a); a.click();
+  setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); }, 1000);
 }
 
 function lgSortRows(){
