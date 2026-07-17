@@ -8111,76 +8111,93 @@ function lgStatementImage(data){
     d:data.opening>0?data.opening:0, c:data.opening<0?-data.opening:0, bal:data.opening, open:true});
   data.lines.forEach(l=>rows.push({date:fd(l.date), part:l.particulars, ref:l.ref, d:l.debit, c:l.credit, bal:l.balance}));
 
-  const sub=[data.p.city,data.p.phone,data.p.gstin].filter(Boolean).join("   |   ");
-  const rowH=36, footH=110, W=820;
-  // Header height grows if there's a sub-line; leaves clear gap before the table
-  const headTop = sub ? 150 : 128;       // y where the black header bar begins
-  const barH = 34;
-  const H = headTop + barH + rows.length*rowH + footH;
+  const S=2, W=860, M=28, rowH=44, headH=42;
+  const sub=[data.p.city,data.p.phone,data.p.gstin].filter(Boolean).join("   ·   ");
+  const yTitle=54, ySub=yTitle+26;
+  const yBand=(sub?ySub:yTitle)+34, bandH=40;
+  const yTable=yBand+bandH+22;
+  const ySummary=yTable+headH+rows.length*rowH+30, summaryH=132;
+  const H=ySummary+summaryH+M;
 
-  const c = document.createElement("canvas");
-  const scale = 2;                       // retina-sharp
-  c.width=W*scale; c.height=H*scale;
-  const x = c.getContext("2d");
-  x.scale(scale,scale);
+  const c=document.createElement("canvas");
+  c.width=W*S; c.height=H*S;
+  const x=c.getContext("2d");
+  x.scale(S,S);
   x.fillStyle="#ffffff"; x.fillRect(0,0,W,H);
+  x.textBaseline="alphabetic";
 
-  // ── Header block (well above the table) ──
-  x.textAlign="left";
-  x.fillStyle="#141414"; x.font="bold 28px Arial";
-  x.fillText(String(data.p.name||"Account Statement"), 24, 46);
-  let hy = 74;
-  if(sub){
-    x.font="15px Arial"; x.fillStyle="#666";
-    x.fillText(sub, 24, hy); hy += 34;
-  } else { hy = 80; }
-  x.font="bold 16px Arial"; x.fillStyle="#141414";
-  x.fillText("ACCOUNT STATEMENT", 24, hy);
-  x.font="13px Arial"; x.fillStyle="#666"; x.textAlign="right";
-  x.fillText("As on "+fd(new Date().toISOString().slice(0,10)), W-24, hy);
-  x.textAlign="left";
+  const L=M, Rr=W-M;
+  const cX={date:L+14, part:L+118, ref:L+430};
+  const cR={debit:L+610, credit:L+720, bal:Rr-14};
+  const T=(px,py,t,fs,bold,fill,right)=>{
+    x.font=(bold?"bold ":"")+fs+"px Arial"; x.fillStyle=fill;
+    x.textAlign=right?"right":"left"; x.fillText(t, px, py);
+  };
+  const rect=(x0,y0,x1,y1,fill,stroke,wd)=>{
+    if(fill){ x.fillStyle=fill; x.fillRect(x0,y0,x1-x0,y1-y0); }
+    if(stroke){ x.strokeStyle=stroke; x.lineWidth=wd||1; x.strokeRect(x0,y0,x1-x0,y1-y0); }
+  };
+  const line=(x0,y0,x1,y1,stroke,wd)=>{ x.strokeStyle=stroke; x.lineWidth=wd||1;
+    x.beginPath(); x.moveTo(x0,y0); x.lineTo(x1,y1); x.stroke(); };
 
-  // Column x-positions
-  const cols=[24, 118, 380, 470, 590, 710];  // date, part, ref, debit, credit, balance
-  const colR=[null,null,null, 560, 680, 796]; // right-edge for right-aligned numeric
+  // Outer card
+  rect(M-10,M-10,W-M+10,H-M+10,null,"#e5e7eb",1.5);
 
-  // ── Head bar ──
-  let y = headTop;
-  x.fillStyle="#282828"; x.fillRect(24, y, W-48, barH);
-  x.fillStyle="#fff"; x.font="bold 13px Arial";
-  const bt = y + 22;                      // baseline inside the bar
-  x.fillText("Date",cols[0]+6,bt); x.fillText("Particulars",cols[1],bt); x.fillText("Ref",cols[2],bt);
-  x.textAlign="right"; x.fillText("Debit",colR[3],bt); x.fillText("Credit",colR[4],bt); x.fillText("Balance",colR[5],bt);
-  x.textAlign="left";
-  y += barH + 8;
+  // Header
+  T(L,yTitle,String(data.p.name||"Account Statement"),30,true,"#111827",false);
+  if(sub) T(L,ySub,sub,14.5,false,"#6b7280",false);
+
+  // Statement band
+  T(L,yBand+26,"ACCOUNT STATEMENT",17,true,"#111827",false);
+  T(Rr,yBand+26,"As on "+fd(new Date().toISOString().slice(0,10)),13.5,false,"#9ca3af",true);
+  line(L,yBand+bandH,Rr,yBand+bandH,"#e5e7eb",1);
+
+  // Table header bar
+  rect(L,yTable,Rr,yTable+headH,"#1f2937");
+  const hy=yTable+27;
+  T(cX.date,hy,"Date",13,true,"#ffffff",false);
+  T(cX.part,hy,"Particulars",13,true,"#ffffff",false);
+  T(cX.ref,hy,"Ref",13,true,"#ffffff",false);
+  T(cR.debit,hy,"Debit",13,true,"#ffffff",true);
+  T(cR.credit,hy,"Credit",13,true,"#ffffff",true);
+  T(cR.bal,hy,"Balance",13,true,"#ffffff",true);
 
   // Rows
-  x.font="13px Arial";
+  let y=yTable+headH;
   rows.forEach((r,i)=>{
-    if(r.open){ x.fillStyle="#fffbeb"; x.fillRect(24,y-18,W-48,rowH); }
-    else if(i%2){ x.fillStyle="#f8fafc"; x.fillRect(24,y-18,W-48,rowH); }
-    x.fillStyle="#1f2937";
-    x.font = r.open?"bold 13px Arial":"13px Arial";
-    x.fillText(r.date, cols[0]+6, y+4);
-    x.fillText((r.part||"").slice(0,34), cols[1], y+4);
-    x.fillStyle="#64748b"; x.fillText((r.ref||"").slice(0,12), cols[2], y+4);
-    x.textAlign="right";
-    x.fillStyle="#15803d"; x.fillText(r.d?money(r.d):"", colR[3], y+4);
-    x.fillStyle="#b91c1c"; x.fillText(r.c?money(r.c):"", colR[4], y+4);
-    x.fillStyle="#111827"; x.font="bold 13px Arial";
-    x.fillText(money(Math.abs(r.bal))+" "+dc(r.bal), colR[5], y+4);
-    x.textAlign="left";
+    if(r.open) rect(L,y,Rr,y+rowH,"#fffbeb");
+    else if(i%2===0) rect(L,y,Rr,y+rowH,"#f9fafb");
+    const ty=y+rowH/2+5, b=!!r.open;
+    T(cX.date,ty,r.date,13,b,"#374151",false);
+    // particulars — wrap/clip to fit before the Ref column
+    let part=r.part||"";
+    x.font=(b?"bold ":"")+"13px Arial";
+    const maxW=cX.ref-cX.part-12;
+    if(x.measureText(part).width>maxW){
+      while(part.length>4 && x.measureText(part+"…").width>maxW) part=part.slice(0,-1);
+      part+="…";
+    }
+    T(cX.part,ty,part,13,b,"#111827",false);
+    T(cX.ref,ty,(r.ref||""),12.5,false,"#9ca3af",false);
+    if(r.d) T(cR.debit,ty,money(r.d),13,b,"#15803d",true);
+    if(r.c) T(cR.credit,ty,money(r.c),13,b,"#b91c1c",true);
+    T(cR.bal,ty,money(Math.abs(r.bal))+" "+dc(r.bal),13,true,"#111827",true);
+    line(L,y+rowH,Rr,y+rowH,"#eef0f2",1);
     y+=rowH;
   });
+  rect(L,yTable,Rr,y,null,"#e5e7eb",1.2);
 
-  // Footer totals
-  y+=14; x.strokeStyle="#d1d5db"; x.beginPath(); x.moveTo(24,y-18); x.lineTo(W-24,y-18); x.stroke();
-  x.textAlign="right"; x.fillStyle="#374151"; x.font="14px Arial";
-  x.fillText("Total Debit: "+money(data.totD), W-24, y+4); y+=24;
-  x.fillText("Total Credit: "+money(data.totC), W-24, y+4); y+=30;
-  x.fillStyle="#111827"; x.font="bold 20px Arial";
-  x.fillText("Closing Balance: "+money(Math.abs(data.closing))+" "+dc(data.closing), W-24, y+4);
-  x.textAlign="left";
+  // Summary box (right)
+  const bw=300, bx=Rr-bw, by=ySummary;
+  rect(bx,by,Rr,by+summaryH,"#f9fafb","#e5e7eb",1.2);
+  const px=bx+18, pr=Rr-18;
+  T(px,by+32,"Total Debit",13,false,"#6b7280",false);
+  T(pr,by+32,money(data.totD),13,false,"#374151",true);
+  T(px,by+58,"Total Credit",13,false,"#6b7280",false);
+  T(pr,by+58,money(data.totC),13,false,"#374151",true);
+  line(bx+14,by+76,Rr-14,by+76,"#e5e7eb",1);
+  T(px,by+106,"Closing Balance",14,true,"#111827",false);
+  T(pr,by+106,money(Math.abs(data.closing))+" "+dc(data.closing),17,true,"#111827",true);
 
   const fname = String(data.p.name||"statement").replace(/[^a-z0-9]+/gi,"_") + "_statement.png";
   c.toBlob(blob=>{
