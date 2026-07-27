@@ -2378,6 +2378,7 @@ const mb=(l,fn,c="btn-u")=>`<button class="${c}" onclick="${fn}">${l}</button>`;
 function delItem(type,id){
   const arr=D[type],item=arr.find(x=>x.id===id);if(!item)return;
   D[type]=arr.filter(x=>x.id!==id);
+  autoSave(type);   // persist the delete immediately — was missing, so deletes never saved
   pushUndo(D[type],item,`"${item.party||item.name||item.idea||item.plan||item.issue||item.event||item.item||"Item"}" deleted`);
   R[type]?.();
 }
