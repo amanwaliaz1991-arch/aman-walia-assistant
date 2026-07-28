@@ -332,6 +332,23 @@ body.lg-dense table.lg-grid td button.btn-d{padding:2px 7px!important;font-size:
   body.lg-full #mod-ledger .tbl-scroll{max-height:calc(100vh - 118px)}
   body.lg-dense table.lg-grid td .lg-c{padding:4px 6px!important;font-size:13px!important;min-height:23px!important}
 }
+
+/* Orders: table on desktop, cards on mobile */
+.ord-card-view{display:none}
+@media(max-width:820px){
+  #mod-orders .ord-table-view{display:none}
+  .ord-card-view{display:block;padding:6px}
+}
+.ord-card{border:1px solid var(--b1);border-radius:12px;padding:12px 14px;margin-bottom:10px;background:#fff}
+.ord-card-top{display:flex;justify-content:space-between;align-items:flex-start;gap:8px}
+.ord-card-name{font-size:16px;font-weight:800;color:var(--ink);line-height:1.25}
+.ord-card-meta{font-size:12px;color:var(--muted);margin-top:2px}
+.ord-card-vals{display:flex;gap:14px;flex-wrap:wrap;margin:9px 0;font-size:13px}
+.ord-card-vals b{font-family:'JetBrains Mono',monospace}
+.ord-card-actions{display:flex;gap:7px;flex-wrap:wrap;margin-top:10px;padding-top:10px;border-top:1px dashed var(--b1)}
+.ord-card-actions button{flex:0 0 auto;font-size:14px;padding:7px 12px;min-height:38px}
+.ord-card-actions .oc-adv{flex:1 1 auto;min-width:120px}
+.ord-card-actions .btn-e,.ord-card-actions .btn-d{min-width:44px;font-size:16px}
 </style>
   <!-- Firebase SDK -->
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
@@ -1179,7 +1196,8 @@ body.lg-dense table.lg-grid td button.btn-d{padding:2px 7px!important;font-size:
       Order Register
       <span id="ord-count" style="font-size:13px;color:var(--muted);font-weight:400;margin-left:8px"></span>
     </div>
-    <div class="tbl-scroll">
+    <!-- Desktop: wide table -->
+    <div class="tbl-scroll ord-table-view">
       <table class="tbl">
         <thead><tr>
           <th>Party</th><th>Invoice #</th><th>Inv Value</th>
@@ -1191,6 +1209,8 @@ body.lg-dense table.lg-grid td button.btn-d{padding:2px 7px!important;font-size:
         <tbody id="ord-body"></tbody>
       </table>
     </div>
+    <!-- Mobile: card list (name + actions together, no side-scroll) -->
+    <div id="ord-cards" class="ord-card-view"></div>
     <div id="ord-empty" class="es" style="display:none"><div class="em">📦</div>No orders yet. Add your first order.</div>
   </div>
 </div>
@@ -3047,6 +3067,45 @@ const R={
         <button class="btn-d" onclick="delItem('orders',${o.id})">🗑</button>
       </td>
     </tr>`;}).join("");
+
+    // ── Mobile card view (same data, name + actions together) ──
+    const advBtn = (o)=>{
+      const map={pending:["processing","🔨 Start Production"],processing:["packed","📦 Mark Packed"],
+        packed:["dispatched","🚚 Dispatch"],dispatched:["cod_pending","💳 To COD"],
+        cod_pending:["chq_received","📬 Cheque In"],chq_received:["chq_cleared","✅ Cheque Cleared"],
+        chq_cleared:["done","🏁 Mark Done"]};
+      const n=map[o.status]; if(!n) return "";
+      return `<button class="btn btn-u oc-adv" onclick="moveOrder(${o.id},'${n[0]}')">${n[1]}</button>`;
+    };
+    const cardsEl = document.getElementById("ord-cards");
+    if(cardsEl){
+      cardsEl.innerHTML = list.length ? list.map(o=>{
+        const pri = o.pri==="critical"?'🔴 ':o.pri==="high"?'🟠 ':"";
+        const ddOver = o.deadline && new Date(o.deadline)<new Date();
+        return `<div class="ord-card">
+          <div class="ord-card-top">
+            <div>
+              <div class="ord-card-name">${pri}${o.party||"—"}</div>
+              ${o.items?`<div class="ord-card-meta">${o.items}</div>`:""}
+              ${o.inv?`<div class="ord-card-meta">Inv: ${o.inv}${o.agent?" · "+o.agent:""}</div>`:o.agent?`<div class="ord-card-meta">${o.agent}</div>`:""}
+              ${o.deadline?`<div class="ord-card-meta" style="color:${ddOver?'var(--red)':'var(--orange)'};font-weight:700">⏰ Due ${fd(o.deadline)}</div>`:""}
+            </div>
+            <div style="text-align:right">${stP(o.status)}</div>
+          </div>
+          <div class="ord-card-vals">
+            ${o.invVal?`<span>Value: <b style="color:var(--green)">${fa(o.invVal)}</b></span>`:""}
+            ${o.codAmt?`<span>COD: <b style="color:var(--red)">${fa(o.codAmt)}</b></span>`:""}
+            ${o.dispatchDate?`<span style="color:var(--muted)">🚚 ${fd(o.dispatchDate)}</span>`:""}
+          </div>
+          <div class="ord-card-actions">
+            ${advBtn(o)}
+            <button class="btn btn-e" onclick="Mo.open('orders',${o.id})" title="Edit">✏️</button>
+            <button class="btn btn-d" onclick="delItem('orders',${o.id})" title="Delete">🗑️</button>
+          </div>
+        </div>`;
+      }).join("") : `<div class="es" style="padding:34px"><div class="em">📦</div>No orders match.</div>`;
+    }
+  
   },
 
 
