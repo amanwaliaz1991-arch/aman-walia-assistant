@@ -349,6 +349,12 @@ body.lg-dense table.lg-grid td button.btn-d{padding:2px 7px!important;font-size:
 .ord-card-actions button{flex:0 0 auto;font-size:14px;padding:7px 12px;min-height:38px}
 .ord-card-actions .oc-adv{flex:1 1 auto;min-width:120px}
 .ord-card-actions .btn-e,.ord-card-actions .btn-d{min-width:44px;font-size:16px}
+
+#ord-ctx .oc-item{display:flex;align-items:center;gap:10px;padding:13px 16px;cursor:pointer;border-bottom:1px solid var(--s2);color:var(--ink)}
+#ord-ctx .oc-item:last-child{border-bottom:none}
+#ord-ctx .oc-item:active,#ord-ctx .oc-item:hover{background:var(--s2)}
+#ord-ctx .oc-item.oc-danger{color:var(--red)}
+#ord-ctx .oc-head{padding:11px 16px;background:var(--s1);font-weight:800;font-size:13px;color:var(--muted);border-bottom:1px solid var(--b1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 </style>
   <!-- Firebase SDK -->
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
@@ -2151,6 +2157,10 @@ body.lg-dense table.lg-grid td button.btn-d{padding:2px 7px!important;font-size:
   <div id="lg-sheet"></div>
 </div>
 
+
+<!-- Order quick-action context menu -->
+<div id="ord-ctx" style="display:none;position:fixed;z-index:9500;background:#fff;border:1px solid var(--b1);border-radius:12px;box-shadow:0 12px 40px rgba(0,0,0,.22);overflow:hidden;min-width:210px;font-size:15px"></div>
+<div id="ord-ctx-backdrop" style="display:none;position:fixed;inset:0;z-index:9400" onclick="closeOrdMenu()"></div>
 </div><!-- /main -->
 
 <button id="lg-exitfull" onclick="lgToggleFull()">⤢ Exit Full Page</button>
@@ -3037,7 +3047,7 @@ const R={
     tbody.innerHTML = list.map(o=>{
       const priFlag = o.pri==="critical"?'<span title="Critical" style="color:var(--red)">🔴</span> ':o.pri==="high"?'<span title="High" style="color:var(--orange)">🟠</span> ':"";
       const ddStyle = o.deadline ? (new Date(o.deadline) < new Date() ? "color:var(--red);font-weight:700" : "color:var(--orange)") : "color:var(--muted)";
-      return `<tr>
+      return `<tr data-oid="${o.id}" oncontextmenu="ordMenu(event,${o.id});return false">
       <td>${priFlag}<b style="cursor:pointer;color:var(--ac)" onclick="openOrderChain(${o.id})" title="View order chain">${o.party}</b>
         ${o.items?`<div style="font-size:11px;color:var(--muted)">${o.items}</div>`:""}
         ${o.deadline?`<div style="font-size:11px;${ddStyle}">⏰ ${fd(o.deadline)}</div>`:""}</td>
@@ -3082,7 +3092,7 @@ const R={
       cardsEl.innerHTML = list.length ? list.map(o=>{
         const pri = o.pri==="critical"?'🔴 ':o.pri==="high"?'🟠 ':"";
         const ddOver = o.deadline && new Date(o.deadline)<new Date();
-        return `<div class="ord-card">
+        return `<div class="ord-card" data-oid="${o.id}" oncontextmenu="ordMenu(event,${o.id});return false" ontouchstart="ordTouchStart(event,${o.id})" ontouchend="ordTouchEnd()" ontouchmove="ordTouchEnd()">
           <div class="ord-card-top">
             <div>
               <div class="ord-card-name">${pri}${o.party||"—"}</div>
@@ -4544,6 +4554,85 @@ function addItemToCategory(catName) {
   setTimeout(()=>document.getElementById("mf-name")?.focus(),100);
 }
 
+
+// ══ Order right-click / long-press quick menu ══
+let _ordTouchTimer=null;
+function ordTouchStart(e,id){
+  _ordTouchTimer=setTimeout(()=>{
+    const t=e.touches&&e.touches[0];
+    ordMenu({clientX:t?t.clientX:120, clientY:t?t.clientY:200, preventDefault(){}}, id);
+    if(navigator.vibrate) navigator.vibrate(15);
+  }, 480);
+}
+function ordTouchEnd(){ if(_ordTouchTimer){ clearTimeout(_ordTouchTimer); _ordTouchTimer=null; } }
+
+function closeOrdMenu(){
+  document.getElementById("ord-ctx").style.display="none";
+  document.getElementById("ord-ctx-backdrop").style.display="none";
+}
+
+function ordMenu(e, id){
+  if(e&&e.preventDefault) e.preventDefault();
+  const o=(D.orders||[]).find(x=>x.id===id); if(!o) return;
+
+  const STAGES=[["pending","📝 To Make"],["processing","🔨 In Production"],["packed","📦 Packed"],
+    ["dispatched","🚚 Dispatched"],["cod_pending","💳 COD Pending"],["chq_received","📬 Cheque Received"],
+    ["chq_cleared","✅ Cheque Cleared"],["done","🏁 Done"]];
+  const idx=STAGES.findIndex(s=>s[0]===o.status);
+  const next=idx>=0&&idx<STAGES.length-1?STAGES[idx+1]:null;
+  const prev=idx>0?STAGES[idx-1]:null;
+
+  let h=`<div class="oc-head">${o.party||"Order"}</div>`;
+  if(next) h+=`<div class="oc-item" onclick="closeOrdMenu();moveOrder(${id},'${next[0]}')"><span>➡️</span> Advance to ${next[1]}</div>`;
+  if(prev) h+=`<div class="oc-item" onclick="closeOrdMenu();moveOrder(${id},'${prev[0]}')"><span>↩️</span> Back to ${prev[1]}</div>`;
+  h+=`<div class="oc-item" onclick="closeOrdMenu();ordSetPriority(${id})"><span>🚩</span> Set Priority</div>`;
+  h+=`<div class="oc-item" onclick="closeOrdMenu();ordJump(${id})"><span>📊</span> Jump to Stage…</div>`;
+  h+=`<div class="oc-item" onclick="closeOrdMenu();Mo.open('orders',${id})"><span>✏️</span> Edit Full Details</div>`;
+  h+=`<div class="oc-item" onclick="closeOrdMenu();openOrderChain(${id})"><span>🔗</span> View Order Chain</div>`;
+  h+=`<div class="oc-item oc-danger" onclick="closeOrdMenu();delItem('orders',${id})"><span>🗑️</span> Delete Order</div>`;
+
+  const m=document.getElementById("ord-ctx");
+  m.innerHTML=h;
+  m.style.display="block";
+  document.getElementById("ord-ctx-backdrop").style.display="block";
+  // position within viewport
+  const mw=Math.max(210,m.offsetWidth||220), mh=m.offsetHeight||300;
+  let x=(e.clientX||120), y=(e.clientY||200);
+  if(x+mw>window.innerWidth-8) x=window.innerWidth-mw-8;
+  if(y+mh>window.innerHeight-8) y=Math.max(8, window.innerHeight-mh-8);
+  m.style.left=Math.max(8,x)+"px";
+  m.style.top=Math.max(8,y)+"px";
+}
+
+function ordSetPriority(id){
+  const o=(D.orders||[]).find(x=>x.id===id); if(!o) return;
+  const cur=o.pri||"normal";
+  const order=["critical","high","normal"];
+  const labels={critical:"🔴 Critical",high:"🟠 High",normal:"⚪ Normal"};
+  // cycle to a chosen one via a tiny prompt-less rotation menu
+  const m=document.getElementById("ord-ctx");
+  m.innerHTML=`<div class="oc-head">Priority — ${o.party}</div>`+
+    order.map(p=>`<div class="oc-item" onclick="closeOrdMenu();ordApplyPriority(${id},'${p}')">${labels[p]}${p===cur?' ✓':''}</div>`).join("");
+  m.style.display="block";
+  document.getElementById("ord-ctx-backdrop").style.display="block";
+}
+function ordApplyPriority(id,p){
+  const o=(D.orders||[]).find(x=>x.id===id); if(!o) return;
+  o.pri=p; autoSave("orders"); R.orders();
+  if(typeof crmToast==="function") crmToast("Priority updated");
+}
+
+function ordJump(id){
+  const o=(D.orders||[]).find(x=>x.id===id); if(!o) return;
+  const STAGES=[["pending","📝 To Make"],["processing","🔨 In Production"],["packed","📦 Packed"],
+    ["dispatched","🚚 Dispatched"],["cod_pending","💳 COD Pending"],["chq_received","📬 Cheque Received"],
+    ["chq_cleared","✅ Cheque Cleared"],["done","🏁 Done"]];
+  const m=document.getElementById("ord-ctx");
+  m.innerHTML=`<div class="oc-head">Set stage — ${o.party}</div>`+
+    STAGES.map(s=>`<div class="oc-item" onclick="closeOrdMenu();moveOrder(${id},'${s[0]}')">${s[1]}${s[0]===o.status?' ✓':''}</div>`).join("");
+  m.style.display="block";
+  document.getElementById("ord-ctx-backdrop").style.display="block";
+}
 
 function moveOrder(id, newStatus) {
   const o = D.orders.find(x=>x.id===id);
