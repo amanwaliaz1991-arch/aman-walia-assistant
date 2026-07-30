@@ -2487,8 +2487,6 @@ const Mo={
         <div id="renew-extra" style="display:${(ie?item.category:"vehicle")==="vehicle"?"block":"none"}">
           <div style="font-weight:800;font-size:12px;color:var(--muted);margin:10px 0 4px">EXTRA VEHICLE DATES <span style="font-weight:400">— optional, each auto-reminds</span></div>
           <div class="fr"><div class="fg"><label>💨 Pollution (PUC)</label><input class="inp" id="mf-pollution" type="date" value="${v('pollution')}" style="width:100%"></div><div class="fg"><label>🔧 Next Service</label><input class="inp" id="mf-service" type="date" value="${v('service')}" style="width:100%"></div></div>
-          <div class="fr"><div class="fg"><label>📋 Fitness Cert</label><input class="inp" id="mf-fitness" type="date" value="${v('fitness')}" style="width:100%"></div><div class="fg"><label>🪪 Permit</label><input class="inp" id="mf-permit" type="date" value="${v('permit')}" style="width:100%"></div></div>
-          <div class="fr one"><div class="fg"><label>🛣️ Road Tax</label><input class="inp" id="mf-roadTax" type="date" value="${v('roadTax')}" style="width:100%"></div></div>
         </div>
         <div class="fr one"><div class="fg"><label>Notes</label><input class="inp" id="mf-notes" value="${v('notes')}" placeholder="Any details…" style="width:100%"></div></div>
       `},
@@ -2669,7 +2667,7 @@ function moSave(){
     future:()=>({plan:g("mf-plan"),cat:g("mf-cat"),timeline:g("mf-timeline"),invest:g("mf-invest"),ret:g("mf-ret"),status:g("mf-status")}),
 
     accounts:()=>({issue:g("mf-issue"),cat:g("mf-cat"),pri:g("mf-pri"),party:g("mf-party"),amount:gn("mf-amount"),assignedTo:g("mf-assignedTo"),due:g("mf-due"),status:g("mf-status"),remarks:g("mf-remarks"),createdAt:ie?undefined:new Date().toISOString().slice(0,10)}),
-    vehicles:()=>({category:g("mf-category")||"other",name:g("mf-name"),ref:g("mf-ref"),expiry:g("mf-expiry"),pollution:g("mf-pollution"),service:g("mf-service"),fitness:g("mf-fitness"),permit:g("mf-permit"),roadTax:g("mf-roadTax"),notes:g("mf-notes")}),
+    vehicles:()=>({category:g("mf-category")||"other",name:g("mf-name"),ref:g("mf-ref"),expiry:g("mf-expiry"),pollution:g("mf-pollution"),service:g("mf-service"),notes:g("mf-notes")}),
     orders:()=>({party:g("mf-party"),inv:g("mf-inv"),items:g("mf-items"),pri:g("mf-pri")||"normal",orderDate:g("mf-orderDate"),deadline:g("mf-deadline"),invVal:gn("mf-invVal"),codAmt:gn("mf-codAmt"),dispatchDate:g("mf-dispatchDate"),courier:g("mf-courier"),trackNo:g("mf-trackNo"),agent:g("mf-agent"),chqNo:g("mf-chqNo"),chqDate:g("mf-chqDate"),bank:g("mf-bank"),clearedDate:g("mf-clearedDate"),status:g("mf-status")||"pending",remarks:g("mf-remarks")}),
     purchase:()=>({item:g("mf-item"),cat:g("mf-cat"),stock:gn("mf-stock"),minLevel:gn("mf-minLevel"),toOrder:gn("mf-toOrder"),supplier:g("mf-supplier"),lastPrice:gn("mf-lastPrice"),unit:g("mf-unit")||"pcs",status:g("mf-status")}),
     expenses:()=>({date:g("mf-date"),cat:g("mf-cat"),desc:g("mf-desc"),vendor:g("mf-vendor"),amount:g("mf-amount"),mode:g("mf-mode"),receipt:g("mf-receipt")}),
@@ -2687,10 +2685,7 @@ function moSave(){
 const RENEW_CATS = {
   vehicle:  {l:"Vehicle",           ic:"🚗", extra:[
      {k:"pollution", l:"Pollution (PUC)", ic:"💨"},
-     {k:"service",   l:"Next Service",    ic:"🔧"},
-     {k:"fitness",   l:"Fitness Cert",    ic:"📋"},
-     {k:"permit",    l:"Permit",          ic:"🪪"},
-     {k:"roadTax",   l:"Road Tax",        ic:"🛣️"}
+     {k:"service",   l:"Next Service",    ic:"🔧"}
   ], mainLabel:"Insurance Expiry"},
   passport: {l:"Passport",          ic:"🛂", extra:[], mainLabel:"Passport Expiry"},
   licence:  {l:"Driving Licence",   ic:"🚦", extra:[], mainLabel:"Licence Expiry"},
