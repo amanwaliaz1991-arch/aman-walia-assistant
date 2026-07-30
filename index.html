@@ -355,6 +355,11 @@ body.lg-dense table.lg-grid td button.btn-d{padding:2px 7px!important;font-size:
 #ord-ctx .oc-item:active,#ord-ctx .oc-item:hover{background:var(--s2)}
 #ord-ctx .oc-item.oc-danger{color:var(--red)}
 #ord-ctx .oc-head{padding:11px 16px;background:var(--s1);font-weight:800;font-size:13px;color:var(--muted);border-bottom:1px solid var(--b1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+.veh-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+@media(max-width:560px){.veh-grid{grid-template-columns:1fr}}
+.veh-date{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:9px 12px;border-radius:9px;font-size:13px;border:1px solid var(--s2)}
+.veh-date.veh-empty2{background:var(--s1);opacity:.7}
 </style>
   <!-- Firebase SDK -->
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
@@ -797,6 +802,14 @@ body.lg-dense table.lg-grid td button.btn-d{padding:2px 7px!important;font-size:
   <div class="card"><div class="card-hdr">Compliance Calendar</div>
   <div class="tbl-scroll"><table class="tbl"><thead><tr><th>Filing</th><th>Authority</th><th>Due</th><th>Penalty</th><th>Responsible</th><th>Status</th><th>Actions</th></tr></thead><tbody id="cpb"></tbody></table></div></div>
 </div>
+<!-- VEHICLES -->
+<div class="mod" id="mod-vehicles">
+  <div class="ph"><div><div class="pt">VEHICLES <span>COMPLIANCE</span></div><div class="pt-sub">Insurance · Pollution · Service · Licence — auto-reminder 7 days before</div></div><button class="btn btn-p" onclick="Mo.open('vehicles')">+ Add Vehicle</button></div>
+  <div id="veh-stats" class="stat-row" style="margin-bottom:14px"></div>
+  <div id="veh-list"></div>
+  <div id="veh-empty" class="es" style="display:none;padding:40px"><div class="em">🚗</div>No vehicles yet. Tap "+ Add Vehicle" to start.</div>
+</div>
+
 
 <!-- INCOME TAX -->
 <div class="mod" id="mod-itax">
@@ -2249,7 +2262,8 @@ function go(id){
     itax:R.itax,tds:R.tds,gst:R.gst,itc:R.itc,future:R.future,tracker:initTracker,
     health:R.health,badminton:R.badminton,self:R.self,quotes:R.quotes,
     mustdo:R.mustdo,accounts:R.accounts,costing:R.costing,kb:R.kb,orders:R.orders,purchase:R.purchase,production:R.production,
-    expenses:R.expenses,scanner:R.scanner,stock:R.stock,utilities:initUtilities,quotation:R.quotation,brands:R.brands,crm:R.crm,ledger:R.ledger};
+    expenses:R.expenses,scanner:R.scanner,stock:R.stock,utilities:initUtilities,quotation:R.quotation,brands:R.brands,crm:R.crm,ledger:R.ledger,
+    vehicles:R.vehicles};
   rmap[id]?.();
 }
 
@@ -2356,7 +2370,7 @@ const D={
   ],
   weeklyReviews:[],
   orders:[],
-  mustdo:[],
+  mustdo:[],vehicles:[],
   accounts:[],
   costing:[],
   kb:[],
@@ -2463,6 +2477,18 @@ const Mo={
         <div class="fr"><div class="fg"><label>Category</label><select class="sel" id="mf-cat" style="width:100%">${sel('cat',[["new_product","New Product"],["improve","Improvement"],["process","Process"],["market","Market"],["cost","Cost Reduction"]])}</select></div><div class="fg"><label>Priority</label><select class="sel" id="mf-pri" style="width:100%">${sel('pri',[["high","🔴 High"],["med","🟡 Medium"],["low","🟢 Low"]])}</select></div></div>
         <div class="fr"><div class="fg"><label>Expected Benefit</label><input class="inp" id="mf-benefit" value="${v('benefit')}" style="width:100%"></div><div class="fg"><label>Status</label><select class="sel" id="mf-status" style="width:100%">${sel('status',[["idea","💡 Idea"],["testing","🔬 Testing"],["approved","✅ Approved"],["implemented","🚀 Implemented"]])}</select></div></div>
         <div class="fr one"><div class="fg"><label>Notes</label><input class="inp" id="mf-notes" value="${v('notes')}" style="width:100%"></div></div>`},
+      vehicles:{t:ie?"EDIT VEHICLE":"ADD VEHICLE",h:`
+        <div class="fr"><div class="fg"><label>Vehicle Name *</label><input class="inp" id="mf-name" value="${v('name')}" placeholder="e.g. Swift, Activa" style="width:100%"></div><div class="fg"><label>Type</label><select class="sel" id="mf-type" style="width:100%">
+          ${[["car","🚗 Car"],["scooter","🛵 Scooter"],["bike","🏍️ Bike"],["truck","🚚 Truck/Tempo"],["tractor","🚜 Tractor"]].map(([val,lbl])=>`<option value="${val}" ${(ie?item.type:"car")===val?"selected":""}>${lbl}</option>`).join("")}
+        </select></div></div>
+        <div class="fr one"><div class="fg"><label>Registration No.</label><input class="inp" id="mf-regNo" value="${v('regNo')}" placeholder="PB08 AB 1234" style="width:100%"></div></div>
+        <div style="font-weight:800;font-size:13px;color:var(--muted);margin:12px 0 4px">RENEWAL / COMPLIANCE DATES <span style="font-weight:400">— reminder auto-added 7 days before each</span></div>
+        <div class="fr"><div class="fg"><label>🛡️ Insurance Expiry</label><input class="inp" id="mf-insurance" type="date" value="${v('insurance')}" style="width:100%"></div><div class="fg"><label>💨 Pollution (PUC) Expiry</label><input class="inp" id="mf-pollution" type="date" value="${v('pollution')}" style="width:100%"></div></div>
+        <div class="fr"><div class="fg"><label>🔧 Next Service Due</label><input class="inp" id="mf-service" type="date" value="${v('service')}" style="width:100%"></div><div class="fg"><label>📋 Fitness Certificate</label><input class="inp" id="mf-fitness" type="date" value="${v('fitness')}" style="width:100%"></div></div>
+        <div class="fr"><div class="fg"><label>🪪 Permit Expiry</label><input class="inp" id="mf-permit" type="date" value="${v('permit')}" style="width:100%"></div><div class="fg"><label>🛣️ Road Tax Due</label><input class="inp" id="mf-roadTax" type="date" value="${v('roadTax')}" style="width:100%"></div></div>
+        <div class="fr"><div class="fg"><label>🚦 Driving Licence Expiry</label><input class="inp" id="mf-licence" type="date" value="${v('licence')}" style="width:100%"></div><div class="fg"><label></label><span style="font-size:11px;color:var(--muted)">Leave any date blank if not applicable</span></div></div>
+        <div class="fr one"><div class="fg"><label>Notes</label><input class="inp" id="mf-notes" value="${v('notes')}" placeholder="Policy no., garage, agent…" style="width:100%"></div></div>
+      `},
       compliance:{t:ie?"EDIT COMPLIANCE":"ADD COMPLIANCE",h:`
         <div class="fr"><div class="fg"><label>Compliance Name *</label><input class="inp" id="mf-name" value="${v('name')}" style="width:100%"></div><div class="fg"><label>Authority</label><input class="inp" id="mf-auth" value="${v('auth')}" style="width:100%"></div></div>
         <div class="fr"><div class="fg"><label>Due Date</label><input class="inp" id="mf-due" type="date" value="${v('due')}" style="width:100%"></div><div class="fg"><label>Responsible</label><input class="inp" id="mf-resp" value="${v('resp')}" style="width:100%"></div></div>
@@ -2640,6 +2666,7 @@ function moSave(){
     future:()=>({plan:g("mf-plan"),cat:g("mf-cat"),timeline:g("mf-timeline"),invest:g("mf-invest"),ret:g("mf-ret"),status:g("mf-status")}),
 
     accounts:()=>({issue:g("mf-issue"),cat:g("mf-cat"),pri:g("mf-pri"),party:g("mf-party"),amount:gn("mf-amount"),assignedTo:g("mf-assignedTo"),due:g("mf-due"),status:g("mf-status"),remarks:g("mf-remarks"),createdAt:ie?undefined:new Date().toISOString().slice(0,10)}),
+    vehicles:()=>({name:g("mf-name"),type:g("mf-type")||"car",regNo:g("mf-regNo"),insurance:g("mf-insurance"),pollution:g("mf-pollution"),service:g("mf-service"),fitness:g("mf-fitness"),permit:g("mf-permit"),roadTax:g("mf-roadTax"),licence:g("mf-licence"),notes:g("mf-notes")}),
     orders:()=>({party:g("mf-party"),inv:g("mf-inv"),items:g("mf-items"),pri:g("mf-pri")||"normal",orderDate:g("mf-orderDate"),deadline:g("mf-deadline"),invVal:gn("mf-invVal"),codAmt:gn("mf-codAmt"),dispatchDate:g("mf-dispatchDate"),courier:g("mf-courier"),trackNo:g("mf-trackNo"),agent:g("mf-agent"),chqNo:g("mf-chqNo"),chqDate:g("mf-chqDate"),bank:g("mf-bank"),clearedDate:g("mf-clearedDate"),status:g("mf-status")||"pending",remarks:g("mf-remarks")}),
     purchase:()=>({item:g("mf-item"),cat:g("mf-cat"),stock:gn("mf-stock"),minLevel:gn("mf-minLevel"),toOrder:gn("mf-toOrder"),supplier:g("mf-supplier"),lastPrice:gn("mf-lastPrice"),unit:g("mf-unit")||"pcs",status:g("mf-status")}),
     expenses:()=>({date:g("mf-date"),cat:g("mf-cat"),desc:g("mf-desc"),vendor:g("mf-vendor"),amount:g("mf-amount"),mode:g("mf-mode"),receipt:g("mf-receipt")}),
@@ -2647,10 +2674,54 @@ function moSave(){
   const fn=maps[type];if(!fn)return;
   const data=fn(),arr=D[type];if(!arr)return;
   if(ie){const i=arr.findIndex(x=>x.id===id);if(i>-1)arr[i]={...arr[i],...data};}else arr.push({id:++D.uid,...data});
-  autoSave(type);autoSave("uid");closeMo();R[type]?.();
+  autoSave(type);autoSave("uid");
+  if(type==="vehicles"){ try{ checkVehicleReminders(); }catch(e){} }
+  closeMo();R[type]?.();
 }
 
 // ── RENDERERS ──
+// Vehicle compliance date fields (each auto-creates a reminder 7 days before)
+const VEH_FIELDS=[
+  {k:"insurance", l:"Insurance",   ic:"🛡️"},
+  {k:"pollution", l:"Pollution (PUC)", ic:"💨"},
+  {k:"service",   l:"Next Service", ic:"🔧"},
+  {k:"fitness",   l:"Fitness Cert", ic:"📋"},
+  {k:"permit",    l:"Permit",       ic:"🪪"},
+  {k:"roadTax",   l:"Road Tax",     ic:"🛣️"},
+  {k:"licence",   l:"Driving Licence", ic:"🚦"}
+];
+
+// Runs on app load: for every vehicle date, if today is within 7 days of it
+// (or past), ensure a to-do task exists. Idempotent — won't duplicate.
+function checkVehicleReminders(){
+  if(!Array.isArray(D.vehicles) || !Array.isArray(D.mustdo)) return;
+  const today=new Date(); today.setHours(0,0,0,0);
+  let added=0;
+  D.vehicles.forEach(v=>{
+    VEH_FIELDS.forEach(f=>{
+      const dt=v[f.k]; if(!dt) return;
+      const due=new Date(dt); due.setHours(0,0,0,0);
+      const days=Math.round((due-today)/86400000);
+      if(days>7) return;                 // more than a week away — no reminder yet
+      // unique tag so we never double-add for the same vehicle+field+date
+      const tag=`veh:${v.id}:${f.k}:${dt}`;
+      if(D.mustdo.some(t=>t.vehTag===tag)) return;
+      const label = days<0
+        ? `⚠️ ${v.name} — ${f.l} EXPIRED (${fd(dt)})`
+        : `🚗 ${v.name} — ${f.l} renewal due ${fd(dt)} (${days}d)`;
+      D.mustdo.push({
+        id:++D.uid, text:label, cat:"business", time:"",
+        doneToday:false, streak:0, oneOff:true, vehTag:tag,
+        createdAt:new Date().toISOString().slice(0,10)
+      });
+      added++;
+    });
+  });
+  if(added){ autoSave("mustdo"); autoSave("uid");
+    if(typeof crmToast==="function") crmToast(`${added} vehicle reminder${added>1?"s":""} added to Must-Do`); }
+}
+
+
 const R={
   urgent(){
     // Urgent Orders merged into Orders. Redirect any stale link.
@@ -2811,6 +2882,68 @@ const R={
       </td>
     </tr>`).join("");
     document.getElementById("rde").style.display=D.rd.length?"none":"block";
+  },
+  vehicles(){
+    const vs = D.vehicles||[];
+    const badge=document.getElementById("b-vehicles");
+    // date fields we track per vehicle
+    const FIELDS=VEH_FIELDS;
+    const today=new Date(); today.setHours(0,0,0,0);
+    const daysTo=(d)=>{ if(!d) return null; const t=new Date(d); t.setHours(0,0,0,0); return Math.round((t-today)/86400000); };
+
+    // stats: how many items expiring soon / overdue
+    let overdue=0, soon=0, ok=0, totalItems=0;
+    vs.forEach(v=>FIELDS.forEach(f=>{ const dt=v[f.k]; if(dt){ totalItems++; const n=daysTo(dt); if(n<0)overdue++; else if(n<=7)soon++; else ok++; }}));
+    const sr=document.getElementById("veh-stats");
+    if(sr) sr.innerHTML =
+      sc("var(--ac)","Vehicles",vs.length) +
+      sc("var(--red)","⚠️ Overdue",overdue) +
+      sc("var(--orange)","Due ≤7 days",soon) +
+      sc("var(--green)","Up to date",ok);
+    if(badge) badge.textContent=(overdue+soon)||0;
+
+    const empty=document.getElementById("veh-empty");
+    const list=document.getElementById("veh-list");
+    if(!vs.length){ if(empty)empty.style.display="block"; if(list)list.innerHTML=""; return; }
+    if(empty) empty.style.display="none";
+
+    const pill=(f,dt)=>{
+      if(!dt) return `<div class="veh-date veh-empty2"><span>${f.ic} ${f.l}</span><span style="color:var(--muted)">— not set —</span></div>`;
+      const n=daysTo(dt);
+      let col,bg,txt;
+      if(n<0){col="var(--red)";bg="#fef2f2";txt=`Expired ${Math.abs(n)}d ago`;}
+      else if(n<=7){col="var(--orange)";bg="#fff7ed";txt=`in ${n}d`;}
+      else if(n<=30){col="var(--gold)";bg="#fefce8";txt=`in ${n}d`;}
+      else {col="var(--green)";bg="#f0fdf4";txt=`in ${n}d`;}
+      return `<div class="veh-date" style="background:${bg}">
+        <span>${f.ic} ${f.l}</span>
+        <span style="font-weight:700;color:${col}">${fd(dt)} · ${txt}</span></div>`;
+    };
+
+    list.innerHTML = vs.map(v=>{
+      const typeIco = v.type==="scooter"?"🛵":v.type==="bike"?"🏍️":v.type==="truck"?"🚚":v.type==="tractor"?"🚜":"🚗";
+      // soonest urgent date for header flag
+      let minN=null;
+      FIELDS.forEach(f=>{ if(v[f.k]){ const n=daysTo(v[f.k]); if(minN===null||n<minN) minN=n; }});
+      const flag = minN===null?"":minN<0?'<span style="color:var(--red)">⚠️ Overdue</span>':minN<=7?'<span style="color:var(--orange)">⏰ Due soon</span>':"";
+      return `<div class="card" style="margin-bottom:12px">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;padding:4px 2px 10px">
+          <div>
+            <div style="font-size:17px;font-weight:800">${typeIco} ${v.name||"Vehicle"}</div>
+            <div style="font-size:12.5px;color:var(--muted);font-family:'JetBrains Mono'">${v.regNo||""}</div>
+          </div>
+          <div style="display:flex;gap:6px;align-items:center">
+            ${flag}
+            <button class="btn-e" onclick="Mo.open('vehicles',${v.id})">✏️</button>
+            <button class="btn-d" onclick="delItem('vehicles',${v.id})">🗑</button>
+          </div>
+        </div>
+        <div class="veh-grid">
+          ${FIELDS.map(f=>pill(f,v[f.k])).join("")}
+        </div>
+        ${v.notes?`<div style="font-size:12.5px;color:var(--muted);margin-top:8px;padding-top:8px;border-top:1px dashed var(--b1)">📝 ${v.notes}</div>`:""}
+      </div>`;
+    }).join("");
   },
   compliance(){
     document.getElementById("b-comp").textContent=D.compliance.filter(c=>c.status==="pending").length;
@@ -5661,7 +5794,8 @@ function reRenderCurrent() {
     health:R.health, badminton:R.badminton, self:R.self, quotes:R.quotes,
     mustdo:R.mustdo, accounts:R.accounts, costing:R.costing, kb:R.kb,
     orders:R.orders, purchase:R.purchase, production:R.production,
-    expenses:R.expenses, scanner:R.scanner, stock:R.stock, quotation:R.quotation, brands:R.brands, crm:R.crm, ledger:R.ledger
+    expenses:R.expenses, scanner:R.scanner, stock:R.stock, quotation:R.quotation, brands:R.brands, crm:R.crm, ledger:R.ledger,
+    vehicles:R.vehicles
   };
   rmap[id]?.();
 }
@@ -5675,7 +5809,7 @@ function loadAllFromFirebase() {
     "deadstock","rd","compliance","itax","tds","gst","itc","future",
     "dayData","healthHabits","healthGoals","bdmGames","bdmSkills",
     "bdmDrills","selfGoals","books","weeklyReviews","quotes","uid",
-    "mustdo","accounts","costing","costCats","kb","stock","stockCats","stockLog","menuOrder","quotations","brandMilestones","crm_1","crm_2","crm_3","crm_4","crm_5","crm_6","crm_7","crm_8","crm_9","crm_10","crm_11","crm_12","crmMeta","imLeads_1","imLeads_2","imLeads_3","imLeads_4","imLeads_5","imLeads_6","imLeads_7","imLeads_8","imLeads_9","imLeads_10","imLeads_11","imLeads_12","imLeads_13","imLeads_14","imLeads_15","imLeads_16","imLeads_17","imLeads_18","imLeads_19","imLeads_20","imLeadsMeta","imLeads","imConfig","imInbox","ledgerCfg","ledgerVault","orders","purchase","production","prodStock","expenses","scanHistory"
+    "mustdo","accounts","costing","costCats","kb","stock","stockCats","stockLog","menuOrder","quotations","brandMilestones","crm_1","crm_2","crm_3","crm_4","crm_5","crm_6","crm_7","crm_8","crm_9","crm_10","crm_11","crm_12","crmMeta","imLeads_1","imLeads_2","imLeads_3","imLeads_4","imLeads_5","imLeads_6","imLeads_7","imLeads_8","imLeads_9","imLeads_10","imLeads_11","imLeads_12","imLeads_13","imLeads_14","imLeads_15","imLeads_16","imLeads_17","imLeads_18","imLeads_19","imLeads_20","imLeadsMeta","imLeads","imConfig","imInbox","ledgerCfg","ledgerVault","orders","purchase","production","prodStock","expenses","scanHistory","vehicles"
   ];
 
   let initialLoadDone = false;
@@ -5779,6 +5913,7 @@ function loadAllFromFirebase() {
             R_home();
             reRenderCurrent();
             updateAllBadges();
+            try{ checkVehicleReminders(); }catch(e){ console.warn("veh reminder check:",e); }
             console.log("Firebase initial load complete ✅");
 
           }
@@ -6749,6 +6884,7 @@ const MENU_META = {
   gst:{label:"GST Dates",icon:"📋",group:"Finance & Legal"},
   itc:{label:"ITC Reconciliation",icon:"🔄",group:"Finance & Legal"},
   compliance:{label:"Compliances",icon:"✅",group:"Finance & Legal"},
+  vehicles:{label:"Vehicles",icon:"🚗",group:"Finance & Legal"},
   accounts:{label:"Accounting Issues",icon:"🧾",group:"Finance & Legal"},
   costing:{label:"Cost & Pricing",icon:"💹",group:"Finance & Legal"},
   expenses:{label:"Expenses",icon:"💸",group:"Finance & Legal"},
