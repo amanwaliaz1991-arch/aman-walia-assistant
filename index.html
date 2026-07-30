@@ -521,7 +521,7 @@ body.lg-dense table.lg-grid td button.btn-d{padding:2px 7px!important;font-size:
     <div class="sb-item" id="n-itc" onclick="go('itc')"><span class="sb-ico">🔁</span>ITC Tracker</div>
     <div class="sb-item" id="n-accounts" onclick="go('accounts')"><span class="sb-ico">🧾</span>Accounting Issues<span class="sb-bdg o" id="b-accounts">0</span></div>
     <div class="sb-item" id="n-compliance" onclick="go('compliance')"><span class="sb-ico">✅</span>Compliances<span class="sb-bdg" id="b-comp">3</span></div>
-    <div class="sb-item" id="n-vehicles" onclick="go('vehicles')"><span class="sb-ico">🚗</span>Vehicles<span class="sb-bdg o" id="b-vehicles">0</span></div>
+    <div class="sb-item" id="n-vehicles" onclick="go('vehicles')"><span class="sb-ico">🔔</span>Renewals<span class="sb-bdg o" id="b-vehicles">0</span></div>
     <div class="sb-item" id="n-costing" onclick="go('costing')"><span class="sb-ico">💹</span>Cost & Pricing</div>
     <div class="sb-item" id="n-expenses" onclick="go('expenses')"><span class="sb-ico">💸</span>Expenses</div>
   </div>
@@ -805,10 +805,10 @@ body.lg-dense table.lg-grid td button.btn-d{padding:2px 7px!important;font-size:
 </div>
 <!-- VEHICLES -->
 <div class="mod" id="mod-vehicles">
-  <div class="ph"><div><div class="pt">VEHICLES <span>COMPLIANCE</span></div><div class="pt-sub">Insurance · Pollution · Service · Licence — auto-reminder 7 days before</div></div><button class="btn btn-p" onclick="Mo.open('vehicles')">+ Add Vehicle</button></div>
+  <div class="ph"><div><div class="pt">RENEWALS <span>TRACKER</span></div><div class="pt-sub">Vehicles · Passport · Licence · Insurance · any document — auto-reminder 7 days before expiry</div></div><button class="btn btn-p" onclick="Mo.open('vehicles')">+ Add Item</button></div>
   <div id="veh-stats" class="stat-row" style="margin-bottom:14px"></div>
   <div id="veh-list"></div>
-  <div id="veh-empty" class="es" style="display:none;padding:40px"><div class="em">🚗</div>No vehicles yet. Tap "+ Add Vehicle" to start.</div>
+  <div id="veh-empty" class="es" style="display:none;padding:40px"><div class="em">🚗</div>No items yet. Tap "+ Add Item" to track any renewal.</div>
 </div>
 
 
@@ -2478,17 +2478,19 @@ const Mo={
         <div class="fr"><div class="fg"><label>Category</label><select class="sel" id="mf-cat" style="width:100%">${sel('cat',[["new_product","New Product"],["improve","Improvement"],["process","Process"],["market","Market"],["cost","Cost Reduction"]])}</select></div><div class="fg"><label>Priority</label><select class="sel" id="mf-pri" style="width:100%">${sel('pri',[["high","🔴 High"],["med","🟡 Medium"],["low","🟢 Low"]])}</select></div></div>
         <div class="fr"><div class="fg"><label>Expected Benefit</label><input class="inp" id="mf-benefit" value="${v('benefit')}" style="width:100%"></div><div class="fg"><label>Status</label><select class="sel" id="mf-status" style="width:100%">${sel('status',[["idea","💡 Idea"],["testing","🔬 Testing"],["approved","✅ Approved"],["implemented","🚀 Implemented"]])}</select></div></div>
         <div class="fr one"><div class="fg"><label>Notes</label><input class="inp" id="mf-notes" value="${v('notes')}" style="width:100%"></div></div>`},
-      vehicles:{t:ie?"EDIT VEHICLE":"ADD VEHICLE",h:`
-        <div class="fr"><div class="fg"><label>Vehicle Name *</label><input class="inp" id="mf-name" value="${v('name')}" placeholder="e.g. Swift, Activa" style="width:100%"></div><div class="fg"><label>Type</label><select class="sel" id="mf-type" style="width:100%">
-          ${[["car","🚗 Car"],["scooter","🛵 Scooter"],["bike","🏍️ Bike"],["truck","🚚 Truck/Tempo"],["tractor","🚜 Tractor"]].map(([val,lbl])=>`<option value="${val}" ${(ie?item.type:"car")===val?"selected":""}>${lbl}</option>`).join("")}
-        </select></div></div>
-        <div class="fr one"><div class="fg"><label>Registration No.</label><input class="inp" id="mf-regNo" value="${v('regNo')}" placeholder="PB08 AB 1234" style="width:100%"></div></div>
-        <div style="font-weight:800;font-size:13px;color:var(--muted);margin:12px 0 4px">RENEWAL / COMPLIANCE DATES <span style="font-weight:400">— reminder auto-added 7 days before each</span></div>
-        <div class="fr"><div class="fg"><label>🛡️ Insurance Expiry</label><input class="inp" id="mf-insurance" type="date" value="${v('insurance')}" style="width:100%"></div><div class="fg"><label>💨 Pollution (PUC) Expiry</label><input class="inp" id="mf-pollution" type="date" value="${v('pollution')}" style="width:100%"></div></div>
-        <div class="fr"><div class="fg"><label>🔧 Next Service Due</label><input class="inp" id="mf-service" type="date" value="${v('service')}" style="width:100%"></div><div class="fg"><label>📋 Fitness Certificate</label><input class="inp" id="mf-fitness" type="date" value="${v('fitness')}" style="width:100%"></div></div>
-        <div class="fr"><div class="fg"><label>🪪 Permit Expiry</label><input class="inp" id="mf-permit" type="date" value="${v('permit')}" style="width:100%"></div><div class="fg"><label>🛣️ Road Tax Due</label><input class="inp" id="mf-roadTax" type="date" value="${v('roadTax')}" style="width:100%"></div></div>
-        <div class="fr"><div class="fg"><label>🚦 Driving Licence Expiry</label><input class="inp" id="mf-licence" type="date" value="${v('licence')}" style="width:100%"></div><div class="fg"><label></label><span style="font-size:11px;color:var(--muted)">Leave any date blank if not applicable</span></div></div>
-        <div class="fr one"><div class="fg"><label>Notes</label><input class="inp" id="mf-notes" value="${v('notes')}" placeholder="Policy no., garage, agent…" style="width:100%"></div></div>
+      vehicles:{t:ie?"EDIT RENEWAL":"ADD RENEWAL",h:`
+        <div class="fr"><div class="fg"><label>Category *</label><select class="sel" id="mf-category" onchange="renewCatChange()" style="width:100%">
+          ${Object.entries(RENEW_CATS).map(([k,c])=>`<option value="${k}" ${(ie?item.category:"vehicle")===k?"selected":""}>${c.ic} ${c.l}</option>`).join("")}
+        </select></div><div class="fg"><label>Name / Title *</label><input class="inp" id="mf-name" value="${v('name')}" placeholder="e.g. Fortuner, My Passport, Trade Licence" style="width:100%"></div></div>
+        <div class="fr one"><div class="fg"><label>Number / Reference</label><input class="inp" id="mf-ref" value="${v('ref')}" placeholder="Reg no / Passport no / Policy no" style="width:100%"></div></div>
+        <div class="fr one"><div class="fg"><label id="mf-expiry-lbl">Expiry Date *</label><input class="inp" id="mf-expiry" type="date" value="${v('expiry')}" style="width:100%"></div></div>
+        <div id="renew-extra" style="display:${(ie?item.category:"vehicle")==="vehicle"?"block":"none"}">
+          <div style="font-weight:800;font-size:12px;color:var(--muted);margin:10px 0 4px">EXTRA VEHICLE DATES <span style="font-weight:400">— optional, each auto-reminds</span></div>
+          <div class="fr"><div class="fg"><label>💨 Pollution (PUC)</label><input class="inp" id="mf-pollution" type="date" value="${v('pollution')}" style="width:100%"></div><div class="fg"><label>🔧 Next Service</label><input class="inp" id="mf-service" type="date" value="${v('service')}" style="width:100%"></div></div>
+          <div class="fr"><div class="fg"><label>📋 Fitness Cert</label><input class="inp" id="mf-fitness" type="date" value="${v('fitness')}" style="width:100%"></div><div class="fg"><label>🪪 Permit</label><input class="inp" id="mf-permit" type="date" value="${v('permit')}" style="width:100%"></div></div>
+          <div class="fr one"><div class="fg"><label>🛣️ Road Tax</label><input class="inp" id="mf-roadTax" type="date" value="${v('roadTax')}" style="width:100%"></div></div>
+        </div>
+        <div class="fr one"><div class="fg"><label>Notes</label><input class="inp" id="mf-notes" value="${v('notes')}" placeholder="Any details…" style="width:100%"></div></div>
       `},
       compliance:{t:ie?"EDIT COMPLIANCE":"ADD COMPLIANCE",h:`
         <div class="fr"><div class="fg"><label>Compliance Name *</label><input class="inp" id="mf-name" value="${v('name')}" style="width:100%"></div><div class="fg"><label>Authority</label><input class="inp" id="mf-auth" value="${v('auth')}" style="width:100%"></div></div>
@@ -2667,7 +2669,7 @@ function moSave(){
     future:()=>({plan:g("mf-plan"),cat:g("mf-cat"),timeline:g("mf-timeline"),invest:g("mf-invest"),ret:g("mf-ret"),status:g("mf-status")}),
 
     accounts:()=>({issue:g("mf-issue"),cat:g("mf-cat"),pri:g("mf-pri"),party:g("mf-party"),amount:gn("mf-amount"),assignedTo:g("mf-assignedTo"),due:g("mf-due"),status:g("mf-status"),remarks:g("mf-remarks"),createdAt:ie?undefined:new Date().toISOString().slice(0,10)}),
-    vehicles:()=>({name:g("mf-name"),type:g("mf-type")||"car",regNo:g("mf-regNo"),insurance:g("mf-insurance"),pollution:g("mf-pollution"),service:g("mf-service"),fitness:g("mf-fitness"),permit:g("mf-permit"),roadTax:g("mf-roadTax"),licence:g("mf-licence"),notes:g("mf-notes")}),
+    vehicles:()=>({category:g("mf-category")||"other",name:g("mf-name"),ref:g("mf-ref"),expiry:g("mf-expiry"),pollution:g("mf-pollution"),service:g("mf-service"),fitness:g("mf-fitness"),permit:g("mf-permit"),roadTax:g("mf-roadTax"),notes:g("mf-notes")}),
     orders:()=>({party:g("mf-party"),inv:g("mf-inv"),items:g("mf-items"),pri:g("mf-pri")||"normal",orderDate:g("mf-orderDate"),deadline:g("mf-deadline"),invVal:gn("mf-invVal"),codAmt:gn("mf-codAmt"),dispatchDate:g("mf-dispatchDate"),courier:g("mf-courier"),trackNo:g("mf-trackNo"),agent:g("mf-agent"),chqNo:g("mf-chqNo"),chqDate:g("mf-chqDate"),bank:g("mf-bank"),clearedDate:g("mf-clearedDate"),status:g("mf-status")||"pending",remarks:g("mf-remarks")}),
     purchase:()=>({item:g("mf-item"),cat:g("mf-cat"),stock:gn("mf-stock"),minLevel:gn("mf-minLevel"),toOrder:gn("mf-toOrder"),supplier:g("mf-supplier"),lastPrice:gn("mf-lastPrice"),unit:g("mf-unit")||"pcs",status:g("mf-status")}),
     expenses:()=>({date:g("mf-date"),cat:g("mf-cat"),desc:g("mf-desc"),vendor:g("mf-vendor"),amount:g("mf-amount"),mode:g("mf-mode"),receipt:g("mf-receipt")}),
@@ -2681,7 +2683,25 @@ function moSave(){
 }
 
 // ── RENDERERS ──
-// Vehicle compliance date fields (each auto-creates a reminder 7 days before)
+// Renewal categories — each item belongs to one. Vehicles can carry extra dates.
+const RENEW_CATS = {
+  vehicle:  {l:"Vehicle",           ic:"🚗", extra:[
+     {k:"pollution", l:"Pollution (PUC)", ic:"💨"},
+     {k:"service",   l:"Next Service",    ic:"🔧"},
+     {k:"fitness",   l:"Fitness Cert",    ic:"📋"},
+     {k:"permit",    l:"Permit",          ic:"🪪"},
+     {k:"roadTax",   l:"Road Tax",        ic:"🛣️"}
+  ], mainLabel:"Insurance Expiry"},
+  passport: {l:"Passport",          ic:"🛂", extra:[], mainLabel:"Passport Expiry"},
+  licence:  {l:"Driving Licence",   ic:"🚦", extra:[], mainLabel:"Licence Expiry"},
+  insurance:{l:"Insurance Policy",  ic:"🛡️", extra:[], mainLabel:"Policy Expiry"},
+  bizlic:   {l:"Business Licence",  ic:"🏭", extra:[], mainLabel:"Licence Expiry"},
+  aadhaar:  {l:"ID / Aadhaar / PAN",ic:"🪪", extra:[], mainLabel:"Valid Till"},
+  amc:      {l:"AMC / Contract",    ic:"📑", extra:[], mainLabel:"Contract Expiry"},
+  subscription:{l:"Subscription",   ic:"🔄", extra:[], mainLabel:"Renewal Date"},
+  other:    {l:"Other Document",    ic:"📄", extra:[], mainLabel:"Expiry Date"}
+};
+// legacy alias so old vehicle code paths keep working
 const VEH_FIELDS=[
   {k:"insurance", l:"Insurance",   ic:"🛡️"},
   {k:"pollution", l:"Pollution (PUC)", ic:"💨"},
@@ -2696,6 +2716,13 @@ const VEH_FIELDS=[
 // before renewal, so it shows up in "Today's Tasks" on that date. Idempotent —
 // won't duplicate (unique vehTag per vehicle+field+date). Also, if the reminder
 // day has already passed and the task is still relevant, it's placed on TODAY.
+function renewCatChange(){
+  const cat=document.getElementById("mf-category")?.value||"other";
+  const extra=document.getElementById("renew-extra");
+  if(extra) extra.style.display=(cat==="vehicle")?"block":"none";
+  const lbl=document.getElementById("mf-expiry-lbl");
+  if(lbl && typeof RENEW_CATS!=="undefined") lbl.textContent=(RENEW_CATS[cat]?.mainLabel||"Expiry Date")+" *";
+}
 function checkVehicleReminders(){
   if(!Array.isArray(D.vehicles) || typeof D.dayData!=="object") return;
   const toDs=d=>{ const x=new Date(d); x.setHours(0,0,0,0); return x.toISOString().slice(0,10); };
@@ -2703,33 +2730,37 @@ function checkVehicleReminders(){
   const todayDs=toDs(today);
   let added=0;
 
-  D.vehicles.forEach(v=>{
-    VEH_FIELDS.forEach(f=>{
-      const dt=v[f.k]; if(!dt) return;
-      const due=new Date(dt); due.setHours(0,0,0,0);
-      if(due < today) return;                       // already expired — skip (renewed or handled)
-      const remindDate=new Date(due); remindDate.setDate(remindDate.getDate()-7);  // 7 days before
-      // if the 7-days-before day is already in the past, put it on today so it isn't missed
-      let placeDs = remindDate < today ? todayDs : toDs(remindDate);
-      // only materialise reminders that are due to appear today or earlier
-      if(toDs(remindDate) > todayDs) return;        // reminder day still in the future — add later
+  const datesOf=(it)=>{
+    const cat=(typeof RENEW_CATS!=="undefined"&&RENEW_CATS[it.category])||{extra:[],mainLabel:"Expiry"};
+    const out=[];
+    if(it.expiry) out.push({label:cat.mainLabel,k:"expiry",date:it.expiry});
+    (cat.extra||[]).forEach(f=>{ if(it[f.k]) out.push({label:f.l,k:f.k,date:it[f.k]}); });
+    // legacy: old records used 'insurance' as main
+    if(!it.expiry && it.insurance) out.push({label:"Insurance",k:"insurance",date:it.insurance});
+    return out;
+  };
 
-      const tag=`veh:${v.id}:${f.k}:${dt}`;
-      // guard against duplicates across ALL days
+  D.vehicles.forEach(it=>{
+    datesOf(it).forEach(x=>{
+      const due=new Date(x.date); due.setHours(0,0,0,0);
+      if(due < today) return;
+      const remindDate=new Date(due); remindDate.setDate(remindDate.getDate()-7);
+      if(toDs(remindDate) > todayDs) return;
+      const placeDs = remindDate < today ? todayDs : toDs(remindDate);
+      const tag=`veh:${it.id}:${x.k}:${x.date}`;
       const exists=Object.values(D.dayData).some(day=>(day.tasks||[]).some(t=>t.vehTag===tag));
       if(exists) return;
-
       const daysLeft=Math.round((due-today)/86400000);
-      const label=`🚗 ${v.name} — ${f.l} renewal due ${fd(dt)}${daysLeft>=0?` (${daysLeft}d left)`:""}`;
+      const ic=(typeof RENEW_CATS!=="undefined"&&RENEW_CATS[it.category]?.ic)||"🔔";
+      const label=`${ic} ${it.name} — ${x.label} renewal due ${fd(x.date)}${daysLeft>=0?` (${daysLeft}d left)`:""}`;
       if(!D.dayData[placeDs]) D.dayData[placeDs]={tasks:[],notes:""};
       D.dayData[placeDs].tasks.push({id:++D.uid, text:label, done:false, pri:"high", vehTag:tag});
       added++;
     });
   });
   if(added){ autoSave("dayData"); autoSave("uid");
-    if(typeof crmToast==="function") crmToast(`${added} vehicle reminder${added>1?"s":""} added to Today's Tasks`); }
+    if(typeof crmToast==="function") crmToast(`${added} renewal reminder${added>1?"s":""} added to Today's Tasks`); }
 }
-
 
 const R={
   urgent(){
@@ -2893,19 +2924,25 @@ const R={
     document.getElementById("rde").style.display=D.rd.length?"none":"block";
   },
   vehicles(){
-    const vs = D.vehicles||[];
+    const items = D.vehicles||[];
     const badge=document.getElementById("b-vehicles");
-    // date fields we track per vehicle
-    const FIELDS=VEH_FIELDS;
     const today=new Date(); today.setHours(0,0,0,0);
     const daysTo=(d)=>{ if(!d) return null; const t=new Date(d); t.setHours(0,0,0,0); return Math.round((t-today)/86400000); };
 
-    // stats: how many items expiring soon / overdue
-    let overdue=0, soon=0, ok=0, totalItems=0;
-    vs.forEach(v=>FIELDS.forEach(f=>{ const dt=v[f.k]; if(dt){ totalItems++; const n=daysTo(dt); if(n<0)overdue++; else if(n<=7)soon++; else ok++; }}));
+    // collect every date on an item (main expiry + any extra dates)
+    const datesOf=(it)=>{
+      const cat=RENEW_CATS[it.category]||RENEW_CATS.other;
+      const out=[];
+      if(it.expiry) out.push({label:cat.mainLabel, date:it.expiry, ic:cat.ic});
+      (cat.extra||[]).forEach(f=>{ if(it[f.k]) out.push({label:f.l, date:it[f.k], ic:f.ic}); });
+      return out;
+    };
+
+    let overdue=0, soon=0, ok=0;
+    items.forEach(it=>datesOf(it).forEach(x=>{ const n=daysTo(x.date); if(n<0)overdue++; else if(n<=7)soon++; else ok++; }));
     const sr=document.getElementById("veh-stats");
     if(sr) sr.innerHTML =
-      sc("var(--ac)","Vehicles",vs.length) +
+      sc("var(--ac)","Items",items.length) +
       sc("var(--red)","⚠️ Overdue",overdue) +
       sc("var(--orange)","Due ≤7 days",soon) +
       sc("var(--green)","Up to date",ok);
@@ -2913,47 +2950,56 @@ const R={
 
     const empty=document.getElementById("veh-empty");
     const list=document.getElementById("veh-list");
-    if(!vs.length){ if(empty)empty.style.display="block"; if(list)list.innerHTML=""; return; }
+    if(!items.length){ if(empty)empty.style.display="block"; if(list)list.innerHTML=""; return; }
     if(empty) empty.style.display="none";
 
-    const pill=(f,dt)=>{
-      if(!dt) return `<div class="veh-date veh-empty2"><span>${f.ic} ${f.l}</span><span style="color:var(--muted)">— not set —</span></div>`;
-      const n=daysTo(dt);
+    const pill=(x)=>{
+      const n=daysTo(x.date);
       let col,bg,txt;
       if(n<0){col="var(--red)";bg="#fef2f2";txt=`Expired ${Math.abs(n)}d ago`;}
       else if(n<=7){col="var(--orange)";bg="#fff7ed";txt=`in ${n}d`;}
       else if(n<=30){col="var(--gold)";bg="#fefce8";txt=`in ${n}d`;}
       else {col="var(--green)";bg="#f0fdf4";txt=`in ${n}d`;}
       return `<div class="veh-date" style="background:${bg}">
-        <span>${f.ic} ${f.l}</span>
-        <span style="font-weight:700;color:${col}">${fd(dt)} · ${txt}</span></div>`;
+        <span>${x.ic} ${x.label}</span>
+        <span style="font-weight:700;color:${col}">${fd(x.date)} · ${txt}</span></div>`;
     };
 
-    list.innerHTML = vs.map(v=>{
-      const typeIco = v.type==="scooter"?"🛵":v.type==="bike"?"🏍️":v.type==="truck"?"🚚":v.type==="tractor"?"🚜":"🚗";
-      // soonest urgent date for header flag
-      let minN=null;
-      FIELDS.forEach(f=>{ if(v[f.k]){ const n=daysTo(v[f.k]); if(minN===null||n<minN) minN=n; }});
-      const flag = minN===null?"":minN<0?'<span style="color:var(--red)">⚠️ Overdue</span>':minN<=7?'<span style="color:var(--orange)">⏰ Due soon</span>':"";
-      return `<div class="card" style="margin-bottom:12px">
-        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;padding:4px 2px 10px">
-          <div>
-            <div style="font-size:17px;font-weight:800">${typeIco} ${v.name||"Vehicle"}</div>
-            <div style="font-size:12.5px;color:var(--muted);font-family:'JetBrains Mono'">${v.regNo||""}</div>
+    // group by category
+    const byCat={};
+    items.forEach(it=>{ const c=it.category||"other"; (byCat[c]=byCat[c]||[]).push(it); });
+
+    let html="";
+    Object.keys(RENEW_CATS).forEach(catKey=>{
+      const group=byCat[catKey]; if(!group||!group.length) return;
+      const cat=RENEW_CATS[catKey];
+      html+=`<div style="font-size:13px;font-weight:800;color:var(--muted);margin:14px 2px 8px;letter-spacing:.5px">${cat.ic} ${cat.l.toUpperCase()} (${group.length})</div>`;
+      group.forEach(it=>{
+        const dts=datesOf(it);
+        let minN=null; dts.forEach(x=>{ const n=daysTo(x.date); if(minN===null||n<minN)minN=n; });
+        const flag = minN===null?"":minN<0?'<span style="color:var(--red)">⚠️ Overdue</span>':minN<=7?'<span style="color:var(--orange)">⏰ Due soon</span>':"";
+        html+=`<div class="card" style="margin-bottom:12px">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;padding:4px 2px 10px">
+            <div>
+              <div style="font-size:17px;font-weight:800">${cat.ic} ${it.name||cat.l}</div>
+              ${it.ref?`<div style="font-size:12.5px;color:var(--muted);font-family:'JetBrains Mono'">${it.ref}</div>`:""}
+            </div>
+            <div style="display:flex;gap:6px;align-items:center">
+              ${flag}
+              <button class="btn-e" onclick="Mo.open('vehicles',${it.id})">✏️</button>
+              <button class="btn-d" onclick="delItem('vehicles',${it.id})">🗑</button>
+            </div>
           </div>
-          <div style="display:flex;gap:6px;align-items:center">
-            ${flag}
-            <button class="btn-e" onclick="Mo.open('vehicles',${v.id})">✏️</button>
-            <button class="btn-d" onclick="delItem('vehicles',${v.id})">🗑</button>
+          <div class="veh-grid">
+            ${dts.length?dts.map(pill).join(""):'<div class="veh-date veh-empty2"><span>No dates set</span></div>'}
           </div>
-        </div>
-        <div class="veh-grid">
-          ${FIELDS.map(f=>pill(f,v[f.k])).join("")}
-        </div>
-        ${v.notes?`<div style="font-size:12.5px;color:var(--muted);margin-top:8px;padding-top:8px;border-top:1px dashed var(--b1)">📝 ${v.notes}</div>`:""}
-      </div>`;
-    }).join("");
+          ${it.notes?`<div style="font-size:12.5px;color:var(--muted);margin-top:8px;padding-top:8px;border-top:1px dashed var(--b1)">📝 ${it.notes}</div>`:""}
+        </div>`;
+      });
+    });
+    list.innerHTML=html;
   },
+
   compliance(){
     document.getElementById("b-comp").textContent=D.compliance.filter(c=>c.status==="pending").length;
     document.getElementById("cpb").innerHTML=D.compliance.map(c=>`<tr class="${c.status==="filed"?"dr":""}">
@@ -6893,7 +6939,7 @@ const MENU_META = {
   gst:{label:"GST Dates",icon:"📋",group:"Finance & Legal"},
   itc:{label:"ITC Reconciliation",icon:"🔄",group:"Finance & Legal"},
   compliance:{label:"Compliances",icon:"✅",group:"Finance & Legal"},
-  vehicles:{label:"Vehicles",icon:"🚗",group:"Finance & Legal"},
+  vehicles:{label:"Renewals",icon:"🔔",group:"Finance & Legal"},
   accounts:{label:"Accounting Issues",icon:"🧾",group:"Finance & Legal"},
   costing:{label:"Cost & Pricing",icon:"💹",group:"Finance & Legal"},
   expenses:{label:"Expenses",icon:"💸",group:"Finance & Legal"},
