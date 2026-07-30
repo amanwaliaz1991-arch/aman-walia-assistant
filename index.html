@@ -2599,6 +2599,7 @@ const Mo={
     const f=forms[type];if(!f)return;
     document.getElementById("mo-t").textContent=f.t;
     document.getElementById("mo-b").innerHTML=f.h;
+    if(type==="vehicles" && typeof renewCatChange==="function") renewCatChange();
     setTimeout(()=>document.querySelector("#mo-b input,#mo-b textarea")?.focus(),100);
   }
 };
