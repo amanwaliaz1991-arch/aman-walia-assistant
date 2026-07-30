@@ -2691,34 +2691,42 @@ const VEH_FIELDS=[
   {k:"licence",   l:"Driving Licence", ic:"🚦"}
 ];
 
-// Runs on app load: for every vehicle date, if today is within 7 days of it
-// (or past), ensure a to-do task exists. Idempotent — won't duplicate.
+// For every vehicle date, drop a task into the Day Tracker on the day 7 days
+// before renewal, so it shows up in "Today's Tasks" on that date. Idempotent —
+// won't duplicate (unique vehTag per vehicle+field+date). Also, if the reminder
+// day has already passed and the task is still relevant, it's placed on TODAY.
 function checkVehicleReminders(){
-  if(!Array.isArray(D.vehicles) || !Array.isArray(D.mustdo)) return;
+  if(!Array.isArray(D.vehicles) || typeof D.dayData!=="object") return;
+  const toDs=d=>{ const x=new Date(d); x.setHours(0,0,0,0); return x.toISOString().slice(0,10); };
   const today=new Date(); today.setHours(0,0,0,0);
+  const todayDs=toDs(today);
   let added=0;
+
   D.vehicles.forEach(v=>{
     VEH_FIELDS.forEach(f=>{
       const dt=v[f.k]; if(!dt) return;
       const due=new Date(dt); due.setHours(0,0,0,0);
-      const days=Math.round((due-today)/86400000);
-      if(days>7) return;                 // more than a week away — no reminder yet
-      // unique tag so we never double-add for the same vehicle+field+date
+      if(due < today) return;                       // already expired — skip (renewed or handled)
+      const remindDate=new Date(due); remindDate.setDate(remindDate.getDate()-7);  // 7 days before
+      // if the 7-days-before day is already in the past, put it on today so it isn't missed
+      let placeDs = remindDate < today ? todayDs : toDs(remindDate);
+      // only materialise reminders that are due to appear today or earlier
+      if(toDs(remindDate) > todayDs) return;        // reminder day still in the future — add later
+
       const tag=`veh:${v.id}:${f.k}:${dt}`;
-      if(D.mustdo.some(t=>t.vehTag===tag)) return;
-      const label = days<0
-        ? `⚠️ ${v.name} — ${f.l} EXPIRED (${fd(dt)})`
-        : `🚗 ${v.name} — ${f.l} renewal due ${fd(dt)} (${days}d)`;
-      D.mustdo.push({
-        id:++D.uid, text:label, cat:"business", time:"",
-        doneToday:false, streak:0, oneOff:true, vehTag:tag,
-        createdAt:new Date().toISOString().slice(0,10)
-      });
+      // guard against duplicates across ALL days
+      const exists=Object.values(D.dayData).some(day=>(day.tasks||[]).some(t=>t.vehTag===tag));
+      if(exists) return;
+
+      const daysLeft=Math.round((due-today)/86400000);
+      const label=`🚗 ${v.name} — ${f.l} renewal due ${fd(dt)}${daysLeft>=0?` (${daysLeft}d left)`:""}`;
+      if(!D.dayData[placeDs]) D.dayData[placeDs]={tasks:[],notes:""};
+      D.dayData[placeDs].tasks.push({id:++D.uid, text:label, done:false, pri:"high", vehTag:tag});
       added++;
     });
   });
-  if(added){ autoSave("mustdo"); autoSave("uid");
-    if(typeof crmToast==="function") crmToast(`${added} vehicle reminder${added>1?"s":""} added to Must-Do`); }
+  if(added){ autoSave("dayData"); autoSave("uid");
+    if(typeof crmToast==="function") crmToast(`${added} vehicle reminder${added>1?"s":""} added to Today's Tasks`); }
 }
 
 
