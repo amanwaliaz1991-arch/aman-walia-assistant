@@ -371,7 +371,7 @@ body.lg-dense table.lg-grid td button.btn-d{padding:2px 7px!important;font-size:
 <!-- HEADER -->
 <div class="hdr">
   <button class="hdr-menu" id="menu-btn" onclick="toggleSB()">☰</button>
-  <div class="hdr-logo">Aman Walia<span>Personal Assistant</span></div>
+  <div class="hdr-logo" onclick="go('home')" style="cursor:pointer" title="Back to Dashboard">Aman Walia<span>Personal Assistant</span></div>
   <div class="hdr-r">
     <span id="role-label" style="display:none;align-items:center;gap:4px;background:rgba(255,255,255,.2);color:#fff;font-size:12px;font-weight:600;padding:5px 12px;border-radius:8px;margin-right:4px"></span>
     <button id="logout-btn" onclick="logout()" title="Logout" style="display:none;background:rgba(239,68,68,.85);border:1px solid rgba(255,255,255,.25);color:#fff;height:34px;padding:0 12px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:600;align-items:center;gap:4px">🚪 Logout</button>
@@ -2739,16 +2739,20 @@ function checkVehicleReminders(){
   D.vehicles.forEach(it=>{
     datesOf(it).forEach(x=>{
       const due=new Date(x.date); due.setHours(0,0,0,0);
-      if(due < today) return;
+      const daysLeft=Math.round((due-today)/86400000);
       const remindDate=new Date(due); remindDate.setDate(remindDate.getDate()-7);
-      if(toDs(remindDate) > todayDs) return;
-      const placeDs = remindDate < today ? todayDs : toDs(remindDate);
+      // Show a task if: already expired, OR the 7-days-before reminder day has arrived.
+      // Skip only if the reminder day is still in the future.
+      if(daysLeft>=0 && toDs(remindDate) > todayDs) return;
+      // expired items, and any whose reminder day has passed, land on TODAY
+      const placeDs = (daysLeft<0 || remindDate < today) ? todayDs : toDs(remindDate);
       const tag=`veh:${it.id}:${x.k}:${x.date}`;
       const exists=Object.values(D.dayData).some(day=>(day.tasks||[]).some(t=>t.vehTag===tag));
       if(exists) return;
-      const daysLeft=Math.round((due-today)/86400000);
       const ic=(typeof RENEW_CATS!=="undefined"&&RENEW_CATS[it.category]?.ic)||"🔔";
-      const label=`${ic} ${it.name} — ${x.label} renewal due ${fd(x.date)}${daysLeft>=0?` (${daysLeft}d left)`:""}`;
+      const label = daysLeft<0
+        ? `⚠️ ${it.name} — ${x.label} EXPIRED ${Math.abs(daysLeft)}d ago (${fd(x.date)}) — renew now`
+        : `${ic} ${it.name} — ${x.label} renewal due ${fd(x.date)} (${daysLeft}d left)`;
       if(!D.dayData[placeDs]) D.dayData[placeDs]={tasks:[],notes:""};
       D.dayData[placeDs].tasks.push({id:++D.uid, text:label, done:false, pri:"high", vehTag:tag});
       added++;
