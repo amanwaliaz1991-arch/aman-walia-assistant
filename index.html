@@ -2039,8 +2039,10 @@ body.lg-dense table.lg-grid td button.btn-d{padding:2px 7px!important;font-size:
   <!-- WHATSAPP TEMPLATE -->
   <div class="card" style="margin-bottom:12px">
     <div style="padding:10px 14px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-      <span style="font-size:12px;color:var(--muted);white-space:nowrap;font-weight:600">💬 WA Template:</span>
-      <input class="inp" id="crm-tpl" placeholder="Hi {name}, this is Aman from Kuldip Rubber Industries…" style="flex:1;min-width:220px;font-size:13px" oninput="saveCrmTpl()">
+      <span style="font-size:12px;color:var(--muted);white-space:nowrap;font-weight:600">💬 WA Message:</span>
+      <select class="sel" id="crm-tpl-pick" style="min-width:150px;font-size:13px" onchange="pickWaTpl()"></select>
+      <input class="inp" id="crm-tpl" placeholder="Hi {name}, this is Aman from Kuldip Rubber Industries…" style="flex:1;min-width:200px;font-size:13px" oninput="saveCrmTpl()">
+      <button class="btn btn-sm" style="font-size:12px;white-space:nowrap" onclick="manageWaTpls()">⚙️ Templates</button>
       <span style="font-size:11px;color:var(--dim)">Use {name} {city}</span>
       <span style="font-size:12px;color:var(--green);font-weight:700;white-space:nowrap">Sent today: <span id="crm-daily">0</span></span>
     </div>
@@ -2371,7 +2373,7 @@ const D={
   ],
   weeklyReviews:[],
   orders:[],
-  mustdo:[],vehicles:[],
+  mustdo:[],vehicles:[],waTemplates:[],
   accounts:[],
   costing:[],
   kb:[],
@@ -3837,6 +3839,7 @@ const R={
     if(dEl) dEl.textContent = localStorage.getItem(dk) || "0";
     const tEl = document.getElementById("crm-tpl");
     if(tEl && !tEl.value) tEl.value = localStorage.getItem("crm_tpl") || "";
+    if(typeof renderWaTplPicker==="function") renderWaTplPicker();
   },
   ledger(){
     // restore saved layout prefs
@@ -5886,7 +5889,7 @@ function loadAllFromFirebase() {
     "deadstock","rd","compliance","itax","tds","gst","itc","future",
     "dayData","healthHabits","healthGoals","bdmGames","bdmSkills",
     "bdmDrills","selfGoals","books","weeklyReviews","quotes","uid",
-    "mustdo","accounts","costing","costCats","kb","stock","stockCats","stockLog","menuOrder","quotations","brandMilestones","crm_1","crm_2","crm_3","crm_4","crm_5","crm_6","crm_7","crm_8","crm_9","crm_10","crm_11","crm_12","crmMeta","imLeads_1","imLeads_2","imLeads_3","imLeads_4","imLeads_5","imLeads_6","imLeads_7","imLeads_8","imLeads_9","imLeads_10","imLeads_11","imLeads_12","imLeads_13","imLeads_14","imLeads_15","imLeads_16","imLeads_17","imLeads_18","imLeads_19","imLeads_20","imLeadsMeta","imLeads","imConfig","imInbox","ledgerCfg","ledgerVault","orders","purchase","production","prodStock","expenses","scanHistory","vehicles"
+    "mustdo","accounts","costing","costCats","kb","stock","stockCats","stockLog","menuOrder","quotations","brandMilestones","crm_1","crm_2","crm_3","crm_4","crm_5","crm_6","crm_7","crm_8","crm_9","crm_10","crm_11","crm_12","crmMeta","imLeads_1","imLeads_2","imLeads_3","imLeads_4","imLeads_5","imLeads_6","imLeads_7","imLeads_8","imLeads_9","imLeads_10","imLeads_11","imLeads_12","imLeads_13","imLeads_14","imLeads_15","imLeads_16","imLeads_17","imLeads_18","imLeads_19","imLeads_20","imLeadsMeta","imLeads","imConfig","imInbox","ledgerCfg","ledgerVault","orders","purchase","production","prodStock","expenses","scanHistory","vehicles","waTemplates"
   ];
 
   let initialLoadDone = false;
@@ -8796,6 +8799,83 @@ function saveCrmContact(id){
 }
 
 // ── WHATSAPP ──
+// ══ WhatsApp message templates ══
+const WA_DEFAULT_TEMPLATES=[
+  {id:1,name:"Intro",text:"Hi {name}, this is Aman from Kuldip Rubber Industries (Jalandhar). We manufacture cricket bat handles, grips & complete bats. Would love to share our range with you."},
+  {id:2,name:"Follow-up",text:"Hi {name}, just following up on my earlier message. Do let me know if you'd like our latest rate list — happy to help."},
+  {id:3,name:"Rate list",text:"Hi {name}, sharing our updated price list for grips & handles. Please have a look and let me know your requirement."},
+  {id:4,name:"Thank you",text:"Thank you {name} for your enquiry! We'll get back with the details shortly. — Aman, Kuldip Rubber Industries"}
+];
+
+function waTpls(){
+  if(!Array.isArray(D.waTemplates) || !D.waTemplates.length) return WA_DEFAULT_TEMPLATES;
+  return D.waTemplates;
+}
+
+function renderWaTplPicker(){
+  const sel=document.getElementById("crm-tpl-pick"); if(!sel) return;
+  const tpls=waTpls();
+  const cur=localStorage.getItem("crm_tpl_pick")||"";
+  sel.innerHTML=`<option value="">— Pick message —</option>`+
+    tpls.map(t=>`<option value="${t.id}" ${String(t.id)===cur?"selected":""}>${t.name}</option>`).join("")+
+    `<option value="__blank">(blank / custom)</option>`;
+}
+
+function pickWaTpl(){
+  const sel=document.getElementById("crm-tpl-pick"); if(!sel) return;
+  const v=sel.value;
+  localStorage.setItem("crm_tpl_pick", v);
+  const box=document.getElementById("crm-tpl");
+  if(v==="__blank"){ if(box) box.value=""; saveCrmTpl(); return; }
+  const t=waTpls().find(x=>String(x.id)===String(v));
+  if(t && box){ box.value=t.text; saveCrmTpl(); }
+}
+
+function manageWaTpls(){
+  const tpls=waTpls();
+  const rows=tpls.map(t=>`
+    <div class="card" style="margin-bottom:8px;padding:10px 12px">
+      <div style="display:flex;gap:8px;align-items:center;margin-bottom:6px">
+        <input class="inp" id="wt-name-${t.id}" value="${(t.name||"").replace(/"/g,'&quot;')}" placeholder="Label" style="font-weight:700;font-size:13px;width:140px">
+        <button class="btn-d" style="margin-left:auto" onclick="delWaTpl(${t.id})">🗑</button>
+      </div>
+      <textarea class="inp" id="wt-text-${t.id}" rows="3" style="width:100%;font-size:13px" placeholder="Message… use {name} and {city}">${t.text||""}</textarea>
+    </div>`).join("");
+  const html=`
+    <div style="font-size:12.5px;color:var(--muted);margin-bottom:10px">Use <b>{name}</b> and <b>{city}</b> — they auto-fill with the customer's details. Tap Save when done.</div>
+    ${rows}
+    <button class="btn btn-sm" style="margin-top:4px" onclick="addWaTpl()">+ Add Template</button>`;
+  document.getElementById("mo-t").textContent="WHATSAPP TEMPLATES";
+  document.getElementById("mo-b").innerHTML=html;
+  const sv=document.getElementById("mo-sv");
+  if(sv){ sv.style.display=""; sv.textContent="💾 Save Templates"; sv.onclick=saveWaTpls; }
+  document.getElementById("mo").style.display="flex";
+}
+
+function addWaTpl(){
+  if(!Array.isArray(D.waTemplates)||!D.waTemplates.length) D.waTemplates=JSON.parse(JSON.stringify(waTpls()));
+  const nid=(D.waTemplates.reduce((m,t)=>Math.max(m,t.id),0)||0)+1;
+  D.waTemplates.push({id:nid,name:"New",text:""});
+  manageWaTpls();
+}
+function delWaTpl(id){
+  if(!Array.isArray(D.waTemplates)||!D.waTemplates.length) D.waTemplates=JSON.parse(JSON.stringify(waTpls()));
+  D.waTemplates=D.waTemplates.filter(t=>t.id!==id);
+  manageWaTpls();
+}
+function saveWaTpls(){
+  if(!Array.isArray(D.waTemplates)||!D.waTemplates.length) D.waTemplates=JSON.parse(JSON.stringify(waTpls()));
+  D.waTemplates.forEach(t=>{
+    const n=document.getElementById("wt-name-"+t.id); const x=document.getElementById("wt-text-"+t.id);
+    if(n) t.name=n.value.trim()||"Untitled";
+    if(x) t.text=x.value;
+  });
+  autoSave("waTemplates");
+  closeMo();
+  renderWaTplPicker();
+  if(typeof crmToast==="function") crmToast("Templates saved");
+}
+
 function openWA(id){
   const c = (D.crm||[]).find(x=>x.id===id);
   if(!c || !c.phone){ alert("No phone number"); return; }
