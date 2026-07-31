@@ -2724,7 +2724,25 @@ function checkVehicleReminders(){
   const toDs=d=>{ const x=new Date(d); x.setHours(0,0,0,0); return x.toISOString().slice(0,10); };
   const today=new Date(); today.setHours(0,0,0,0);
   const todayDs=toDs(today);
-  let added=0;
+  let added=0, moved=0;
+
+  // Roll any UNDONE renewal reminder sitting on a past day onto today,
+  // so expired/overdue items always appear in today's list (not stuck on the day added).
+  if(!D.dayData[todayDs]) D.dayData[todayDs]={tasks:[],notes:""};
+  Object.keys(D.dayData).forEach(ds=>{
+    if(ds>=todayDs) return;
+    const day=D.dayData[ds]; if(!day||!Array.isArray(day.tasks)) return;
+    const keep=[];
+    day.tasks.forEach(t=>{
+      if(t.vehTag && !t.done){
+        // move to today if not already present there
+        if(!D.dayData[todayDs].tasks.some(x=>x.vehTag===t.vehTag)){
+          D.dayData[todayDs].tasks.push({...t}); moved++;
+        }
+      } else keep.push(t);
+    });
+    day.tasks=keep;
+  });
 
   const datesOf=(it)=>{
     const cat=(typeof RENEW_CATS!=="undefined"&&RENEW_CATS[it.category])||{extra:[],mainLabel:"Expiry"};
@@ -2758,8 +2776,11 @@ function checkVehicleReminders(){
       added++;
     });
   });
-  if(added){ autoSave("dayData"); autoSave("uid");
-    if(typeof crmToast==="function") crmToast(`${added} renewal reminder${added>1?"s":""} added to Today's Tasks`); }
+  if(added||moved){ autoSave("dayData"); autoSave("uid");
+    if(typeof crmToast==="function"){
+      const n=added+moved;
+      crmToast(`${n} renewal reminder${n>1?"s":""} in Today's Tasks`);
+    } }
 }
 
 const R={
