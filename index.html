@@ -2409,6 +2409,7 @@ const D={
 };
 
 // ── HELPERS ──
+const todayStr=()=>{ const x=new Date(); const y=x.getFullYear(), m=String(x.getMonth()+1).padStart(2,"0"), d=String(x.getDate()).padStart(2,"0"); return `${y}-${m}-${d}`; };
 const fd=d=>{if(!d)return"—";const p=d.split("-");return p[2]+"/"+p[1]+"/"+p[0];};
 const fa=a=>{const n=parseInt((a||0).toString().replace(/[₹,\s]/g,""))||0;return"₹"+n.toLocaleString("en-IN");};
 const dOvr=d=>Math.floor((new Date()-new Date(d))/86400000);
@@ -2443,7 +2444,7 @@ const Mo={
       urgent:{t:ie?"EDIT ORDER":"ADD URGENT ORDER",h:`
         <div class="fr"><div class="fg"><label>Party Name *</label><input class="inp" id="mf-party" value="${v('party')}" style="width:100%"></div><div class="fg"><label>Amount (₹)</label><input class="inp" id="mf-amt" value="${v('amt')}" style="width:100%"></div></div>
         <div class="fr one"><div class="fg"><label>Items</label><input class="inp" id="mf-items" value="${v('items')}" style="width:100%"></div></div>
-        <div class="fr"><div class="fg"><label>Order Date</label><input class="inp" id="mf-orderdate" type="date" value="${v('orderdate',new Date().toISOString().slice(0,10))}" style="width:100%"></div><div class="fg"><label>Deadline</label><input class="inp" id="mf-deadline" type="date" value="${v('deadline')}" style="width:100%"></div></div>
+        <div class="fr"><div class="fg"><label>Order Date</label><input class="inp" id="mf-orderdate" type="date" value="${v('orderdate',todayStr())}" style="width:100%"></div><div class="fg"><label>Deadline</label><input class="inp" id="mf-deadline" type="date" value="${v('deadline')}" style="width:100%"></div></div>
         <div class="fr"><div class="fg"><label>Courier</label><input class="inp" id="mf-courier" value="${v('courier')}" style="width:100%"></div><div class="fg"><label>Priority</label><select class="sel" id="mf-pri" style="width:100%">${sel('pri',[["critical","🔴 Critical"],["high","🟠 High"],["medium","🟡 Medium"],["low","🟢 Low"]])}</select></div></div>
         <div class="fr"><div class="fg"><label>Status</label><select class="sel" id="mf-status" style="width:100%">${sel('status',[["pending","Pending"],["processing","Processing"],["packed","Packed"],["dispatched","Dispatched"],["done","Done ✓"]])}</select></div><div class="fg"><label>Notes</label><input class="inp" id="mf-notes" value="${v('notes')}" style="width:100%"></div></div>`},
       cod:{t:ie?"EDIT PARTY":"ADD COD PARTY",h:`
@@ -2496,7 +2497,7 @@ const Mo={
         <div class="fr"><div class="fg"><label>Penalty</label><input class="inp" id="mf-penalty" value="${v('penalty')}" style="width:100%"></div><div class="fg"><label>Status</label><select class="sel" id="mf-status" style="width:100%">${sel('status',[["pending","Pending"],["in_progress","In Progress"],["filed","Filed ✓"]])}</select></div></div>`},
       itc:{t:ie?"EDIT ITC":"ADD ITC ENTRY",h:`
         <div class="fr"><div class="fg"><label>Supplier *</label><input class="inp" id="mf-supplier" value="${v('supplier')}" style="width:100%"></div><div class="fg"><label>Invoice #</label><input class="inp" id="mf-inv" value="${v('inv')}" style="width:100%"></div></div>
-        <div class="fr three"><div class="fg"><label>Date</label><input class="inp" id="mf-date" type="date" value="${v('date',new Date().toISOString().slice(0,10))}" style="width:100%"></div><div class="fg"><label>IGST (₹)</label><input class="inp" id="mf-igst" type="number" value="${vn('igst')}" style="width:100%"></div><div class="fg"><label>CGST (₹)</label><input class="inp" id="mf-cgst" type="number" value="${vn('cgst')}" style="width:100%"></div></div>
+        <div class="fr three"><div class="fg"><label>Date</label><input class="inp" id="mf-date" type="date" value="${v('date',todayStr())}" style="width:100%"></div><div class="fg"><label>IGST (₹)</label><input class="inp" id="mf-igst" type="number" value="${vn('igst')}" style="width:100%"></div><div class="fg"><label>CGST (₹)</label><input class="inp" id="mf-cgst" type="number" value="${vn('cgst')}" style="width:100%"></div></div>
         <div class="fr"><div class="fg"><label>SGST (₹)</label><input class="inp" id="mf-sgst" type="number" value="${vn('sgst')}" style="width:100%"></div><div class="fg"><label>Eligible?</label><select class="sel" id="mf-eligible" style="width:100%">${sel('eligible',[["yes","✅ Eligible"],["no","🔴 Blocked"],["partial","🟡 Partial"]])}</select></div></div>`},
       future:{t:ie?"EDIT PLAN":"ADD FUTURE PLAN",h:`
         <div class="fr one"><div class="fg"><label>Plan / Goal *</label><input class="inp" id="mf-plan" value="${v('plan')}" style="width:100%"></div></div>
@@ -2504,7 +2505,7 @@ const Mo={
         <div class="fr"><div class="fg"><label>Investment (₹)</label><input class="inp" id="mf-invest" value="${v('invest')}" style="width:100%"></div><div class="fg"><label>Expected Return</label><input class="inp" id="mf-ret" value="${v('ret')}" style="width:100%"></div></div>
         <div class="fr one"><div class="fg"><label>Status</label><select class="sel" id="mf-status" style="width:100%">${sel('status',[["idea","💭 Idea"],["planned","📋 Planned"],["in_progress","🔄 In Progress"],["done","✅ Done"]])}</select></div></div>`},
       "bdm-game":{t:"LOG BADMINTON GAME",h:`
-        <div class="fr"><div class="fg"><label>Date</label><input class="inp" id="mf-date" type="date" value="${new Date().toISOString().slice(0,10)}" style="width:100%"></div><div class="fg"><label>Opponent</label><input class="inp" id="mf-opp" style="width:100%"></div></div>
+        <div class="fr"><div class="fg"><label>Date</label><input class="inp" id="mf-date" type="date" value="${todayStr()}" style="width:100%"></div><div class="fg"><label>Opponent</label><input class="inp" id="mf-opp" style="width:100%"></div></div>
         <div class="fr"><div class="fg"><label>Score</label><input class="inp" id="mf-score" placeholder="e.g. 21-18, 18-21" style="width:100%"></div><div class="fg"><label>Result</label><select class="sel" id="mf-result" style="width:100%"><option value="win">🏆 Won</option><option value="loss">😤 Lost</option></select></div></div>
         <div class="fr one"><div class="fg"><label>Notes</label><input class="inp" id="mf-notes" style="width:100%"></div></div>`},
       "bdm-skill":{t:"ADD SKILL",h:`
@@ -2579,7 +2580,7 @@ const Mo={
         <div class="fr"><div class="fg"><label>Supplier</label><input class="inp" id="mf-supplier" value="${v('supplier')}" style="width:100%"></div><div class="fg"><label>Last Price (₹)</label><input class="inp" id="mf-lastPrice" type="number" value="${vn('lastPrice')}" style="width:100%"></div></div>
         <div class="fr"><div class="fg"><label>Unit</label><input class="inp" id="mf-unit" value="${v('unit',"pcs")}" style="width:100%"></div><div class="fg"><label>Status</label><select class="sel" id="mf-status" style="width:100%">${sel('status',[["critical","🔴 Critical"],["low","🟡 Low"],["ok","🟢 OK"],["ordered","📦 Ordered"]])}</select></div></div>`},
       production:{t:"LOG PRODUCTION",h:`
-        <div class="fr"><div class="fg"><label>Date</label><input class="inp" id="mf-date" type="date" value="${new Date().toISOString().slice(0,10)}" style="width:100%"></div><div class="fg"><label>Product *</label><select class="sel" id="mf-product" style="width:100%"><option>Chevron Grips</option><option>Octopus Grips</option><option>Hex Grips</option><option>Rainbow Grips</option><option>Ring Chevron Grips</option><option>Pyramid Grips</option><option>Toe Guard Sets</option><option>Other</option></select></div></div>
+        <div class="fr"><div class="fg"><label>Date</label><input class="inp" id="mf-date" type="date" value="${todayStr()}" style="width:100%"></div><div class="fg"><label>Product *</label><select class="sel" id="mf-product" style="width:100%"><option>Chevron Grips</option><option>Octopus Grips</option><option>Hex Grips</option><option>Rainbow Grips</option><option>Ring Chevron Grips</option><option>Pyramid Grips</option><option>Toe Guard Sets</option><option>Other</option></select></div></div>
         <div class="fr"><div class="fg"><label>Type</label><select class="sel" id="mf-type" style="width:100%"><option value="grips">Grips</option><option value="toe_guard">Toe Guard</option><option value="stickers">Stickers</option></select></div><div class="fg"><label>Target Qty</label><input class="inp" id="mf-target" type="number" value="1000" style="width:100%"></div></div>
         <div class="fr three"><div class="fg"><label>Produced</label><input class="inp" id="mf-produced" type="number" value="0" style="width:100%"></div><div class="fg"><label>Rejected</label><input class="inp" id="mf-rejected" type="number" value="0" style="width:100%"></div><div class="fg"><label>Stickers Used</label><input class="inp" id="mf-stickers" type="number" value="0" style="width:100%"></div></div>
         <div class="fr"><div class="fg"><label>Done By / Worker</label><input class="inp" id="mf-doneby" value="" placeholder="Worker name / shift" style="width:100%"></div><div class="fg"><label>Shift</label><select class="sel" id="mf-shift" style="width:100%"><option value="">—</option><option value="Morning">Morning</option><option value="Afternoon">Afternoon</option><option value="Full Day">Full Day</option></select></div></div>
@@ -2588,7 +2589,7 @@ const Mo={
         <div class="fr one"><div class="fg"><label>Item *</label><select class="sel" id="mf-item" style="width:100%"><option>Chevron Stickers</option><option>Octopus Stickers</option><option>Hex Stickers</option><option>Rainbow Stickers</option><option>Toe Guard Stickers</option><option>Grip Blanks (Raw)</option></select></div></div>
         <div class="fr"><div class="fg"><label>Current Qty</label><input class="inp" id="mf-qty" type="number" value="0" style="width:100%"></div><div class="fg"><label>Min Level</label><input class="inp" id="mf-minQty" type="number" value="500" style="width:100%"></div></div>`},
       expenses:{t:ie?"EDIT EXPENSE":"ADD EXPENSE",h:`
-        <div class="fr"><div class="fg"><label>Date</label><input class="inp" id="mf-date" type="date" value="${v('date',new Date().toISOString().slice(0,10))}" style="width:100%"></div><div class="fg"><label>Category</label><select class="sel" id="mf-cat" style="width:100%">${sel('cat',[["raw_material","Raw Material"],["labour","Labour"],["electricity","Electricity"],["maintenance","Maintenance"],["packaging","Packaging"],["misc","Miscellaneous"]])}</select></div></div>
+        <div class="fr"><div class="fg"><label>Date</label><input class="inp" id="mf-date" type="date" value="${v('date',todayStr())}" style="width:100%"></div><div class="fg"><label>Category</label><select class="sel" id="mf-cat" style="width:100%">${sel('cat',[["raw_material","Raw Material"],["labour","Labour"],["electricity","Electricity"],["maintenance","Maintenance"],["packaging","Packaging"],["misc","Miscellaneous"]])}</select></div></div>
         <div class="fr one"><div class="fg"><label>Description *</label><input class="inp" id="mf-desc" value="${v('desc')}" style="width:100%"></div></div>
         <div class="fr"><div class="fg"><label>Vendor / Party</label><input class="inp" id="mf-vendor" value="${v('vendor')}" style="width:100%"></div><div class="fg"><label>Amount (₹) *</label><input class="inp" id="mf-amount" value="${v('amount')}" style="width:100%"></div></div>
         <div class="fr"><div class="fg"><label>Payment Mode</label><select class="sel" id="mf-mode" style="width:100%">${sel('mode',[["cash","Cash"],["cheque","Cheque"],["online","Online/UPI"],["bank","Bank Transfer"]])}</select></div><div class="fg"><label>Receipt #</label><input class="inp" id="mf-receipt" value="${v('receipt')}" style="width:100%"></div></div>`},
@@ -2637,7 +2638,7 @@ function moSave(){
     if(!name){alert("Item name is required");return;}
     const data={name,cat:g2("mf-cat"),unit:g2("mf-unit")||"pcs",cp:gn2("mf-cp"),sp:gn2("mf-sp"),notes:g2("mf-notes")};
     if(ie){const i=D.costing.findIndex(x=>x.id===id);if(i>-1)D.costing[i]={...D.costing[i],...data};}
-    else D.costing.push({id:++D.uid,...data,createdAt:new Date().toISOString().slice(0,10)});
+    else D.costing.push({id:++D.uid,...data,createdAt:todayStr()});
     autoSave("costing");autoSave("uid");closeMo();R.costing();return;
   }
   if(type==="production"){
@@ -2656,18 +2657,18 @@ function moSave(){
   }
   const maps={
     urgent:()=>({party:g("mf-party"),amt:g("mf-amt"),items:g("mf-items"),orderdate:g("mf-orderdate"),deadline:g("mf-deadline"),courier:g("mf-courier"),pri:g("mf-pri"),status:g("mf-status"),notes:g("mf-notes")}),
-    cod:()=>({name:g("mf-name"),city:g("mf-city"),limit:g("mf-limit"),outstanding:g("mf-outstanding"),history:g("mf-history"),status:g("mf-status"),lastOrder:new Date().toISOString().slice(0,10)}),
-    transport:()=>({track:g("mf-track")||"#"+D.uid,party:g("mf-party"),courier:g("mf-courier"),amt:g("mf-amt"),type:g("mf-type"),status:g("mf-status"),remark:g("mf-remark"),date:new Date().toISOString().slice(0,10)}),
-    payment:()=>({party:g("mf-party"),inv:g("mf-inv"),amt:g("mf-amt"),due:g("mf-due"),lastContact:new Date().toISOString().slice(0,10),remark:g("mf-remark"),agent:g("mf-agent"),status:g("mf-status")}),
+    cod:()=>({name:g("mf-name"),city:g("mf-city"),limit:g("mf-limit"),outstanding:g("mf-outstanding"),history:g("mf-history"),status:g("mf-status"),lastOrder:todayStr()}),
+    transport:()=>({track:g("mf-track")||"#"+D.uid,party:g("mf-party"),courier:g("mf-courier"),amt:g("mf-amt"),type:g("mf-type"),status:g("mf-status"),remark:g("mf-remark"),date:todayStr()}),
+    payment:()=>({party:g("mf-party"),inv:g("mf-inv"),amt:g("mf-amt"),due:g("mf-due"),lastContact:todayStr(),remark:g("mf-remark"),agent:g("mf-agent"),status:g("mf-status")}),
     defaulter:()=>({party:g("mf-party"),amt:g("mf-amt"),since:g("mf-since"),notices:ie?D.defaulter.find(x=>x.id===id)?.notices||1:1,legal:g("mf-legal"),nextAction:g("mf-nextAction"),status:"active"}),
-    banking:()=>({issue:g("mf-issue"),bank:g("mf-bank"),acc:g("mf-acc"),amt:g("mf-amt"),remark:g("mf-remark"),status:g("mf-status"),date:new Date().toISOString().slice(0,10)}),
+    banking:()=>({issue:g("mf-issue"),bank:g("mf-bank"),acc:g("mf-acc"),amt:g("mf-amt"),remark:g("mf-remark"),status:g("mf-status"),date:todayStr()}),
     deadstock:()=>({item:g("mf-item"),sku:g("mf-sku"),qty:gn("mf-qty"),cost:gn("mf-cost"),loc:g("mf-loc"),last:g("mf-last"),action:g("mf-action")}),
     rd:()=>({idea:g("mf-idea"),cat:g("mf-cat"),pri:g("mf-pri"),benefit:g("mf-benefit"),status:g("mf-status"),notes:g("mf-notes")}),
     compliance:()=>({name:g("mf-name"),auth:g("mf-auth"),due:g("mf-due"),resp:g("mf-resp"),penalty:g("mf-penalty"),status:g("mf-status")}),
     itc:()=>({supplier:g("mf-supplier"),inv:g("mf-inv"),date:g("mf-date"),igst:gn("mf-igst"),cgst:gn("mf-cgst"),sgst:gn("mf-sgst"),eligible:g("mf-eligible")}),
     future:()=>({plan:g("mf-plan"),cat:g("mf-cat"),timeline:g("mf-timeline"),invest:g("mf-invest"),ret:g("mf-ret"),status:g("mf-status")}),
 
-    accounts:()=>({issue:g("mf-issue"),cat:g("mf-cat"),pri:g("mf-pri"),party:g("mf-party"),amount:gn("mf-amount"),assignedTo:g("mf-assignedTo"),due:g("mf-due"),status:g("mf-status"),remarks:g("mf-remarks"),createdAt:ie?undefined:new Date().toISOString().slice(0,10)}),
+    accounts:()=>({issue:g("mf-issue"),cat:g("mf-cat"),pri:g("mf-pri"),party:g("mf-party"),amount:gn("mf-amount"),assignedTo:g("mf-assignedTo"),due:g("mf-due"),status:g("mf-status"),remarks:g("mf-remarks"),createdAt:ie?undefined:todayStr()}),
     vehicles:()=>({category:g("mf-category")||"other",name:g("mf-name"),ref:g("mf-ref"),expiry:g("mf-expiry"),pollution:g("mf-pollution"),service:g("mf-service"),notes:g("mf-notes")}),
     orders:()=>({party:g("mf-party"),inv:g("mf-inv"),items:g("mf-items"),pri:g("mf-pri")||"normal",orderDate:g("mf-orderDate"),deadline:g("mf-deadline"),invVal:gn("mf-invVal"),codAmt:gn("mf-codAmt"),dispatchDate:g("mf-dispatchDate"),courier:g("mf-courier"),trackNo:g("mf-trackNo"),agent:g("mf-agent"),chqNo:g("mf-chqNo"),chqDate:g("mf-chqDate"),bank:g("mf-bank"),clearedDate:g("mf-clearedDate"),status:g("mf-status")||"pending",remarks:g("mf-remarks")}),
     purchase:()=>({item:g("mf-item"),cat:g("mf-cat"),stock:gn("mf-stock"),minLevel:gn("mf-minLevel"),toOrder:gn("mf-toOrder"),supplier:g("mf-supplier"),lastPrice:gn("mf-lastPrice"),unit:g("mf-unit")||"pcs",status:g("mf-status")}),
@@ -2721,7 +2722,7 @@ function renewCatChange(){
 }
 function checkVehicleReminders(){
   if(!Array.isArray(D.vehicles) || typeof D.dayData!=="object") return;
-  const toDs=d=>{ const x=new Date(d); x.setHours(0,0,0,0); return x.toISOString().slice(0,10); };
+  const toDs=d=>{ const x=new Date(d); const y=x.getFullYear(), m=String(x.getMonth()+1).padStart(2,"0"), dd=String(x.getDate()).padStart(2,"0"); return `${y}-${m}-${dd}`; };
   const today=new Date(); today.setHours(0,0,0,0);
   const todayDs=toDs(today);
   let added=0, moved=0;
@@ -4038,7 +4039,7 @@ const R={
   },
   production(){
     const dateEl=document.getElementById("prod-date");
-    if(!dateEl.value)dateEl.value=new Date().toISOString().slice(0,10);
+    if(!dateEl.value)dateEl.value=todayStr();
     const selectedDate=dateEl.value;
     const dayProd=D.production.filter(p=>p.date===selectedDate);
     const totalProd=dayProd.reduce((s,p)=>s+p.produced,0);
@@ -4154,7 +4155,7 @@ function saveHGoal(){const t=document.getElementById("hg-t")?.value?.trim();if(!
 
 // ── DAY TRACKER ──
 function initTracker(){
-  const today=new Date().toISOString().slice(0,10);
+  const today=todayStr();
   document.getElementById("td").value=today;
   loadDay(today);
 }
@@ -4621,7 +4622,7 @@ function dashQuickTask(){
 }
 
 function dashQuickTaskSave(){
-  const today = new Date().toISOString().slice(0,10);
+  const today = todayStr();
   const text = document.getElementById("dash-task-q-inp")?.value?.trim();
   if(!text) return;
   if(!D.dayData[today]) D.dayData[today]={tasks:[],notes:""};
@@ -4646,7 +4647,7 @@ function openAddEntry(itemId) {
     </div>
     <div class="fr"><div class="fg"><label>Vendor / Supplier *</label><input class="inp" id="mf-vendor" placeholder="Vendor name" style="width:100%"></div>
     <div class="fg"><label>Invoice No</label><input class="inp" id="mf-invNo" style="width:100%"></div></div>
-    <div class="fr"><div class="fg"><label>Date Received</label><input class="inp" id="mf-date" type="date" value="${new Date().toISOString().slice(0,10)}" style="width:100%"></div>
+    <div class="fr"><div class="fg"><label>Date Received</label><input class="inp" id="mf-date" type="date" value="${todayStr()}" style="width:100%"></div>
     <div class="fg"><label>Qty Received</label><input class="inp" id="mf-qty" type="number" placeholder="Quantity" style="width:100%"></div></div>
     <div class="fr"><div class="fg"><label>Rate per ${item.unit} (₹) *</label><input class="inp" id="mf-rate" type="number" placeholder="Cost per unit" style="width:100%"></div>
     <div class="fg"><label>GST %</label><select class="sel" id="mf-gst" style="width:100%">
@@ -4712,7 +4713,7 @@ function saveCstCat() {
   if(D.costCats.find(c=>c.name.toLowerCase()===name.toLowerCase())) {
     alert("Category already exists!"); return;
   }
-  D.costCats.push({id:++D.uid, name, icon, createdAt:new Date().toISOString().slice(0,10)});
+  D.costCats.push({id:++D.uid, name, icon, createdAt:todayStr()});
   document.getElementById("cst-cat-inp").value = "";
   document.getElementById("cst-cat-icon").value = "";
   autoSave("costCats"); autoSave("uid");
@@ -4846,7 +4847,7 @@ function ordJump(id){
 function moveOrder(id, newStatus) {
   const o = D.orders.find(x=>x.id===id);
   if(!o) return;
-  const today = new Date().toISOString().slice(0,10);
+  const today = todayStr();
   const now = new Date().toISOString();
   if(!o.timeline) o.timeline = [];
   o.timeline.push({status:newStatus, date:today, time:now});
@@ -4971,7 +4972,7 @@ function saveKbEntry() {
     content,
     ref:     document.getElementById("kb-inp-ref")?.value?.trim() || "",
     conf:    document.getElementById("kb-inp-conf")?.value  || "no",
-    updatedAt: new Date().toISOString().slice(0,10)
+    updatedAt: todayStr()
   };
 
   if(!D.kb) D.kb = [];
@@ -4980,7 +4981,7 @@ function saveKbEntry() {
     if(i>-1) D.kb[i] = {...D.kb[i], ...entry};
   } else {
     entry.id = ++D.uid;
-    entry.createdAt = new Date().toISOString().slice(0,10);
+    entry.createdAt = todayStr();
     D.kb.push(entry);
   }
   autoSave("kb");
@@ -5020,7 +5021,7 @@ function _quoteIndexForToday(){
 }
 
 async function fetchDailyQuote(force=false){
-  const today = new Date().toISOString().slice(0,10);
+  const today = todayStr();
   const N = AURA_QUOTES.length;
 
   // "force" (tapping the card) gives a fresh random one and remembers it for the day
@@ -5406,7 +5407,7 @@ function saveStkCat(){
   const icon = document.getElementById("stk-cat-icon")?.value?.trim() || "📦";
   if((D.stockCats||[]).find(c=>c.name.toLowerCase()===name.toLowerCase())){ alert("Category already exists!"); return; }
   if(!D.stockCats) D.stockCats=[];
-  D.stockCats.push({id:++D.uid, name, icon, createdAt:new Date().toISOString().slice(0,10)});
+  D.stockCats.push({id:++D.uid, name, icon, createdAt:todayStr()});
   document.getElementById("stk-cat-inp").value="";
   document.getElementById("stk-cat-icon").value="";
   autoSave("stockCats"); autoSave("uid");
@@ -5474,7 +5475,7 @@ function saveStockItem(){
   } else {
     const openQty = parseFloat(document.getElementById("stk-inp-qty")?.value || 0) || 0;
     const id = ++D.uid;
-    D.stock.push({id, ...data, qty:openQty, createdAt:new Date().toISOString().slice(0,10)});
+    D.stock.push({id, ...data, qty:openQty, createdAt:todayStr()});
     // Log opening balance
     if(openQty>0) logStockMovement(id, "in", openQty, "Opening stock", openQty);
   }
@@ -5568,7 +5569,7 @@ function logStockMovement(itemId, dir, qty, note, balance){
     qty,
     note: note||"",
     balance,              // running balance after this movement
-    date: new Date().toISOString().slice(0,10),
+    date: todayStr(),
     time: new Date().toLocaleTimeString("en-IN",{hour:"2-digit",minute:"2-digit"}),
     by: currentUser || "Owner"
   });
@@ -5866,7 +5867,7 @@ function reRenderCurrent() {
     payment:R.payment, defaulter:R.defaulter, banking:R.banking,
     deadstock:R.deadstock, rd:R.rd, compliance:R.compliance,
     itax:R.itax, tds:R.tds, gst:R.gst, itc:R.itc, future:R.future,
-    tracker:()=>renderDT(document.getElementById("td")?.value||new Date().toISOString().slice(0,10)),
+    tracker:()=>renderDT(document.getElementById("td")?.value||todayStr()),
     health:R.health, badminton:R.badminton, self:R.self, quotes:R.quotes,
     mustdo:R.mustdo, accounts:R.accounts, costing:R.costing, kb:R.kb,
     orders:R.orders, purchase:R.purchase, production:R.production,
@@ -6414,28 +6415,28 @@ function scConfirmSave(){
   // Save to target module
   let saved=false;
   if(targetModule==="urgent"){
-    D.urgent.push({id:++D.uid,party:data.party||"From Scan",items:data.items||p.summary,amt:data.amount,orderdate:data.date||new Date().toISOString().slice(0,10),deadline:data.dueDate||"",courier:"",pri:"high",status:"pending",notes:`Scanned: ${p.docTypeLabel}. ${data.notes||""}`});
+    D.urgent.push({id:++D.uid,party:data.party||"From Scan",items:data.items||p.summary,amt:data.amount,orderdate:data.date||todayStr(),deadline:data.dueDate||"",courier:"",pri:"high",status:"pending",notes:`Scanned: ${p.docTypeLabel}. ${data.notes||""}`});
     autoSave("urgent");saved=true;
   } else if(targetModule==="payment"){
-    D.payment.push({id:++D.uid,party:data.party||"From Scan",inv:data.invoiceNo||"",amt:data.amount||"0",due:data.dueDate||data.date||new Date().toISOString().slice(0,10),lastContact:new Date().toISOString().slice(0,10),remark:`Scanned: ${p.docTypeLabel}. ${data.notes||""}`,agent:"",status:"pending"});
+    D.payment.push({id:++D.uid,party:data.party||"From Scan",inv:data.invoiceNo||"",amt:data.amount||"0",due:data.dueDate||data.date||todayStr(),lastContact:todayStr(),remark:`Scanned: ${p.docTypeLabel}. ${data.notes||""}`,agent:"",status:"pending"});
     autoSave("payment");saved=true;
   } else if(targetModule==="expenses"){
-    D.expenses.push({id:++D.uid,date:data.date||new Date().toISOString().slice(0,10),cat:"misc",desc:data.items||p.docTypeLabel||"Scanned document",vendor:data.party||"",amount:data.amount||"0",mode:"cash",receipt:data.invoiceNo||""});
+    D.expenses.push({id:++D.uid,date:data.date||todayStr(),cat:"misc",desc:data.items||p.docTypeLabel||"Scanned document",vendor:data.party||"",amount:data.amount||"0",mode:"cash",receipt:data.invoiceNo||""});
     autoSave("expenses");saved=true;
   } else if(targetModule==="compliance"){
     D.compliance.push({id:++D.uid,name:data.items||p.docTypeLabel,auth:data.party||"Authority",due:data.dueDate||data.date||"",penalty:data.notes||"",resp:"Self",status:"pending"});
     autoSave("compliance");saved=true;
   } else if(targetModule==="banking"){
-    D.banking.push({id:++D.uid,issue:data.items||p.summary,bank:data.party||"",acc:"",amt:data.amount||"",remark:data.notes||`Scanned: ${p.docTypeLabel}`,status:"open",date:data.date||new Date().toISOString().slice(0,10)});
+    D.banking.push({id:++D.uid,issue:data.items||p.summary,bank:data.party||"",acc:"",amt:data.amount||"",remark:data.notes||`Scanned: ${p.docTypeLabel}`,status:"open",date:data.date||todayStr()});
     autoSave("banking");saved=true;
   } else if(targetModule==="transport"){
-    D.transport.push({id:++D.uid,track:data.invoiceNo||"SCAN-"+D.uid,party:data.party||"From Scan",courier:"",type:"cod_rejected",amt:data.amount||"0",date:data.date||new Date().toISOString().slice(0,10),status:"Logged from scan",remark:data.notes||""});
+    D.transport.push({id:++D.uid,track:data.invoiceNo||"SCAN-"+D.uid,party:data.party||"From Scan",courier:"",type:"cod_rejected",amt:data.amount||"0",date:data.date||todayStr(),status:"Logged from scan",remark:data.notes||""});
     autoSave("transport");saved=true;
   } else if(targetModule==="purchase"){
     D.purchase.push({id:++D.uid,item:data.items||"Scanned item",cat:"raw_material",stock:0,minLevel:parseInt(data.quantity||0),toOrder:parseInt(data.quantity||0),supplier:data.party||"",lastPrice:parseInt(data.amount||0),unit:"pcs",status:"critical"});
     autoSave("purchase");saved=true;
   } else if(targetModule==="tracker"){
-    const today=new Date().toISOString().slice(0,10);
+    const today=todayStr();
     if(!D.dayData[today])D.dayData[today]={tasks:[],notes:""};
     D.dayData[today].tasks.push({id:++D.uid,text:`${p.docTypeLabel}: ${data.party||""} ${data.amount?"₹"+data.amount:""} ${data.notes||""}`.trim(),done:false,pri:"high"});
     autoSave("dayData");saved=true;
@@ -6536,7 +6537,7 @@ function scResaveEntry(id){
 // ══════════════════════════════════════════
 
 function checkMustDoReset() {
-  const today = new Date().toISOString().slice(0,10);
+  const today = todayStr();
   const lastReset = localStorage.getItem("mustdo_last_reset");
   if(lastReset !== today) {
     D.mustdo.forEach(t => t.doneToday = false);
@@ -6582,7 +6583,7 @@ function saveMustDo() {
   if(!text) return;
   const cat = document.getElementById("md-cat")?.value || "personal";
   const time = document.getElementById("md-time")?.value?.trim() || "";
-  D.mustdo.push({id:++D.uid, text, cat, time, doneToday:false, streak:0, createdAt:new Date().toISOString().slice(0,10)});
+  D.mustdo.push({id:++D.uid, text, cat, time, doneToday:false, streak:0, createdAt:todayStr()});
   document.getElementById("md-inp").value = "";
   document.getElementById("md-time").value = "";
   autoSave("mustdo");
@@ -6625,7 +6626,7 @@ function dashAddMustDo() {
   const text = document.getElementById("dash-mustdo-inp")?.value?.trim();
   if(!text) return;
   const cat = document.getElementById("dash-mustdo-cat")?.value || "business";
-  D.mustdo.push({id:++D.uid, text, cat, time:"", doneToday:false, streak:0, createdAt:new Date().toISOString().slice(0,10)});
+  D.mustdo.push({id:++D.uid, text, cat, time:"", doneToday:false, streak:0, createdAt:todayStr()});
   document.getElementById("dash-mustdo-inp").value = "";
   document.getElementById("dash-mustdo-form").style.display = "none";
   autoSave("mustdo");
@@ -7092,7 +7093,7 @@ function exportBackup(){
     const blob = new Blob([JSON.stringify(payload, null, 2)], {type:"application/json"});
     const a = document.createElement("a");
     a.href = URL.createObjectURL(blob);
-    a.download = "aman-backup-" + new Date().toISOString().slice(0,10) + ".json";
+    a.download = "aman-backup-" + todayStr() + ".json";
     document.body.appendChild(a);
     a.click();
     a.remove();
@@ -7145,7 +7146,7 @@ function newQuotation(){
   qtEditId = null;
   document.getElementById("qt-form-title").textContent = "📄 New Quotation";
   document.getElementById("qt-no").value = nextQuoteNo();
-  document.getElementById("qt-date").value = new Date().toISOString().slice(0,10);
+  document.getElementById("qt-date").value = todayStr();
   const valid = new Date(); valid.setDate(valid.getDate()+15);
   document.getElementById("qt-valid").value = valid.toISOString().slice(0,10);
   ["qt-party","qt-phone","qt-addr","qt-gstin"].forEach(id=>document.getElementById(id).value="");
@@ -7246,7 +7247,7 @@ function saveQuotation(genPdf){
     if(i>-1) D.quotations[i] = {...D.quotations[i], ...q};
   } else {
     q.id = ++D.uid;
-    q.createdAt = new Date().toISOString().slice(0,10);
+    q.createdAt = todayStr();
     D.quotations.push(q);
   }
   autoSave("quotations"); autoSave("uid");
@@ -7431,7 +7432,7 @@ function saveBrMilestone(){
     if(i>-1) D.brandMilestones[i] = {...D.brandMilestones[i], ...data};
   } else {
     data.id = ++D.uid;
-    data.createdAt = new Date().toISOString().slice(0,10);
+    data.createdAt = todayStr();
     D.brandMilestones.push(data);
   }
   autoSave("brandMilestones"); autoSave("uid");
@@ -7744,7 +7745,7 @@ async function lgSetup(){
   const key = await deriveKey(pw, salt);
   const verifier = await lgEncrypt(key, {v:"ledger-ok"});
 
-  D.ledgerCfg = { cwHash: await sha256Hex(cw.toLowerCase()), salt, verifier, createdAt:new Date().toISOString().slice(0,10) };
+  D.ledgerCfg = { cwHash: await sha256Hex(cw.toLowerCase()), salt, verifier, createdAt:todayStr() };
   autoSave("ledgerCfg");
 
   LG.key = key; LG.unlocked = true; LG.data = {parties:[],entries:[]};
@@ -8359,9 +8360,9 @@ function lgAddRow(){
   const p = (LG.data.parties||[]).find(x=>x.id===LG.sheet);
   if(!p){ alert("Open a party sheet first"); return; }
   const prev = lgRowsFor(p.id);
-  const lastDate = prev.length ? prev[prev.length-1].date : new Date().toISOString().slice(0,10);
+  const lastDate = prev.length ? prev[prev.length-1].date : todayStr();
   const e = { id:"le_"+Date.now()+"_"+Math.floor(Math.random()*1000), pid:p.id,
-              date:lastDate||new Date().toISOString().slice(0,10), particulars:"", ref:"", debit:0, credit:0 };
+              date:lastDate||todayStr(), particulars:"", ref:"", debit:0, credit:0 };
   if(!LG.data.entries) LG.data.entries = [];
   LG.data.entries.push(e);
   const body = document.getElementById("lg-body");
@@ -8422,7 +8423,7 @@ function lgStatementPDF(data){
     doc.setFontSize(11); doc.setFont("helvetica","bold");
     doc.text("ACCOUNT STATEMENT", 14, sub?36:33);
     doc.setFont("helvetica","normal"); doc.setFontSize(9);
-    doc.text("As on " + fd(new Date().toISOString().slice(0,10)), W-14, sub?36:33, {align:"right"});
+    doc.text("As on " + fd(todayStr()), W-14, sub?36:33, {align:"right"});
 
     // Table
     const body = [];
@@ -8513,7 +8514,7 @@ function lgStatementImage(data){
 
   // Statement band
   T(L,yBand+26,"ACCOUNT STATEMENT",17,true,"#111827",false);
-  T(Rr,yBand+26,"As on "+fd(new Date().toISOString().slice(0,10)),13.5,false,"#9ca3af",true);
+  T(Rr,yBand+26,"As on "+fd(todayStr()),13.5,false,"#9ca3af",true);
   line(L,yBand+bandH,Rr,yBand+bandH,"#e5e7eb",1);
 
   // Table header bar
@@ -8801,7 +8802,7 @@ function openWA(id){
 
   // Record FIRST, then navigate. Opening WhatsApp backgrounds this app, so
   // anything after window.open may never run (and pending writes get killed).
-  const today = new Date().toISOString().slice(0,10);
+  const today = todayStr();
   c.lastContact = today;
   c.contactCount = (c.contactCount || 0) + 1;
   if(!c.contactLog) c.contactLog = [];
@@ -8832,7 +8833,7 @@ function openWA(id){
 
 function crmMarkDone(id){
   const c=(D.crm||[]).find(x=>x.id===id); if(!c) return;
-  c.status="done"; c.lastContact = c.lastContact || new Date().toISOString().slice(0,10);
+  c.status="done"; c.lastContact = c.lastContact || todayStr();
   saveCrmContact(id); flushNow(); R.crm();
   crmToast(`✅ ${c.name} marked as contacted`);
 }
@@ -8967,7 +8968,7 @@ function delCrmContact(id){
 function saveAllCrmChunks(){
   if(!window.__crmChunks) window.__crmChunks = {};
   writeChunks(D.crm||[], "crm_", window.__crmChunks, MAX_CRM_CHUNKS);
-  D.crmMeta = {...(D.crmMeta||{}), total:(D.crm||[]).length, updatedAt:new Date().toISOString().slice(0,10)};
+  D.crmMeta = {...(D.crmMeta||{}), total:(D.crm||[]).length, updatedAt:todayStr()};
   autoSave("crmMeta");
 }
 
@@ -9393,7 +9394,7 @@ function fetchAllImLeads(){
         callDuration: l.CALL_DURATION || "",
         queryTime: l.QUERY_TIME || "",
         queryType: l.QUERY_TYPE || "",
-        fetchedAt: new Date().toISOString().slice(0,10),
+        fetchedAt: todayStr(),
         imported: false
       });
       existing.add(qid);
