@@ -360,6 +360,12 @@ body.lg-dense table.lg-grid td button.btn-d{padding:2px 7px!important;font-size:
 @media(max-width:560px){.veh-grid{grid-template-columns:1fr}}
 .veh-date{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:9px 12px;border-radius:9px;font-size:13px;border:1px solid var(--s2)}
 .veh-date.veh-empty2{background:var(--s1);opacity:.7}
+
+#uni-ctx .uc-item{display:flex;align-items:center;gap:10px;padding:13px 16px;cursor:pointer;border-bottom:1px solid var(--s2);color:var(--ink)}
+#uni-ctx .uc-item:last-child{border-bottom:none}
+#uni-ctx .uc-item:active,#uni-ctx .uc-item:hover{background:var(--s2)}
+#uni-ctx .uc-item.uc-danger{color:var(--red)}
+#uni-ctx .uc-head{padding:11px 16px;background:var(--s1);font-weight:800;font-size:13px;color:var(--muted);border-bottom:1px solid var(--b1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:260px}
 </style>
   <!-- Firebase SDK -->
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
@@ -2173,6 +2179,10 @@ body.lg-dense table.lg-grid td button.btn-d{padding:2px 7px!important;font-size:
 
 
 <!-- Order quick-action context menu -->
+
+<!-- Universal context menu -->
+<div id="uni-ctx" style="display:none;position:fixed;z-index:9600;background:#fff;border:1px solid var(--b1);border-radius:12px;box-shadow:0 12px 40px rgba(0,0,0,.22);overflow:hidden;min-width:200px;font-size:15px"></div>
+<div id="uni-ctx-backdrop" style="display:none;position:fixed;inset:0;z-index:9550" onclick="closeUniMenu()"></div>
 <div id="ord-ctx" style="display:none;position:fixed;z-index:9500;background:#fff;border:1px solid var(--b1);border-radius:12px;box-shadow:0 12px 40px rgba(0,0,0,.22);overflow:hidden;min-width:210px;font-size:15px"></div>
 <div id="ord-ctx-backdrop" style="display:none;position:fixed;inset:0;z-index:9400" onclick="closeOrdMenu()"></div>
 </div><!-- /main -->
@@ -3821,7 +3831,6 @@ const R={
             <button class="btn btn-sm" style="font-size:12px" onclick="openCrmDetail('${c.id}')">👁 Details</button>
             ${done ? `<button class="btn btn-sm" style="font-size:12px" onclick="crmUndo('${c.id}')">↩</button>`
                    : `<button class="btn btn-sm" style="border-color:var(--green);color:var(--green);font-size:12px" onclick="crmMarkDone('${c.id}')">✓</button>`}
-            <button class="btn btn-sm" style="border-color:var(--red);color:var(--red);font-size:13px;padding:4px 9px" onclick="delCrmContact('${c.id}')" title="Delete lead">✕</button>
           </div>
         </div>`;
       }).join("") + '</div>';
@@ -4765,6 +4774,110 @@ function addItemToCategory(catName) {
   setTimeout(()=>document.getElementById("mf-name")?.focus(),100);
 }
 
+
+// ══ Universal right-click / long-press menu (works across all modules) ══
+let _uniTouchTimer=null, _uniTouchXY={x:120,y:200};
+
+// Extract {type,id} from a card/row by reading its existing edit/delete button onclicks
+function _uniFindItem(el){
+  let node=el;
+  for(let depth=0; node && depth<8; depth++, node=node.parentElement){
+    // look for a Mo.open('type',id) or delItem('type',id) within this node
+    const btns=node.querySelectorAll?node.querySelectorAll('[onclick]'):[];
+    for(const b of btns){
+      const oc=b.getAttribute('onclick')||"";
+      let m=oc.match(/Mo\.open\(['"]([a-z]+)['"],\s*'?([\w-]+)'?\)/i)
+          || oc.match(/delItem\(['"]([a-z]+)['"],\s*'?([\w-]+)'?\)/i)
+          || oc.match(/openCrmDetail\(['"]?([\w-]+)['"]?\)/i);
+      if(m){
+        if(m.length===3) return {type:m[1], id:isNaN(m[2])?m[2]:parseInt(m[2]), node};
+      }
+      // CRM cards: openWA / crmMarkDone give an id but type is 'crm'
+      const cm=oc.match(/(?:openWA|crmMarkDone|delCrmContact)\(['"]?([\w-]+)['"]?\)/);
+      if(cm) return {type:"crm", id:isNaN(cm[1])?cm[1]:parseInt(cm[1]), node};
+    }
+  }
+  return null;
+}
+
+function closeUniMenu(){
+  const m=document.getElementById("uni-ctx"); if(m) m.style.display="none";
+  const b=document.getElementById("uni-ctx-backdrop"); if(b) b.style.display="none";
+}
+
+let _uniActs=[];
+function _uniRun(i){ closeUniMenu(); const a=_uniActs[i]; if(a&&a.run) try{a.run();}catch(e){console.warn(e);} }
+function _uniShow(x,y,items,head){
+  _uniActs=items;
+  const m=document.getElementById("uni-ctx");
+  m.innerHTML=(head?`<div class="uc-head">${head}</div>`:"")+items.map((it,i)=>
+    `<div class="uc-item ${it.danger?'uc-danger':''}" onclick="_uniRun(${i})"><span>${it.ic}</span> ${it.label}</div>`
+  ).join("");
+  m.style.display="block";
+  document.getElementById("uni-ctx-backdrop").style.display="block";
+  const mw=Math.max(200,m.offsetWidth||210), mh=m.offsetHeight||260;
+  if(x+mw>window.innerWidth-8) x=window.innerWidth-mw-8;
+  if(y+mh>window.innerHeight-8) y=Math.max(8,window.innerHeight-mh-8);
+  m.style.left=Math.max(8,x)+"px"; m.style.top=Math.max(8,y)+"px";
+}
+
+// Build the action list for a given module+id
+function _uniActions(type,id){
+  const acts=[];
+  if(type==="crm"){
+    const c=(D.crm||[]).find(x=>x.id===id);
+    acts.push({ic:"👁",label:"Details",run:()=>openCrmDetail(id)});
+    if(c&&c.phone) acts.push({ic:"💬",label:"WhatsApp",run:()=>openWA(id)});
+    if(c&&c.status!=="done") acts.push({ic:"✓",label:"Mark Done",run:()=>crmMarkDone(id)});
+    else acts.push({ic:"↩",label:"Undo Done",run:()=>crmUndo(id)});
+    acts.push({ic:"✕",label:"Delete Lead",run:()=>delCrmContact(id),danger:true});
+    return acts;
+  }
+  if(type==="orders"){ return null; }
+  acts.push({ic:"✏️",label:"Edit",run:()=>Mo.open(type,id)});
+  acts.push({ic:"🗑️",label:"Delete",run:()=>delItem(type,id),danger:true});
+  return acts;
+}
+
+function uniMenu(e){
+  // don't hijack clicks on inputs/links/buttons themselves for their own default,
+  // but we DO want the menu on the card. Only act if we find an item.
+  const found=_uniFindItem(e.target);
+  if(!found){ return; }               // no item here → let browser default happen
+  e.preventDefault();
+
+  // Orders keeps its dedicated menu
+  if(found.type==="orders" && typeof ordMenu==="function"){
+    ordMenu(e, found.id); return;
+  }
+  const acts=_uniActions(found.type, found.id);
+  if(!acts||!acts.length) return;
+
+  // nice head label: item name/party/title
+  const arr=D[found.type]||(found.type==="crm"?D.crm:[]);
+  const it=(arr||[]).find(x=>x.id===found.id);
+  const head=it?(it.name||it.party||it.title||it.idea||it.plan||it.item||it.filing||"Item"):"Item";
+  _uniShow(e.clientX||120, e.clientY||200, acts, head);
+}
+
+// Global listeners — desktop right-click + mobile long-press
+document.addEventListener("contextmenu", function(e){
+  // skip if inside the order-specific or already handled menus
+  if(e.target.closest && (e.target.closest("#uni-ctx")||e.target.closest("#ord-ctx"))) return;
+  uniMenu(e);
+});
+document.addEventListener("touchstart", function(e){
+  const t=e.touches&&e.touches[0]; if(!t) return;
+  _uniTouchXY={x:t.clientX,y:t.clientY};
+  const found=_uniFindItem(e.target);
+  if(!found) return;
+  _uniTouchTimer=setTimeout(()=>{
+    if(navigator.vibrate) navigator.vibrate(15);
+    uniMenu({target:e.target, clientX:_uniTouchXY.x, clientY:_uniTouchXY.y, preventDefault(){}});
+  }, 500);
+},{passive:true});
+document.addEventListener("touchend", ()=>{ if(_uniTouchTimer){clearTimeout(_uniTouchTimer);_uniTouchTimer=null;} });
+document.addEventListener("touchmove", ()=>{ if(_uniTouchTimer){clearTimeout(_uniTouchTimer);_uniTouchTimer=null;} });
 
 // ══ Order right-click / long-press quick menu ══
 let _ordTouchTimer=null;
