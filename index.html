@@ -9154,7 +9154,6 @@ function saveCrmDetail(id){
 }
 function delCrmContact(id){
   const c=(D.crm||[]).find(x=>x.id===id); if(!c) return;
-  if(!confirm(`Delete "${c.name}"?`)) return;
   D.crm = D.crm.filter(x=>x.id!==id);
   // If this was an IndiaMart lead, block its query-id so the daily fetch never re-adds it.
   const qid = (typeof id==="string" && id.startsWith("im_")) ? id.slice(3)
@@ -9171,6 +9170,7 @@ function delCrmContact(id){
   }
   saveAllCrmChunks();
   closeCrmMo(); R.crm();
+  if(typeof crmToast==="function") crmToast(`Deleted ${c.name||"lead"}`);
 }
 function saveAllCrmChunks(){
   if(!window.__crmChunks) window.__crmChunks = {};
