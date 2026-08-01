@@ -636,6 +636,16 @@ document.addEventListener("touchstart", function(e){
     </div>
   </div>
 
+  <!-- ══ GURBANI DAILY LEARNING ══ -->
+  <div id="gurbani-card" style="background:linear-gradient(135deg,#fffbeb,#fef3c7);border:1px solid #fcd34d;border-radius:14px;padding:16px 18px;margin-bottom:14px">
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+      <span style="font-size:20px">🪯</span>
+      <div style="font-size:13px;font-weight:800;color:#92400e;letter-spacing:.5px">DAILY GURBANI — SRI GURU GRANTH SAHIB JI</div>
+      <span id="gur-streak" style="margin-left:auto;font-size:12px;font-weight:700;color:#b45309"></span>
+    </div>
+    <div id="gur-body"></div>
+  </div>
+
   <!-- ══ ROW 6: PAYMENTS + ORDERS + ACCOUNTING ══ -->
   <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:14px">
     <div class="card">
@@ -2383,7 +2393,7 @@ const D={
   ],
   weeklyReviews:[],
   orders:[],
-  mustdo:[],vehicles:[],waTemplates:[],imBlocked:[],
+  mustdo:[],vehicles:[],waTemplates:[],imBlocked:[],gurbani:{ang:1,day:0,streak:0,lastDone:"",history:[]},
   accounts:[],
   costing:[],
   kb:[],
@@ -4321,7 +4331,70 @@ function addWR(){const text=prompt("Weekly review summary:");if(!text)return;con
 
 // ── DASHBOARD ──
 const motivations=["Success is not final, failure is not fatal. — Churchill","Jo kal karna hai woh aaj karo! 🚀","Build the business of your dreams, one day at a time.","Small daily improvements lead to stunning results.","Your consistency today is your success tomorrow.","Champions are made in the moments they want to quit.","A great business is built on great habits."];
+// ══ Daily Gurbani learning tracker (Sri Guru Granth Sahib Ji) ══
+const SGGS_TOTAL_ANGS = 1430;
+function _gur(){ if(!D.gurbani||typeof D.gurbani!=="object") D.gurbani={ang:1,day:0,streak:0,lastDone:"",history:[]}; return D.gurbani; }
+
+function renderGurbani(){
+  const g=_gur();
+  const body=document.getElementById("gur-body");
+  const streakEl=document.getElementById("gur-streak");
+  if(!body) return;
+  const ang=Math.min(g.ang||1, SGGS_TOTAL_ANGS);
+  const pct=((ang-1)/SGGS_TOTAL_ANGS*100);
+  const doneToday = g.lastDone===todayStr();
+  const link=`https://www.sikhitothemax.org/ang?ang=${ang}`;
+
+  if(streakEl) streakEl.textContent = (g.streak>0?`🔥 ${g.streak}-day streak`:"");
+
+  body.innerHTML=`
+    <div style="font-size:14px;color:#78350f;margin-bottom:4px">Today's reading — <b>Ang (page) ${ang}</b> of ${SGGS_TOTAL_ANGS}</div>
+    <div style="font-size:12px;color:#a16207;margin-bottom:10px">Read the next ~10 lines with meaning from where you left off, on the page below.</div>
+    <div style="background:#fff;border-radius:8px;height:9px;overflow:hidden;margin-bottom:4px;border:1px solid #fde68a">
+      <div style="height:100%;width:${pct.toFixed(1)}%;background:linear-gradient(90deg,#f59e0b,#d97706)"></div>
+    </div>
+    <div style="font-size:11px;color:#a16207;margin-bottom:12px">${pct.toFixed(1)}% complete · Ang ${ang}/${SGGS_TOTAL_ANGS} · Day ${g.day||0}</div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <a href="${link}" target="_blank" rel="noopener" class="btn btn-sm" style="background:#d97706;color:#fff;border-color:#d97706;text-decoration:none;font-size:13px">📖 Open Ang ${ang} (SikhiToTheMax)</a>
+      ${doneToday
+        ? `<span style="font-size:13px;color:#15803d;font-weight:700;padding:6px 10px">✅ Done today — Waheguru 🙏</span>`
+        : `<button class="btn btn-sm" style="border-color:#15803d;color:#15803d;font-size:13px" onclick="gurbaniDone()">✓ Mark today's lines done</button>`}
+      <button class="btn btn-sm" style="font-size:12px" onclick="gurbaniAdjust()">⚙️</button>
+    </div>`;
+}
+
+function gurbaniDone(){
+  const g=_gur();
+  const today=todayStr();
+  if(g.lastDone===today){ if(typeof crmToast==="function") crmToast("Already done today 🙏"); return; }
+  // streak: increment if last done was yesterday, else reset to 1
+  const y=new Date(); y.setDate(y.getDate()-1);
+  const yStr=`${y.getFullYear()}-${String(y.getMonth()+1).padStart(2,"0")}-${String(y.getDate()).padStart(2,"0")}`;
+  g.streak = (g.lastDone===yStr) ? (g.streak||0)+1 : 1;
+  g.lastDone=today;
+  g.day=(g.day||0)+1;
+  if(!Array.isArray(g.history)) g.history=[];
+  g.history.push({date:today, ang:g.ang});
+  // advance one ang (one page ≈ a couple of sessions of ~10 lines; user controls pace via ⚙️)
+  if(g.ang < SGGS_TOTAL_ANGS) g.ang=(g.ang||1)+1;
+  autoSave("gurbani");
+  renderGurbani();
+  if(typeof crmToast==="function") crmToast(`🙏 Waheguru — Ang ${g.ang} next. ${g.streak}-day streak!`);
+}
+
+function gurbaniAdjust(){
+  const g=_gur();
+  const cur=g.ang||1;
+  const v=prompt(`You're on Ang ${cur} of ${SGGS_TOTAL_ANGS}.\nEnter the Ang (page) number you want to set as your current position:`, cur);
+  if(v===null) return;
+  const n=parseInt(v,10);
+  if(isNaN(n)||n<1||n>SGGS_TOTAL_ANGS){ alert("Please enter a number between 1 and 1430."); return; }
+  g.ang=n; autoSave("gurbani"); renderGurbani();
+  if(typeof crmToast==="function") crmToast(`Set to Ang ${n}`);
+}
+
 function R_home(){
+  try{ if(typeof renderGurbani==='function') renderGurbani(); }catch(e){}
   const now = new Date();
   const h = now.getHours();
   const today = now.toISOString().slice(0,10);
@@ -6004,7 +6077,7 @@ function loadAllFromFirebase() {
     "deadstock","rd","compliance","itax","tds","gst","itc","future",
     "dayData","healthHabits","healthGoals","bdmGames","bdmSkills",
     "bdmDrills","selfGoals","books","weeklyReviews","quotes","uid",
-    "mustdo","accounts","costing","costCats","kb","stock","stockCats","stockLog","menuOrder","quotations","brandMilestones","crm_1","crm_2","crm_3","crm_4","crm_5","crm_6","crm_7","crm_8","crm_9","crm_10","crm_11","crm_12","crmMeta","imLeads_1","imLeads_2","imLeads_3","imLeads_4","imLeads_5","imLeads_6","imLeads_7","imLeads_8","imLeads_9","imLeads_10","imLeads_11","imLeads_12","imLeads_13","imLeads_14","imLeads_15","imLeads_16","imLeads_17","imLeads_18","imLeads_19","imLeads_20","imLeadsMeta","imLeads","imConfig","imInbox","ledgerCfg","ledgerVault","orders","purchase","production","prodStock","expenses","scanHistory","vehicles","waTemplates","imBlocked"
+    "mustdo","accounts","costing","costCats","kb","stock","stockCats","stockLog","menuOrder","quotations","brandMilestones","crm_1","crm_2","crm_3","crm_4","crm_5","crm_6","crm_7","crm_8","crm_9","crm_10","crm_11","crm_12","crmMeta","imLeads_1","imLeads_2","imLeads_3","imLeads_4","imLeads_5","imLeads_6","imLeads_7","imLeads_8","imLeads_9","imLeads_10","imLeads_11","imLeads_12","imLeads_13","imLeads_14","imLeads_15","imLeads_16","imLeads_17","imLeads_18","imLeads_19","imLeads_20","imLeadsMeta","imLeads","imConfig","imInbox","ledgerCfg","ledgerVault","orders","purchase","production","prodStock","expenses","scanHistory","vehicles","waTemplates","imBlocked","gurbani"
   ];
 
   let initialLoadDone = false;
@@ -9160,7 +9233,7 @@ function delCrmContact(id){
             : (c.source==="indiamart" && c.qid) ? String(c.qid) : null;
   if(qid){
     if(!Array.isArray(D.imBlocked)) D.imBlocked=[];
-    if(!D.imBlocked.includes(qid)){ D.imBlocked.push(qid); autoSave("imBlocked"); }
+    if(!D.imBlocked.includes(qid)){ D.imBlocked.push(qid); autoSave("imBlocked","gurbani"); }
     // also drop it from the archive so it isn't counted as "known" and re-surfaced
     if(Array.isArray(D.imLeads)){
       const before=D.imLeads.length;
