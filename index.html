@@ -541,6 +541,7 @@ document.addEventListener("touchstart", function(e){
     <div class="sb-lbl">Daily Life</div>
     <div class="sb-item" id="n-mustdo" onclick="go('mustdo')"><span class="sb-ico">✅</span>Must Do Daily<span class="sb-bdg g" id="b-mustdo">0</span></div>
     <div class="sb-item" id="n-tracker" onclick="go('tracker')"><span class="sb-ico">📅</span>Day Tracker</div>
+    <div class="sb-item" id="n-gurbani" onclick="go('gurbani')"><span class="sb-ico">🪯</span>Gurbani<span class="sb-bdg" id="b-gurbani"></span></div>
     <div class="sb-item" id="n-health" onclick="go('health')"><span class="sb-ico">❤️</span>Health & Fitness</div>
     <div class="sb-item" id="n-badminton" onclick="go('badminton')"><span class="sb-ico">🏸</span>Badminton</div>
     <div class="sb-item" id="n-self" onclick="go('self')"><span class="sb-ico">🧠</span>Self Improvement</div>
@@ -819,6 +820,18 @@ document.addEventListener("touchstart", function(e){
   <div class="card"><div class="card-hdr">Compliance Calendar</div>
   <div class="tbl-scroll"><table class="tbl"><thead><tr><th>Filing</th><th>Authority</th><th>Due</th><th>Penalty</th><th>Responsible</th><th>Status</th><th>Actions</th></tr></thead><tbody id="cpb"></tbody></table></div></div>
 </div>
+
+<!-- GURBANI MODULE -->
+<div class="mod" id="mod-gurbani">
+  <div class="ph"><div><div class="pt">GURBANI <span>DAILY LEARNING</span></div><div class="pt-sub">Sri Guru Granth Sahib Ji — one Ang at a time, with meanings</div></div></div>
+  <div id="gur-mod-stats" class="stat-row" style="margin-bottom:14px"></div>
+  <div id="gur-mod-main"></div>
+  <div class="card" style="margin-top:14px">
+    <div class="card-hdr">📿 Reading History</div>
+    <div id="gur-mod-history" style="padding:6px 2px"></div>
+  </div>
+</div>
+
 <!-- VEHICLES -->
 <div class="mod" id="mod-vehicles">
   <div class="ph"><div><div class="pt">RENEWALS <span>TRACKER</span></div><div class="pt-sub">Vehicles · Passport · Licence · Insurance · any document — auto-reminder 7 days before expiry</div></div><button class="btn btn-p" onclick="Mo.open('vehicles')">+ Add Item</button></div>
@@ -2286,7 +2299,8 @@ function go(id){
     health:R.health,badminton:R.badminton,self:R.self,quotes:R.quotes,
     mustdo:R.mustdo,accounts:R.accounts,costing:R.costing,kb:R.kb,orders:R.orders,purchase:R.purchase,production:R.production,
     expenses:R.expenses,scanner:R.scanner,stock:R.stock,utilities:initUtilities,quotation:R.quotation,brands:R.brands,crm:R.crm,ledger:R.ledger,
-    vehicles:R.vehicles};
+    vehicles:R.vehicles,
+    gurbani:R.gurbani};
   rmap[id]?.();
 }
 
@@ -2966,6 +2980,49 @@ const R={
       </td>
     </tr>`).join("");
     document.getElementById("rde").style.display=D.rd.length?"none":"block";
+  },
+  gurbani(){
+    const g=_gur();
+    const ang=Math.min(g.ang||1, SGGS_TOTAL_ANGS);
+    const pct=((ang-1)/SGGS_TOTAL_ANGS*100);
+    const doneToday=g.lastDone===todayStr();
+    const link=`https://www.sikhitothemax.org/ang?ang=${ang}`;
+
+    const st=document.getElementById("gur-mod-stats");
+    if(st) st.innerHTML=
+      sc("var(--gold)","Current Ang",ang+" / "+SGGS_TOTAL_ANGS)+
+      sc("var(--green)","Progress",pct.toFixed(1)+"%")+
+      sc("var(--orange)","🔥 Streak",(g.streak||0)+" days")+
+      sc("var(--ac)","Days Done",g.day||0);
+
+    const main=document.getElementById("gur-mod-main");
+    if(main) main.innerHTML=`
+      <div class="card" style="background:linear-gradient(135deg,#fffbeb,#fef3c7);border-color:#fcd34d">
+        <div style="font-size:15px;color:#78350f;margin-bottom:6px">Today's reading — <b>Ang (page) ${ang}</b></div>
+        <div style="font-size:13px;color:#a16207;margin-bottom:12px">Read the next ~10 lines with meaning from where you left off. Tap below to open the authentic text with translation.</div>
+        <div style="background:#fff;border-radius:8px;height:12px;overflow:hidden;margin-bottom:6px;border:1px solid #fde68a">
+          <div style="height:100%;width:${pct.toFixed(1)}%;background:linear-gradient(90deg,#f59e0b,#d97706)"></div>
+        </div>
+        <div style="font-size:12px;color:#a16207;margin-bottom:14px">${ang-1} of ${SGGS_TOTAL_ANGS} angs completed · ${(SGGS_TOTAL_ANGS-ang+1)} remaining</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <a href="${link}" target="_blank" rel="noopener" class="btn" style="background:#d97706;color:#fff;border-color:#d97706;text-decoration:none">📖 Open Ang ${ang} on SikhiToTheMax</a>
+          ${doneToday
+            ? `<span style="font-size:14px;color:#15803d;font-weight:700;padding:8px 12px">✅ Completed today — Waheguru 🙏</span>`
+            : `<button class="btn btn-p" onclick="gurbaniDone()">✓ Mark Today Done</button>`}
+          <button class="btn" onclick="gurbaniAdjust()">⚙️ Set Ang</button>
+        </div>
+      </div>`;
+
+    // history (most recent first)
+    const h=document.getElementById("gur-mod-history");
+    if(h){
+      const hist=(g.history||[]).slice().reverse();
+      h.innerHTML = hist.length
+        ? hist.slice(0,60).map(x=>`<div style="display:flex;justify-content:space-between;padding:7px 4px;border-bottom:1px solid var(--s2);font-size:13px"><span>📖 Ang ${x.ang}</span><span style="color:var(--muted)">${fd(x.date)}</span></div>`).join("")
+        : `<div style="color:var(--muted);font-size:13px;padding:8px">No readings logged yet. Complete today's Ang to begin your journey. 🙏</div>`;
+    }
+    const badge=document.getElementById("b-gurbani");
+    if(badge) badge.textContent = doneToday ? "✓" : "";
   },
   vehicles(){
     const items = D.vehicles||[];
@@ -4379,6 +4436,7 @@ function gurbaniDone(){
   if(g.ang < SGGS_TOTAL_ANGS) g.ang=(g.ang||1)+1;
   autoSave("gurbani");
   renderGurbani();
+  if(R.gurbani && document.querySelector('#mod-gurbani.on')) R.gurbani();
   if(typeof crmToast==="function") crmToast(`🙏 Waheguru — Ang ${g.ang} next. ${g.streak}-day streak!`);
 }
 
@@ -4389,7 +4447,7 @@ function gurbaniAdjust(){
   if(v===null) return;
   const n=parseInt(v,10);
   if(isNaN(n)||n<1||n>SGGS_TOTAL_ANGS){ alert("Please enter a number between 1 and 1430."); return; }
-  g.ang=n; autoSave("gurbani"); renderGurbani();
+  g.ang=n; autoSave("gurbani"); renderGurbani(); if(R.gurbani && document.querySelector('#mod-gurbani.on')) R.gurbani();
   if(typeof crmToast==="function") crmToast(`Set to Ang ${n}`);
 }
 
@@ -7161,6 +7219,7 @@ const MENU_META = {
   brands:{label:"Brand Launch Tracker",icon:"🏷️",group:"Growth"},
   mustdo:{label:"Must Do Daily",icon:"✅",group:"Daily Life"},
   tracker:{label:"Day Tracker",icon:"📅",group:"Daily Life"},
+  gurbani:{label:"Gurbani",icon:"🪯",group:"Daily Life"},
   health:{label:"Health & Fitness",icon:"❤️",group:"Daily Life"},
   badminton:{label:"Badminton",icon:"🏸",group:"Daily Life"},
   self:{label:"Self Improvement",icon:"🧠",group:"Daily Life"},
