@@ -2397,7 +2397,7 @@ const D={
   ],
   weeklyReviews:[],
   orders:[],
-  mustdo:[],vehicles:[],waTemplates:[],imBlocked:[],gurbani:{ang:1,day:0,streak:0,lastDone:"",history:[]},
+  mustdo:[],vehicles:[],waTemplates:[],imBlocked:[],gurbani:{ang:1,day:0,streak:0,lastDone:"",history:[],target:"2028-08-01"},
   accounts:[],
   costing:[],
   kb:[],
@@ -4398,57 +4398,106 @@ function addWR(){const text=prompt("Weekly review summary:");if(!text)return;con
 const motivations=["Success is not final, failure is not fatal. — Churchill","Jo kal karna hai woh aaj karo! 🚀","Build the business of your dreams, one day at a time.","Small daily improvements lead to stunning results.","Your consistency today is your success tomorrow.","Champions are made in the moments they want to quit.","A great business is built on great habits."];
 // ══ Daily Gurbani learning tracker (Sri Guru Granth Sahib Ji) ══
 const SGGS_TOTAL_ANGS = 1430;
-function _gur(){ if(!D.gurbani||typeof D.gurbani!=="object") D.gurbani={ang:1,day:0,streak:0,lastDone:"",history:[]}; return D.gurbani; }
+function _gur(){ if(!D.gurbani||typeof D.gurbani!=="object") D.gurbani={ang:1,day:0,streak:0,lastDone:"",history:[],target:"2028-08-01"}; if(!D.gurbani.target) D.gurbani.target="2028-08-01"; return D.gurbani; }
 
 function gurbaniProjection(){
   const g=_gur();
   const ang=Math.min(g.ang||1, SGGS_TOTAL_ANGS);
-  const done=ang-1;                     // angs completed
-  const remaining=SGGS_TOTAL_ANGS-done; // angs left
-  const hist=Array.isArray(g.history)?g.history:[];
-  // active reading days = unique dates
-  const dates=[...new Set(hist.map(h=>h.date))].sort();
-  const activeDays=dates.length;
-  // calendar span from first reading to today (min 1)
-  let spanDays=1;
-  if(dates.length){
-    const first=new Date(dates[0]+"T00:00:00");
-    const today=new Date(todayStr()+"T00:00:00");
-    spanDays=Math.max(1, Math.round((today-first)/86400000)+1);
-  }
-  // pace (angs per calendar day) — real-world rhythm
-  const paceCal = done>0 ? done/spanDays : 0;
+  const done=ang-1;
+  const remaining=SGGS_TOTAL_ANGS-done;
+  const target=g.target||"2028-08-01";
+  const today=new Date(todayStr()+"T00:00:00");
+  const tgt=new Date(target+"T00:00:00");
   const fmt=(d)=> d.toLocaleDateString("en-GB",{day:"2-digit",month:"short",year:"numeric"});
   const addDays=(n)=>{ const d=new Date(todayStr()+"T00:00:00"); d.setDate(d.getDate()+Math.ceil(n)); return d; };
-  const yrs=(n)=> (n/365).toFixed(1);
-  // projected finish at current pace
-  let projHtml="";
-  if(done>=1 && activeDays>=3 && paceCal>0){
-    const daysLeft=remaining/paceCal;
-    const eta=addDays(daysLeft);
-    projHtml=`<div style="font-size:15px;color:#1e3a8a;font-weight:700;margin-bottom:2px">🎯 Projected completion: ${fmt(eta)}</div>
-      <div style="font-size:12px;color:#3b82f6;margin-bottom:10px">At your pace of ${paceCal.toFixed(2)} angs/day · ~${Math.ceil(daysLeft)} days (${yrs(daysLeft)} yrs) to go</div>`;
-  } else {
-    projHtml=`<div style="font-size:13px;color:#3b82f6;margin-bottom:10px">📊 Keep reading a few more days and your personal projected completion date will appear here.</div>`;
+  const yrs=(n)=>(n/365).toFixed(1);
+
+  if(remaining<=0){
+    return `<div style="background:linear-gradient(135deg,#dcfce7,#bbf7d0);border:1px solid #86efac;border-radius:12px;padding:16px;margin-top:14px;text-align:center">
+      <div style="font-size:16px;font-weight:800;color:#15803d">🎉 Sampooran! You have completed the entire Sri Guru Granth Sahib Ji. Waheguru 🙏</div></div>`;
   }
-  // reference targets at 1/2/3 per day
-  const ref=(perDay)=>fmt(addDays(remaining/perDay));
+
+  // days left to target (min 1)
+  const daysLeft=Math.max(1, Math.round((tgt-today)/86400000));
+  const reqPace=remaining/daysLeft;               // angs/day needed from today
+  const reqLines=Math.round(reqPace*19);          // ~19 lines per ang
+
+  // On-track check: where SHOULD you be today vs where you are.
+  // Ideal pace from the original start (first history date, or start-of-plan).
+  const hist=Array.isArray(g.history)?g.history:[];
+  const dates=[...new Set(hist.map(h=>h.date))].sort();
+  const startDate = dates.length ? new Date(dates[0]+"T00:00:00") : new Date(target); // fallback
+  // plan start assumed 01/08/2026 if earlier than target span; use first reading date if present
+  const planStart = dates.length ? startDate : today;
+  const totalPlanDays = Math.max(1, Math.round((tgt-planStart)/86400000));
+  const idealPace = SGGS_TOTAL_ANGS/totalPlanDays;           // angs/day over whole plan
+  const daysElapsed = Math.max(0, Math.round((today-planStart)/86400000));
+  const shouldHaveDone = Math.min(SGGS_TOTAL_ANGS, Math.floor(idealPace*daysElapsed));
+  let diff = done - shouldHaveDone;   // + = ahead, - = behind
+  if(Math.abs(diff) <= 1) diff = 0;    // within 1 ang = on schedule (avoid noise)
+
+  // actual recent pace (calendar based)
+  const activeDays=dates.length;
+  let spanDays=1;
+  if(dates.length){ spanDays=Math.max(1, Math.round((today-planStart)/86400000)+1); }
+  const paceCal = done>0 ? done/spanDays : 0;
+
+  // status colour + message
+  let statusColor, statusBg, statusBorder, statusMsg, statusIcon;
+  if(diff >= 0){
+    statusColor="#15803d"; statusBg="linear-gradient(135deg,#dcfce7,#bbf7d0)"; statusBorder="#86efac";
+    statusIcon="✅"; statusMsg = diff===0 ? "Right on schedule — keep it up!" : `Ahead by ${diff} ang${diff===1?"":"s"} — Shabaash! 🙏`;
+  } else {
+    statusColor="#b45309"; statusBg="linear-gradient(135deg,#fef3c7,#fde68a)"; statusBorder="#fcd34d";
+    statusIcon="⚡"; statusMsg = `Behind by ${Math.abs(diff)} ang${Math.abs(diff)===1?"":"s"} — a little push to catch up.`;
+  }
+
+  // catch-up: to be back on ideal line within 14 days
+  let catchupHtml="";
+  if(diff < 0){
+    const catchDays=14;
+    const catchPace=(remaining - idealPace*(daysLeft-catchDays))/catchDays; // rough: front-load
+    const cp = Math.max(reqPace, (Math.abs(diff)/catchDays)+idealPace);
+    catchupHtml=`<div style="font-size:12px;color:#92400e;margin-top:6px">💪 To catch up in 2 weeks: read about <b>${Math.ceil(cp)} angs/day</b> until back on track, then ease back to ${reqPace.toFixed(1)}/day.</div>`;
+  }
+
   return `
-    <div style="background:linear-gradient(135deg,#eff6ff,#dbeafe);border:1px solid #bfdbfe;border-radius:12px;padding:14px 16px;margin-top:14px">
-      <div style="font-size:12px;font-weight:800;color:#1e40af;letter-spacing:.5px;text-transform:uppercase;margin-bottom:8px">📈 Completion Forecast</div>
-      ${projHtml}
-      <div style="font-size:12px;color:#1e3a8a;font-weight:700;margin-bottom:4px">If you keep a steady pace:</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;font-size:12px">
-        <div style="background:#fff;border-radius:8px;padding:8px;text-align:center;border:1px solid #dbeafe">
-          <div style="color:#64748b">1 ang/day</div><div style="font-weight:700;color:#1e3a8a">${ref(1)}</div><div style="color:#94a3b8;font-size:11px">~${yrs(remaining)} yrs</div></div>
-        <div style="background:#fff;border-radius:8px;padding:8px;text-align:center;border:1px solid #dbeafe">
-          <div style="color:#64748b">2 angs/day</div><div style="font-weight:700;color:#1e3a8a">${ref(2)}</div><div style="color:#94a3b8;font-size:11px">~${yrs(remaining/2)} yrs</div></div>
-        <div style="background:#fff;border-radius:8px;padding:8px;text-align:center;border:1px solid #dbeafe">
-          <div style="color:#64748b">3 angs/day</div><div style="font-weight:700;color:#1e3a8a">${ref(3)}</div><div style="color:#94a3b8;font-size:11px">~${yrs(remaining/3)} yrs</div></div>
+    <div style="background:${statusBg};border:1px solid ${statusBorder};border-radius:12px;padding:14px 16px;margin-top:14px">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+        <span style="font-size:18px">${statusIcon}</span>
+        <div style="font-size:14px;font-weight:800;color:${statusColor}">${statusMsg}</div>
       </div>
-      <div style="font-size:11px;color:#64748b;margin-top:8px">${done} of ${SGGS_TOTAL_ANGS} angs read · ${remaining} remaining · ${activeDays} reading day${activeDays===1?"":"s"} so far</div>
+      <div style="background:#fff;border-radius:8px;padding:10px 12px;margin-bottom:8px">
+        <div style="font-size:12px;color:#64748b;margin-bottom:2px">🎯 TARGET: Complete by <b style="color:#1e3a8a">${fmt(tgt)}</b></div>
+        <div style="font-size:15px;font-weight:800;color:#1e3a8a">Read ${reqPace.toFixed(1)} angs/day <span style="font-size:12px;font-weight:600;color:#64748b">(~${reqLines} lines/day)</span></div>
+        <div style="font-size:11px;color:#94a3b8;margin-top:2px">${remaining} angs in ${daysLeft} days to stay on target</div>
+        ${catchupHtml}
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:12px">
+        <div style="background:#fff;border-radius:8px;padding:8px;text-align:center">
+          <div style="color:#64748b">Where you should be</div><div style="font-weight:700;color:#1e3a8a">Ang ${shouldHaveDone+1}</div></div>
+        <div style="background:#fff;border-radius:8px;padding:8px;text-align:center">
+          <div style="color:#64748b">Where you are</div><div style="font-weight:700;color:${statusColor}">Ang ${ang}</div></div>
+      </div>
+      <div style="font-size:11px;color:#64748b;margin-top:8px">${done} of ${SGGS_TOTAL_ANGS} read · ${remaining} left · your pace so far: ${paceCal.toFixed(2)}/day${paceCal>0?` (finish ~${fmt(addDays(remaining/paceCal))})`:""}</div>
+      <button class="btn btn-sm" style="font-size:11px;margin-top:8px" onclick="gurbaniSetTarget()">🎯 Change target date</button>
     </div>`;
 }
+
+function gurbaniSetTarget(){
+  const g=_gur();
+  const cur=g.target||"2028-08-01";
+  const v=prompt("Set your target completion date (YYYY-MM-DD):", cur);
+  if(v===null) return;
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(v)){ alert("Please use format YYYY-MM-DD, e.g. 2028-08-01"); return; }
+  const d=new Date(v+"T00:00:00");
+  if(isNaN(d.getTime())){ alert("Invalid date."); return; }
+  if(d <= new Date(todayStr()+"T00:00:00")){ alert("Target must be in the future."); return; }
+  g.target=v; autoSave("gurbani");
+  if(R.gurbani && document.querySelector('#mod-gurbani.on')) R.gurbani();
+  if(typeof crmToast==="function") crmToast("🎯 Target updated");
+}
+
 
 function renderGurbani(){
   const g=_gur();
