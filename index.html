@@ -637,16 +637,6 @@ document.addEventListener("touchstart", function(e){
     </div>
   </div>
 
-  <!-- ══ GURBANI DAILY LEARNING ══ -->
-  <div id="gurbani-card" style="background:linear-gradient(135deg,#fffbeb,#fef3c7);border:1px solid #fcd34d;border-radius:14px;padding:16px 18px;margin-bottom:14px">
-    <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
-      <span style="font-size:20px">🪯</span>
-      <div style="font-size:13px;font-weight:800;color:#92400e;letter-spacing:.5px">DAILY GURBANI — SRI GURU GRANTH SAHIB JI</div>
-      <span id="gur-streak" style="margin-left:auto;font-size:12px;font-weight:700;color:#b45309"></span>
-    </div>
-    <div id="gur-body"></div>
-  </div>
-
   <!-- ══ ROW 6: PAYMENTS + ORDERS + ACCOUNTING ══ -->
   <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:14px">
     <div class="card">
@@ -4470,7 +4460,6 @@ function gurbaniAdjust(){
 }
 
 function R_home(){
-  try{ if(typeof renderGurbani==='function') renderGurbani(); }catch(e){}
   const now = new Date();
   const h = now.getHours();
   const today = now.toISOString().slice(0,10);
