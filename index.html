@@ -6200,6 +6200,7 @@ function loadAllFromFirebase() {
         }
       }
       else if (col === "dayData") { D.dayData = parsed || {}; }
+      else if (col === "gurbani") { if(parsed && typeof parsed==="object") D.gurbani = parsed; }
       else if (col === "prodStock") { D.prodStock = parsed || []; }
       else if (Array.isArray(D[col])) { D[col] = parsed || []; }
     } catch(e) { console.warn("Apply error:", col, e); }
