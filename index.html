@@ -2758,6 +2758,24 @@ function renewCatChange(){
 }
 function checkVehicleReminders(){
   if(!Array.isArray(D.vehicles) || typeof D.dayData!=="object") return;
+
+  // Build the set of CURRENTLY-VALID vehicle date tags. Any vehTag task in dayData
+  // that isn't in this set is stale (the date was updated/removed after renewal) and
+  // should be cleared so old EXPIRED reminders don't linger.
+  const validTags=new Set();
+  D.vehicles.forEach(it=>{
+    const cat=(typeof RENEW_CATS!=="undefined"&&RENEW_CATS[it.category])||{extra:[]};
+    const keys=["expiry","insurance", ...((cat.extra||[]).map(f=>f.k))];
+    keys.forEach(k=>{ if(it[k]) validTags.add(`veh:${it.id}:${k}:${it[k]}`); });
+  });
+  let removedStale=0;
+  Object.keys(D.dayData).forEach(ds=>{
+    const day=D.dayData[ds]; if(!day||!Array.isArray(day.tasks)) return;
+    const before=day.tasks.length;
+    day.tasks=day.tasks.filter(t=>!(t.vehTag && !validTags.has(t.vehTag)));
+    removedStale+=before-day.tasks.length;
+  });
+  if(removedStale){ autoSave("dayData"); }
   const toDs=d=>{ const x=new Date(d); const y=x.getFullYear(), m=String(x.getMonth()+1).padStart(2,"0"), dd=String(x.getDate()).padStart(2,"0"); return `${y}-${m}-${dd}`; };
   const today=new Date(); today.setHours(0,0,0,0);
   const todayDs=toDs(today);
