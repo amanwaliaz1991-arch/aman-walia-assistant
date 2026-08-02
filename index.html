@@ -4479,7 +4479,9 @@ function gurbaniProjection(){
         <div style="background:#fff;border-radius:8px;padding:8px;text-align:center">
           <div style="color:#64748b">Where you are</div><div style="font-weight:700;color:${statusColor}">Ang ${ang}</div></div>
       </div>
-      <div style="font-size:11px;color:#64748b;margin-top:8px">${done} of ${SGGS_TOTAL_ANGS} read · ${remaining} left · your pace so far: ${paceCal.toFixed(2)}/day${paceCal>0?` (finish ~${fmt(addDays(remaining/paceCal))})`:""}</div>
+      <div style="font-size:11px;color:#64748b;margin-top:8px">${done} of ${SGGS_TOTAL_ANGS} read · ${remaining} left${paceCal>0?` · your current pace: ${paceCal.toFixed(1)} ang/day`:""}</div>
+      ${paceCal>0 && paceCal < reqPace*0.85 ? `<div style="font-size:11px;color:#b45309;margin-top:4px">⚠️ At your current ${paceCal.toFixed(1)}/day you'd finish ${fmt(addDays(remaining/paceCal))} — pick up to ${reqPace.toFixed(1)}/day to hit your target.</div>`
+        : paceCal >= reqPace*0.85 ? `<div style="font-size:11px;color:#15803d;margin-top:4px">👍 Your pace is on track for the target.</div>` : ""}
       <button class="btn btn-sm" style="font-size:11px;margin-top:8px" onclick="gurbaniSetTarget()">🎯 Change target date</button>
     </div>`;
 }
