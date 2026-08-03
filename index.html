@@ -10190,5 +10190,35 @@ setTimeout(fetchDailyQuote, 2000); // fetch quote after app loads
   </div>
 </div>
 
+
+<script>
+// ── Service Worker: auto-update, offline support ──
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("/sw.js").then((reg) => {
+      // Check for a new version every time the app opens
+      reg.update();
+      // If a new SW is waiting, activate it and reload once for fresh code
+      function promote(w){ if(w) w.postMessage("SKIP_WAITING"); }
+      if (reg.waiting) promote(reg.waiting);
+      reg.addEventListener("updatefound", () => {
+        const nw = reg.installing;
+        if (nw) nw.addEventListener("statechange", () => {
+          if (nw.state === "installed" && navigator.serviceWorker.controller) {
+            promote(nw); // new version ready → activate it
+          }
+        });
+      });
+    }).catch((e)=>console.warn("SW register failed", e));
+
+    // When the controller changes (new SW took over), reload once to load fresh code
+    let reloaded = false;
+    navigator.serviceWorker.addEventListener("controllerchange", () => {
+      if (reloaded) return; reloaded = true;
+      location.reload();
+    });
+  });
+}
+</script>
 </body>
 </html>
