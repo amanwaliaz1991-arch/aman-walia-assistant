@@ -4676,12 +4676,48 @@ function gurbaniDone(){
 function gurbaniAdjust(){
   const g=_gur();
   const cur=g.ang||1;
-  const v=prompt(`You're on Ang ${cur} of ${SGGS_TOTAL_ANGS}.\nEnter the Ang (page) number you want to set as your current position:`, cur);
+  const v=prompt(`You're on Ang ${cur} of ${SGGS_TOTAL_ANGS}.\nEnter the Ang (page) number you want to set as your current position.\n\n(Moving forward will log the angs in between as read.)`, cur);
   if(v===null) return;
   const n=parseInt(v,10);
   if(isNaN(n)||n<1||n>SGGS_TOTAL_ANGS){ alert("Please enter a number between 1 and 1430."); return; }
-  g.ang=n; autoSave("gurbani"); renderGurbani(); if(R.gurbani && document.querySelector('#mod-gurbani.on')) R.gurbani();
-  if(typeof crmToast==="function") crmToast(`Set to Ang ${n}`);
+  if(!Array.isArray(g.history)) g.history=[];
+
+  // If moving FORWARD, the angs between the current position and the new one
+  // were read — log any not already in history, under today's date.
+  if(n > cur){
+    const logged = new Set(g.history.map(h=>h.ang));
+    const today = todayStr();
+    let added = 0;
+    // angs from cur up to n-1 are the ones just completed (n is the NEXT to read)
+    for(let a = cur; a < n; a++){
+      if(!logged.has(a)){ g.history.push({date: today, ang: a}); added++; }
+    }
+    // sort history by ang for a clean timeline
+    g.history.sort((x,y)=> (x.ang||0)-(y.ang||0));
+    // update streak/day/lastDone if we actually logged reading today
+    if(added>0){
+      if(g.lastDone !== today){
+        const y=new Date(); y.setDate(y.getDate()-1);
+        const yStr=`${y.getFullYear()}-${String(y.getMonth()+1).padStart(2,"0")}-${String(y.getDate()).padStart(2,"0")}`;
+        g.streak = (g.lastDone===yStr) ? (g.streak||0)+1 : 1;
+        g.lastDone = today;
+      }
+      g.day = (g.day||0) + added;
+    }
+    g.ang = n;
+    autoSave("gurbani");
+    if(typeof renderGurbani==="function") renderGurbani();
+    if(R.gurbani && document.querySelector('#mod-gurbani.on')) R.gurbani();
+    if(typeof crmToast==="function") crmToast(added>0?`📖 Logged ${added} ang${added>1?"s":""} as read · now on Ang ${n}`:`Set to Ang ${n}`);
+    return;
+  }
+
+  // Moving BACKWARD (or same) — just correct the position, don't touch history.
+  g.ang = n;
+  autoSave("gurbani");
+  if(typeof renderGurbani==="function") renderGurbani();
+  if(R.gurbani && document.querySelector('#mod-gurbani.on')) R.gurbani();
+  if(typeof crmToast==="function") crmToast(`Position set to Ang ${n}`);
 }
 
 function R_home(){
