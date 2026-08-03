@@ -2446,7 +2446,7 @@ const D={
   stockLog:[],
   menuOrder:[],
   quotations:[],
-  brandMilestones:[],
+  brandMilestones:[],brandTargets:{},
   crm:[],
   crmMeta:{},
   imLeadsMeta:{},
@@ -3748,34 +3748,58 @@ const R={
   },
   brands(){
     const ms = D.brandMilestones||[];
+    const targets = D.brandTargets||{};
     const brands = ["AURA","SixHo","Punjab"];
     const bMeta = {
-      "AURA":{icon:"✨",color:"#C8B89A",desc:"Premium cricket brand — TM filed Jun 2026"},
-      "SixHo":{icon:"🎾",color:"#16a34a",desc:"Tennis ball brand — TM filed Jun 2026"},
+      "AURA":{icon:"✨",color:"#C8B89A",desc:"Premium English willow — TM filed Jun 2026"},
+      "SixHo":{icon:"🎾",color:"#16a34a",desc:"Tennis ball specialist — TM filed Jun 2026"},
       "Punjab":{icon:"🦁",color:"#ea580c",desc:"Punjab Cricket — @punjabkri Instagram"}
     };
-    const doneCount = ms.filter(m=>m.status==="done").length;
+    const stCount=(s)=>ms.filter(m=>m.status===s).length;
+    const subDone=(m)=>(m.subtasks||[]).filter(s=>s.done).length;
+    const subTot=(m)=>(m.subtasks||[]).length;
     document.getElementById("br-stats").innerHTML =
       sc("var(--ac)","Total Milestones",ms.length) +
-      sc("var(--green)","Completed",doneCount) +
-      sc("var(--orange)","In Progress",ms.filter(m=>m.status==="progress").length) +
-      sc("var(--red)","Pending",ms.filter(m=>m.status==="pending").length);
+      sc("var(--green)","Completed",stCount("done")) +
+      sc("var(--orange)","In Progress",stCount("progress")) +
+      sc("var(--red)","Pending",stCount("pending"));
+
     const container = document.getElementById("br-brands");
     container.innerHTML = brands.map(b=>{
       const bms = ms.filter(m=>m.brand===b).sort((a,b2)=>(a.due||"9999").localeCompare(b2.due||"9999"));
-      const done = bms.filter(m=>m.status==="done").length;
-      const pct = bms.length ? Math.round(done/bms.length*100) : 0;
+      // progress counts subtasks too: a milestone weight = done fraction
+      let prog=0;
+      bms.forEach(m=>{
+        if(m.status==="done") prog+=1;
+        else if(subTot(m)>0) prog+=subDone(m)/subTot(m);
+        else if(m.status==="progress") prog+=0.5;
+      });
+      const pct = bms.length ? Math.round(prog/bms.length*100) : 0;
       const meta = bMeta[b];
+      const tgt = targets[b];
+      // countdown to target
+      let tgtHtml="";
+      if(tgt){
+        const days=Math.floor((new Date(tgt+"T00:00:00")-new Date(todayStr()+"T00:00:00"))/86400000);
+        const dTxt = days<0?`<span style="color:var(--red)">launched / ${Math.abs(days)}d ago</span>`
+          : days===0?`<span style="color:var(--red)">🚀 LAUNCH TODAY</span>`
+          : `<b style="color:${meta.color}">${days} days</b> to launch`;
+        tgtHtml=`<div style="font-size:12px;color:var(--muted);margin-top:2px">🎯 Target: ${fd(tgt)} · ${dTxt}</div>`;
+      } else {
+        tgtHtml=`<div style="font-size:12px;color:var(--dim);margin-top:2px;cursor:pointer" onclick="setBrandTarget('${b}')">🎯 <span style="color:var(--ac)">Set launch target →</span></div>`;
+      }
+
       return `<div class="card" style="margin-bottom:16px">
         <div style="padding:13px 16px;border-bottom:2px solid var(--b1);display:flex;align-items:center;gap:12px;flex-wrap:wrap">
           <span style="font-size:26px">${meta.icon}</span>
           <div style="flex:1;min-width:150px">
-            <div style="font-size:16px;font-weight:800;letter-spacing:.5px">${b}</div>
+            <div style="font-size:16px;font-weight:800;letter-spacing:.5px;cursor:pointer" onclick="setBrandTarget('${b}')">${b}</div>
             <div style="font-size:12px;color:var(--muted)">${meta.desc}</div>
+            ${tgtHtml}
           </div>
           <div style="min-width:130px;flex:1;max-width:220px">
             <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--muted);margin-bottom:3px">
-              <span>${done}/${bms.length} done</span><span>${pct}%</span></div>
+              <span>${Math.round(prog*10)/10}/${bms.length} done</span><span>${pct}%</span></div>
             <div style="background:var(--s2);border-radius:8px;height:8px;overflow:hidden">
               <div style="width:${pct}%;height:100%;background:${meta.color};border-radius:8px"></div></div>
           </div>
@@ -3785,15 +3809,28 @@ const R={
           const days = m.due ? Math.floor((new Date(m.due)-new Date())/86400000) : null;
           const stIcon = m.status==="done"?"✅":m.status==="progress"?"🔄":"⬜";
           const dueTxt = m.due ? (m.status==="done" ? fd(m.due) : (days<0?`<span style="color:var(--red)">${Math.abs(days)}d overdue</span>`:days===0?'<span style="color:var(--red)">Today</span>':`${days}d left`)) : "";
-          return `<div style="padding:10px 16px;border-bottom:1px solid var(--b1);display:flex;align-items:center;gap:10px">
-            <span style="font-size:17px;cursor:pointer" onclick="cycleBrStatus(${m.id})" title="Tap to change status">${stIcon}</span>
-            <div style="flex:1;min-width:0">
-              <div style="font-size:13.5px;font-weight:600;${m.status==="done"?"text-decoration:line-through;color:var(--dim)":""}">${m.title}</div>
-              ${m.notes?`<div style="font-size:12px;color:var(--muted)">${m.notes}</div>`:""}
+          const sd=subDone(m), stt=subTot(m);
+          const subBar = stt>0 ? `<div style="font-size:11px;color:var(--muted);margin-top:3px">☑ ${sd}/${stt} steps</div>` : "";
+          const subList = stt>0 ? `<div style="margin:6px 0 2px 27px">${(m.subtasks||[]).map((s,si)=>`
+              <div style="display:flex;align-items:center;gap:8px;padding:3px 0;font-size:12.5px;cursor:pointer" onclick="toggleBrSub(${m.id},${si})">
+                <span style="font-size:15px">${s.done?"☑️":"⬜"}</span>
+                <span style="${s.done?"text-decoration:line-through;color:var(--dim)":""}">${s.text}</span>
+              </div>`).join("")}
+              <div style="font-size:11px;color:var(--ac);cursor:pointer;padding:3px 0 0 23px" onclick="addBrSub(${m.id})">+ add step</div>
+            </div>` : `<div style="font-size:11px;color:var(--ac);cursor:pointer;margin:2px 0 4px 27px" onclick="addBrSub(${m.id})">+ add steps/checklist</div>`;
+          return `<div style="padding:10px 16px;border-bottom:1px solid var(--b1)">
+            <div style="display:flex;align-items:center;gap:10px">
+              <span style="font-size:17px;cursor:pointer" onclick="cycleBrStatus(${m.id})" title="Tap to change status">${stIcon}</span>
+              <div style="flex:1;min-width:0">
+                <div style="font-size:13.5px;font-weight:600;${m.status==="done"?"text-decoration:line-through;color:var(--dim)":""}">${m.title}</div>
+                ${m.notes?`<div style="font-size:12px;color:var(--muted)">${m.notes}</div>`:""}
+                ${subBar}
+              </div>
+              <span style="font-size:12px;color:var(--muted);white-space:nowrap">${dueTxt}</span>
+              <button class="btn-e" onclick="openBrMilestone(${m.id})">✏️</button>
+              <button class="btn-d" onclick="delBrMilestone(${m.id})">🗑</button>
             </div>
-            <span style="font-size:12px;color:var(--muted);white-space:nowrap">${dueTxt}</span>
-            <button class="btn-e" onclick="openBrMilestone(${m.id})">✏️</button>
-            <button class="btn-d" onclick="delBrMilestone(${m.id})">🗑</button>
+            ${subList}
           </div>`;
         }).join("") : `<div style="padding:14px;text-align:center;font-size:13px;color:var(--muted)">No milestones. <span style="color:var(--ac);cursor:pointer;font-weight:600" onclick="openBrMilestone(null,'${b}')">+ Add first →</span></div>`}
       </div>`;
@@ -6268,7 +6305,7 @@ function loadAllFromFirebase() {
     "deadstock","rd","compliance","itax","tds","gst","itc","future",
     "dayData","healthHabits","healthGoals","bdmGames","bdmSkills",
     "bdmDrills","selfGoals","books","weeklyReviews","quotes","uid",
-    "mustdo","accounts","costing","costCats","kb","stock","stockCats","stockLog","menuOrder","quotations","brandMilestones","crm_1","crm_2","crm_3","crm_4","crm_5","crm_6","crm_7","crm_8","crm_9","crm_10","crm_11","crm_12","crmMeta","imLeads_1","imLeads_2","imLeads_3","imLeads_4","imLeads_5","imLeads_6","imLeads_7","imLeads_8","imLeads_9","imLeads_10","imLeads_11","imLeads_12","imLeads_13","imLeads_14","imLeads_15","imLeads_16","imLeads_17","imLeads_18","imLeads_19","imLeads_20","imLeadsMeta","imLeads","imConfig","imInbox","ledgerCfg","ledgerVault","orders","purchase","production","prodStock","expenses","scanHistory","vehicles","waTemplates","imBlocked","gurbani"
+    "mustdo","accounts","costing","costCats","kb","stock","stockCats","stockLog","menuOrder","quotations","brandMilestones","brandTargets","crm_1","crm_2","crm_3","crm_4","crm_5","crm_6","crm_7","crm_8","crm_9","crm_10","crm_11","crm_12","crmMeta","imLeads_1","imLeads_2","imLeads_3","imLeads_4","imLeads_5","imLeads_6","imLeads_7","imLeads_8","imLeads_9","imLeads_10","imLeads_11","imLeads_12","imLeads_13","imLeads_14","imLeads_15","imLeads_16","imLeads_17","imLeads_18","imLeads_19","imLeads_20","imLeadsMeta","imLeads","imConfig","imInbox","ledgerCfg","ledgerVault","orders","purchase","production","prodStock","expenses","scanHistory","vehicles","waTemplates","imBlocked","gurbani"
   ];
 
   let initialLoadDone = false;
@@ -7785,6 +7822,35 @@ function generateQuotationPDF(id){
 // BRAND LAUNCH TRACKER
 // ══════════════════════════════════════════
 let brEditId = null;
+
+function setBrandTarget(brand){
+  if(!D.brandTargets) D.brandTargets={};
+  const cur=D.brandTargets[brand]||"";
+  const v=prompt(`Set launch target date for ${brand} (YYYY-MM-DD):`, cur);
+  if(v===null) return;
+  if(v==="" ){ delete D.brandTargets[brand]; autoSave("brandTargets"); R.brands(); return; }
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(v)){ alert("Use format YYYY-MM-DD, e.g. 2026-12-01"); return; }
+  D.brandTargets[brand]=v; autoSave("brandTargets");
+  if(R.brands && document.querySelector("#mod-brands.on")) R.brands();
+  if(typeof crmToast==="function") crmToast(`🎯 ${brand} target set: ${fd(v)}`);
+}
+function toggleBrSub(mid, si){
+  const m=(D.brandMilestones||[]).find(x=>x.id===mid); if(!m||!m.subtasks||!m.subtasks[si]) return;
+  m.subtasks[si].done=!m.subtasks[si].done;
+  // auto-advance milestone status based on subtasks
+  const done=m.subtasks.filter(s=>s.done).length, tot=m.subtasks.length;
+  if(tot>0){ m.status = done===tot ? "done" : done>0 ? "progress" : "pending"; }
+  autoSave("brandMilestones");
+  if(R.brands && document.querySelector("#mod-brands.on")) R.brands();
+}
+function addBrSub(mid){
+  const m=(D.brandMilestones||[]).find(x=>x.id===mid); if(!m) return;
+  const t=prompt("New step / checklist item:"); if(!t) return;
+  if(!m.subtasks) m.subtasks=[];
+  m.subtasks.push({text:t.trim(), done:false});
+  autoSave("brandMilestones");
+  if(R.brands && document.querySelector("#mod-brands.on")) R.brands();
+}
 
 function openBrMilestone(id, presetBrand){
   brEditId = id || null;
