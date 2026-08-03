@@ -378,6 +378,53 @@ body.lg-dense table.lg-grid td button.btn-d{padding:2px 7px!important;font-size:
 document.addEventListener("touchstart", function(e){
   const t=e.touches&&e.touches[0]; if(!t) return;
   _uniTouchXY={x:t.clientX,y:t.clientY}
+
+/* ── Brand Launch Tracker (premium) ── */
+.blt-hero{background:linear-gradient(135deg,#1a2332,#0f1620);border-radius:18px;padding:22px 24px;color:#fff;position:relative;overflow:hidden;margin-bottom:20px}
+.blt-hero::after{content:"";position:absolute;right:-40px;top:-40px;width:180px;height:180px;background:radial-gradient(circle,rgba(217,119,6,.18),transparent 70%);pointer-events:none}
+.blt-hlabel{font-size:11px;letter-spacing:3px;text-transform:uppercase;color:#d97706;font-weight:700;margin-bottom:6px}
+.blt-htitle{font-size:24px;font-weight:800;letter-spacing:-.5px;line-height:1.1}
+.blt-hsub{font-size:13px;color:#9aa5b4;margin-top:4px}
+.blt-hstats{display:flex;gap:24px;margin-top:18px;position:relative;z-index:1;flex-wrap:wrap}
+.blt-hstat-n{font-size:23px;font-weight:800;font-variant-numeric:tabular-nums}
+.blt-hstat-l{font-size:10px;letter-spacing:1px;text-transform:uppercase;color:#9aa5b4;margin-top:1px}
+.blt-brand{background:var(--s1);border-radius:16px;margin-bottom:18px;overflow:hidden;border:1px solid var(--b1);box-shadow:0 1px 3px rgba(20,35,50,.04)}
+.blt-top{padding:18px 20px;display:flex;align-items:center;gap:14px;position:relative}
+.blt-acc{position:absolute;left:0;top:0;bottom:0;width:5px}
+.blt-bicon{width:46px;height:46px;border-radius:12px;display:grid;place-items:center;font-size:24px;flex-shrink:0}
+.blt-bname{font-size:19px;font-weight:800;letter-spacing:-.3px;cursor:pointer}
+.blt-bdesc{font-size:12px;color:var(--muted);margin-top:1px}
+.blt-bright{margin-left:auto;text-align:right}
+.blt-cd{font-size:22px;font-weight:800;font-variant-numeric:tabular-nums;line-height:1}
+.blt-cdl{font-size:10px;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin-top:2px}
+.blt-settgt{font-size:12px;color:var(--ac);cursor:pointer;font-weight:600;white-space:nowrap}
+.blt-ringwrap{display:flex;align-items:center;gap:16px;padding:0 20px 14px}
+.blt-ring{position:relative;width:52px;height:52px;flex-shrink:0}
+.blt-ring svg{transform:rotate(-90deg)}
+.blt-ringtxt{position:absolute;inset:0;display:grid;place-items:center;font-size:12.5px;font-weight:800}
+.blt-phline{flex:1;min-width:0}
+.blt-phbar{display:flex;gap:3px;height:6px;margin-bottom:6px}
+.blt-phseg{flex:1;border-radius:3px;background:var(--b1)}
+.blt-phlbl{font-size:11px;color:var(--muted)}
+.blt-ms{border-top:1px solid var(--b1)}
+.blt-mshead{padding:12px 20px;display:flex;align-items:center;gap:12px}
+.blt-check{width:22px;height:22px;border-radius:7px;border:2px solid var(--b2);flex-shrink:0;display:grid;place-items:center;font-size:13px;cursor:pointer;transition:.15s;background:var(--s1)}
+.blt-check.done{background:var(--green);border-color:var(--green);color:#fff}
+.blt-check.prog{border-color:var(--orange);color:var(--orange)}
+.blt-mstitle{flex:1;font-size:14px;font-weight:600;min-width:0}
+.blt-mstitle.done{text-decoration:line-through;color:var(--dim)}
+.blt-msmeta{font-size:11px;color:var(--muted);white-space:nowrap;display:flex;align-items:center;gap:8px}
+.blt-badge{font-size:11px;background:var(--s2);padding:2px 8px;border-radius:20px;color:var(--muted);font-weight:600}
+.blt-duesoon{color:var(--red);font-weight:600}
+.blt-subs{padding:0 20px 10px 54px}
+.blt-sub{display:flex;align-items:center;gap:9px;padding:5px 0;font-size:13px;cursor:pointer}
+.blt-subbox{width:17px;height:17px;border-radius:5px;border:1.5px solid var(--b2);flex-shrink:0;display:grid;place-items:center;font-size:10px}
+.blt-subbox.done{background:var(--teal);border-color:var(--teal);color:#fff}
+.blt-sub.done span{text-decoration:line-through;color:var(--dim)}
+.blt-addstep{font-size:12px;color:var(--ac);cursor:pointer;padding:5px 0 2px 26px;font-weight:600}
+.blt-mstools{display:flex;gap:4px}
+.blt-mstools button{background:none;border:none;cursor:pointer;font-size:13px;opacity:.5;padding:2px}
+.blt-mstools button:hover{opacity:1}
 </style>
   <!-- Firebase SDK -->
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
@@ -3751,92 +3798,114 @@ const R={
     const targets = D.brandTargets||{};
     const brands = ["AURA","SixHo","Punjab"];
     const bMeta = {
-      "AURA":{icon:"✨",color:"#C8B89A",desc:"Premium English willow — TM filed Jun 2026"},
-      "SixHo":{icon:"🎾",color:"#16a34a",desc:"Tennis ball specialist — TM filed Jun 2026"},
-      "Punjab":{icon:"🦁",color:"#ea580c",desc:"Punjab Cricket — @punjabkri Instagram"}
+      "AURA":{icon:"✨",color:"#C8B89A",bg:"#f5f0e8",desc:"Premium English willow · TM filed Jun 2026",phases:["Identity","Trademark","Production","Marketing","Launch"]},
+      "SixHo":{icon:"🎾",color:"#16a34a",bg:"#e7f6ec",desc:"Tennis ball specialist · TM filed Jun 2026",phases:["Trademark","Spec","Sourcing","Production","Launch"]},
+      "Punjab":{icon:"🦁",color:"#ea580c",bg:"#fdede3",desc:"Punjab Cricket · @punjabkri",phases:["Setup","Content","Roadmap","Video","Outreach"]}
     };
-    const stCount=(s)=>ms.filter(m=>m.status===s).length;
     const subDone=(m)=>(m.subtasks||[]).filter(s=>s.done).length;
     const subTot=(m)=>(m.subtasks||[]).length;
-    document.getElementById("br-stats").innerHTML =
-      sc("var(--ac)","Total Milestones",ms.length) +
-      sc("var(--green)","Completed",stCount("done")) +
-      sc("var(--orange)","In Progress",stCount("progress")) +
-      sc("var(--red)","Pending",stCount("pending"));
+    const msProg=(m)=> m.status==="done"?1 : subTot(m)>0 ? subDone(m)/subTot(m) : m.status==="progress"?0.5:0;
 
+    // hero stats
+    const doneC=ms.filter(m=>m.status==="done").length;
+    const progC=ms.filter(m=>m.status==="progress").length;
+    const stepC=ms.reduce((a,m)=>a+subTot(m),0);
+    document.getElementById("br-stats").innerHTML="";  // stats now in hero
     const container = document.getElementById("br-brands");
-    container.innerHTML = brands.map(b=>{
+
+    const hero=`<div class="blt-hero">
+      <div class="blt-hlabel">🏏 Brand Launch — Innings in Progress</div>
+      <div class="blt-htitle">Kuldip Rubber — 3 Brands on the Crease</div>
+      <div class="blt-hsub">AURA · SixHo · Punjab Cricket</div>
+      <div class="blt-hstats">
+        <div><div class="blt-hstat-n">${ms.length}</div><div class="blt-hstat-l">Milestones</div></div>
+        <div><div class="blt-hstat-n" style="color:#16a34a">${doneC}</div><div class="blt-hstat-l">Done</div></div>
+        <div><div class="blt-hstat-n" style="color:#ea580c">${progC}</div><div class="blt-hstat-l">In Play</div></div>
+        <div><div class="blt-hstat-n" style="color:#d97706">${stepC}</div><div class="blt-hstat-l">Steps</div></div>
+      </div></div>`;
+
+    const brandsHtml = brands.map(b=>{
+      const meta=bMeta[b];
       const bms = ms.filter(m=>m.brand===b).sort((a,b2)=>(a.due||"9999").localeCompare(b2.due||"9999"));
-      // progress counts subtasks too: a milestone weight = done fraction
-      let prog=0;
-      bms.forEach(m=>{
-        if(m.status==="done") prog+=1;
-        else if(subTot(m)>0) prog+=subDone(m)/subTot(m);
-        else if(m.status==="progress") prog+=0.5;
-      });
+      let prog=0; bms.forEach(m=>prog+=msProg(m));
       const pct = bms.length ? Math.round(prog/bms.length*100) : 0;
-      const meta = bMeta[b];
-      const tgt = targets[b];
-      // countdown to target
-      let tgtHtml="";
+      // ring geometry
+      const R=22, C=2*Math.PI*R, off=C*(1-pct/100);
+      // target countdown
+      const tgt=targets[b];
+      let cdHtml;
       if(tgt){
         const days=Math.floor((new Date(tgt+"T00:00:00")-new Date(todayStr()+"T00:00:00"))/86400000);
-        const dTxt = days<0?`<span style="color:var(--red)">launched / ${Math.abs(days)}d ago</span>`
-          : days===0?`<span style="color:var(--red)">🚀 LAUNCH TODAY</span>`
-          : `<b style="color:${meta.color}">${days} days</b> to launch`;
-        tgtHtml=`<div style="font-size:12px;color:var(--muted);margin-top:2px">🎯 Target: ${fd(tgt)} · ${dTxt}</div>`;
+        const col = days<0?"var(--dim)":days<=30?"var(--red)":meta.color;
+        const big = days<0?"✓":days===0?"🚀":days;
+        const lbl = days<0?`launched ${fd(tgt)}`:days===0?"LAUNCH TODAY":"days to launch";
+        cdHtml=`<div class="blt-cd" style="color:${col}" onclick="setBrandTarget('${b}')">${big}</div><div class="blt-cdl">${lbl}</div>`;
       } else {
-        tgtHtml=`<div style="font-size:12px;color:var(--dim);margin-top:2px;cursor:pointer" onclick="setBrandTarget('${b}')">🎯 <span style="color:var(--ac)">Set launch target →</span></div>`;
+        cdHtml=`<div class="blt-settgt" onclick="setBrandTarget('${b}')">🎯 Set launch<br>target →</div>`;
       }
+      // phase segments — colour by completion fraction of each fifth of milestones
+      const nph=meta.phases.length;
+      const phSeg=meta.phases.map((ph,pi)=>{
+        const slice=bms.slice(Math.floor(pi*bms.length/nph), Math.floor((pi+1)*bms.length/nph));
+        const sp= slice.length ? slice.reduce((a,m)=>a+msProg(m),0)/slice.length : 0;
+        const c = sp>=1?"var(--green)":sp>0?meta.color:"var(--b1)";
+        return `<div class="blt-phseg" style="background:${c}"></div>`;
+      }).join("");
+      const phLbl=meta.phases.map((ph,pi)=>{
+        const slice=bms.slice(Math.floor(pi*bms.length/nph), Math.floor((pi+1)*bms.length/nph));
+        const sp= slice.length ? slice.reduce((a,m)=>a+msProg(m),0)/slice.length : 0;
+        return ph+(sp>=1?" ✓":sp>0?" ⟳":"");
+      }).join(" · ");
 
-      return `<div class="card" style="margin-bottom:16px">
-        <div style="padding:13px 16px;border-bottom:2px solid var(--b1);display:flex;align-items:center;gap:12px;flex-wrap:wrap">
-          <span style="font-size:26px">${meta.icon}</span>
-          <div style="flex:1;min-width:150px">
-            <div style="font-size:16px;font-weight:800;letter-spacing:.5px;cursor:pointer" onclick="setBrandTarget('${b}')">${b}</div>
-            <div style="font-size:12px;color:var(--muted)">${meta.desc}</div>
-            ${tgtHtml}
+      const msHtml = bms.length ? bms.map(m=>{
+        const days = m.due ? Math.floor((new Date(m.due)-new Date())/86400000) : null;
+        const cls = m.status==="done"?"done":subDone(m)>0||m.status==="progress"?"prog":"";
+        const mark = m.status==="done"?"✓":cls==="prog"?"◐":"";
+        const sd=subDone(m), stt=subTot(m);
+        const dueTxt = m.due&&m.status!=="done" ? (days<0?`<span class="blt-duesoon">${Math.abs(days)}d over</span>`:days===0?'<span class="blt-duesoon">Today</span>':`${days}d`) : "";
+        const badge = stt>0?`<span class="blt-badge">${sd}/${stt}</span>`:"";
+        const subs = stt>0 ? `<div class="blt-subs">${(m.subtasks||[]).map((s,si)=>`
+            <div class="blt-sub ${s.done?'done':''}" onclick="toggleBrSub(${m.id},${si})">
+              <div class="blt-subbox ${s.done?'done':''}">${s.done?"✓":""}</div><span>${s.text}</span></div>`).join("")}
+            <div class="blt-addstep" onclick="addBrSub(${m.id})">+ add step</div></div>`
+          : `<div class="blt-subs"><div class="blt-addstep" onclick="addBrSub(${m.id})">+ add checklist steps</div></div>`;
+        return `<div class="blt-ms">
+          <div class="blt-mshead">
+            <div class="blt-check ${cls}" onclick="cycleBrStatus(${m.id})" title="Tap to change status">${mark}</div>
+            <div class="blt-mstitle ${m.status==='done'?'done':''}">${m.title}${m.notes?`<div style="font-size:11.5px;color:var(--muted);font-weight:400">${m.notes}</div>`:""}</div>
+            <div class="blt-msmeta">${dueTxt}${badge}</div>
+            <div class="blt-mstools"><button onclick="openBrMilestone(${m.id})">✏️</button><button onclick="delBrMilestone(${m.id})">🗑</button></div>
+          </div>${subs}</div>`;
+      }).join("") : `<div style="padding:16px 20px;text-align:center;font-size:13px;color:var(--muted);border-top:1px solid var(--b1)">No milestones yet. <span style="color:var(--ac);cursor:pointer;font-weight:600" onclick="openBrMilestone(null,'${b}')">+ Add first →</span></div>`;
+
+      return `<div class="blt-brand">
+        <div class="blt-top">
+          <div class="blt-acc" style="background:${meta.color}"></div>
+          <div class="blt-bicon" style="background:${meta.bg}">${meta.icon}</div>
+          <div style="min-width:0">
+            <div class="blt-bname" onclick="setBrandTarget('${b}')">${b}</div>
+            <div class="blt-bdesc">${meta.desc}</div>
           </div>
-          <div style="min-width:130px;flex:1;max-width:220px">
-            <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--muted);margin-bottom:3px">
-              <span>${Math.round(prog*10)/10}/${bms.length} done</span><span>${pct}%</span></div>
-            <div style="background:var(--s2);border-radius:8px;height:8px;overflow:hidden">
-              <div style="width:${pct}%;height:100%;background:${meta.color};border-radius:8px"></div></div>
+          <div class="blt-bright">${cdHtml}</div>
+        </div>
+        <div class="blt-ringwrap">
+          <div class="blt-ring"><svg width="52" height="52">
+            <circle cx="26" cy="26" r="${R}" fill="none" stroke="var(--b1)" stroke-width="5"/>
+            <circle cx="26" cy="26" r="${R}" fill="none" stroke="${meta.color}" stroke-width="5" stroke-linecap="round" stroke-dasharray="${C.toFixed(1)}" stroke-dashoffset="${off.toFixed(1)}"/>
+          </svg><div class="blt-ringtxt">${pct}%</div></div>
+          <div class="blt-phline">
+            <div class="blt-phbar">${phSeg}</div>
+            <div class="blt-phlbl">${phLbl}</div>
           </div>
           <button class="btn btn-p btn-sm" onclick="openBrMilestone(null,'${b}')">+ Milestone</button>
         </div>
-        ${bms.length ? bms.map(m=>{
-          const days = m.due ? Math.floor((new Date(m.due)-new Date())/86400000) : null;
-          const stIcon = m.status==="done"?"✅":m.status==="progress"?"🔄":"⬜";
-          const dueTxt = m.due ? (m.status==="done" ? fd(m.due) : (days<0?`<span style="color:var(--red)">${Math.abs(days)}d overdue</span>`:days===0?'<span style="color:var(--red)">Today</span>':`${days}d left`)) : "";
-          const sd=subDone(m), stt=subTot(m);
-          const subBar = stt>0 ? `<div style="font-size:11px;color:var(--muted);margin-top:3px">☑ ${sd}/${stt} steps</div>` : "";
-          const subList = stt>0 ? `<div style="margin:6px 0 2px 27px">${(m.subtasks||[]).map((s,si)=>`
-              <div style="display:flex;align-items:center;gap:8px;padding:3px 0;font-size:12.5px;cursor:pointer" onclick="toggleBrSub(${m.id},${si})">
-                <span style="font-size:15px">${s.done?"☑️":"⬜"}</span>
-                <span style="${s.done?"text-decoration:line-through;color:var(--dim)":""}">${s.text}</span>
-              </div>`).join("")}
-              <div style="font-size:11px;color:var(--ac);cursor:pointer;padding:3px 0 0 23px" onclick="addBrSub(${m.id})">+ add step</div>
-            </div>` : `<div style="font-size:11px;color:var(--ac);cursor:pointer;margin:2px 0 4px 27px" onclick="addBrSub(${m.id})">+ add steps/checklist</div>`;
-          return `<div style="padding:10px 16px;border-bottom:1px solid var(--b1)">
-            <div style="display:flex;align-items:center;gap:10px">
-              <span style="font-size:17px;cursor:pointer" onclick="cycleBrStatus(${m.id})" title="Tap to change status">${stIcon}</span>
-              <div style="flex:1;min-width:0">
-                <div style="font-size:13.5px;font-weight:600;${m.status==="done"?"text-decoration:line-through;color:var(--dim)":""}">${m.title}</div>
-                ${m.notes?`<div style="font-size:12px;color:var(--muted)">${m.notes}</div>`:""}
-                ${subBar}
-              </div>
-              <span style="font-size:12px;color:var(--muted);white-space:nowrap">${dueTxt}</span>
-              <button class="btn-e" onclick="openBrMilestone(${m.id})">✏️</button>
-              <button class="btn-d" onclick="delBrMilestone(${m.id})">🗑</button>
-            </div>
-            ${subList}
-          </div>`;
-        }).join("") : `<div style="padding:14px;text-align:center;font-size:13px;color:var(--muted)">No milestones. <span style="color:var(--ac);cursor:pointer;font-weight:600" onclick="openBrMilestone(null,'${b}')">+ Add first →</span></div>`}
+        ${msHtml}
       </div>`;
     }).join("");
+
+    container.innerHTML = hero + brandsHtml;
   },
-  crm(){
+    crm(){
     const all = D.crm||[];
     const seg = window.__crmSeg || "retailer";
     const tab = window.__crmTab || "pending";
