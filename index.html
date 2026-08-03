@@ -533,11 +533,8 @@ document.addEventListener("touchstart", function(e){
     <div class="sb-item" id="n-payment" onclick="go('payment')"><span class="sb-ico">💰</span>Payment Follow-Up<span class="sb-bdg" id="b-pay">0</span></div>
     <div class="sb-item" id="n-defaulter" onclick="go('defaulter')"><span class="sb-ico">⚠️</span>Notices / Defaulters</div>
     <div class="sb-item" id="n-banking" onclick="go('banking')"><span class="sb-ico">🏦</span>Banking Issues</div>
-    <div class="sb-item" id="n-itax" onclick="go('itax')"><span class="sb-ico">📅</span>Income Tax Dates</div>
-    <div class="sb-item" id="n-tds" onclick="go('tds')"><span class="sb-ico">📑</span>TDS Dates</div>
-    <div class="sb-item" id="n-gst" onclick="go('gst')"><span class="sb-ico">📋</span>GST Dates<span class="sb-bdg" id="b-gst">2</span></div>
-    <div class="sb-item" id="n-itc" onclick="go('itc')"><span class="sb-ico">🔁</span>ITC Tracker</div>
-    <div class="sb-item" id="n-accounts" onclick="go('accounts')"><span class="sb-ico">🧾</span>Accounting Issues<span class="sb-bdg o" id="b-accounts">0</span></div>
+    <div class="sb-item" id="n-taxdates" onclick="go('taxdates')"><span class="sb-ico">🧾</span>Tax Dates<span class="sb-bdg" id="b-taxdates"></span></div>
+                <div class="sb-item" id="n-accounts" onclick="go('accounts')"><span class="sb-ico">🧾</span>Accounting Issues<span class="sb-bdg o" id="b-accounts">0</span></div>
     <div class="sb-item" id="n-compliance" onclick="go('compliance')"><span class="sb-ico">✅</span>Compliances<span class="sb-bdg" id="b-comp">3</span></div>
     <div class="sb-item" id="n-vehicles" onclick="go('vehicles')"><span class="sb-ico">🔔</span>Renewals<span class="sb-bdg o" id="b-vehicles">0</span></div>
     <div class="sb-item" id="n-costing" onclick="go('costing')"><span class="sb-ico">💹</span>Cost & Pricing</div>
@@ -844,15 +841,14 @@ document.addEventListener("touchstart", function(e){
 
 
 <!-- INCOME TAX -->
-<div class="mod" id="mod-itax">
-  <div class="ph"><div><div class="pt">INCOME TAX <span>DATES</span></div><div class="pt-sub">FY 2026-27</div></div></div>
+<div class="mod" id="mod-taxdates">
+  <div class="ph"><div><div class="pt">TAX <span>DATES</span></div><div class="pt-sub">Income Tax · TDS · GST — FY 2026-27</div></div></div>
+
+  <div class="card-hdr" style="font-size:16px;margin:8px 0 4px;color:var(--a2)">📅 Income Tax</div>
   <div class="card"><div class="card-hdr">Income Tax Calendar</div>
   <div class="tbl-scroll"><table class="tbl"><thead><tr><th>Event</th><th>Due Date</th><th>Applicable To</th><th>Penalty</th><th>Status</th><th>Actions</th></tr></thead><tbody id="itxb"></tbody></table></div></div>
-</div>
 
-<!-- TDS -->
-<div class="mod" id="mod-tds">
-  <div class="ph"><div><div class="pt">TDS <span>DATES</span></div></div></div>
+  <div class="card-hdr" style="font-size:16px;margin:18px 0 4px;color:var(--a2)">📑 TDS</div>
   <div class="card"><div class="card-hdr">TDS Calendar</div>
   <div class="tbl-scroll"><table class="tbl"><thead><tr><th>Filing</th><th>Due Date</th><th>Sections</th><th>Penalty</th><th>Status</th><th>Actions</th></tr></thead><tbody id="tdsb"></tbody></table></div></div>
   <div class="card"><div class="card-hdr">Key TDS Rates</div>
@@ -863,33 +859,13 @@ document.addEventListener("touchstart", function(e){
   <tr><td><b>194J</b></td><td>Prof/Tech fees</td><td>2%/10%</td><td>₹30,000</td></tr>
   <tr><td><b>194Q</b></td><td>Purchase of goods</td><td>0.1%</td><td>₹50L in FY</td></tr>
   </tbody></table></div></div>
-</div>
 
-<!-- GST -->
-<div class="mod" id="mod-gst">
-  <div class="ph"><div><div class="pt">GST <span>DATES</span></div><div class="pt-sub">Mark filed · Undo</div></div></div>
+  <div class="card-hdr" style="font-size:16px;margin:18px 0 4px;color:var(--a2)">📋 GST</div>
   <div class="al-strip" id="gst-al"></div>
   <div class="card"><div class="card-hdr">GST Calendar</div>
   <div class="tbl-scroll"><table class="tbl"><thead><tr><th>Return</th><th>Period</th><th>Due Date</th><th>Type</th><th>Penalty</th><th>Status</th><th>Actions</th></tr></thead><tbody id="gstb"></tbody></table></div></div>
 </div>
 
-<!-- ITC -->
-<div class="mod" id="mod-itc">
-  <div class="ph"><div><div class="pt">ITC <span>TRACKER</span></div></div><button class="btn btn-p" onclick="Mo.open('itc')">+ Add Entry</button></div>
-  <div class="g3" id="itcst"></div>
-  <div class="card"><div class="card-hdr">ITC Ledger</div>
-  <div class="tbl-scroll"><table class="tbl"><thead><tr><th>Supplier</th><th>Invoice</th><th>Date</th><th>IGST</th><th>CGST</th><th>SGST</th><th>Total</th><th>Eligible?</th><th>Actions</th></tr></thead><tbody id="itcb"></tbody></table></div>
-  <div id="itce" class="es" style="display:none"><div class="em">🔁</div>No ITC entries.</div></div>
-  <div class="card"><div class="card-hdr">ITC Quick Rules</div><div class="card-body" style="font-size:13.5px;display:flex;flex-direction:column;gap:10px;">
-    <div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><div><b>Eligible ITC</b><div style="color:var(--muted);font-size:11px">Business inputs, capital goods, input services for taxable supply</div></div><span class="pill pg">Claim ✓</span></div>
-    <div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><div><b>Blocked u/s 17(5)</b><div style="color:var(--muted);font-size:11px">Motor vehicles (personal), food, club membership, personal expenses</div></div><span class="pill pr">No ITC ✗</span></div>
-    <div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><div><b>GSTR-2B Match</b><div style="color:var(--muted);font-size:11px">Claim only after supplier files GSTR-1 and it reflects in GSTR-2B</div></div><span class="pill py">Match</span></div>
-    <div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><div><b>Time Limit</b><div style="color:var(--muted);font-size:11px">Claim by 30 Nov of next FY or date of annual return</div></div><span class="pill po">Deadline</span></div>
-    <div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><div><b>RCM</b><div style="color:var(--muted);font-size:11px">Pay GST under Reverse Charge, claim ITC same month</div></div><span class="pill pp">Special</span></div>
-  </div></div>
-</div>
-
-<!-- FUTURE PLANS -->
 <div class="mod" id="mod-future">
   <div class="ph"><div><div class="pt">FUTURE <span>PLANS</span></div></div><button class="btn btn-p" onclick="Mo.open('future')">+ Add Plan</button></div>
   <div class="card"><div class="card-hdr">Strategic Plans & Goals</div>
@@ -2306,12 +2282,12 @@ function go(id){
   closeSB();closeScan();
   const rmap={home:R_home,urgent:R.urgent,cod:R.cod,transport:R.transport,payment:R.payment,
     defaulter:R.defaulter,banking:R.banking,deadstock:R.deadstock,rd:R.rd,compliance:R.compliance,
-    itax:R.itax,tds:R.tds,gst:R.gst,itc:R.itc,future:R.future,tracker:initTracker,
+    itax:R.itax,tds:R.tds,gst:R.gst,future:R.future,tracker:initTracker,
     health:R.health,badminton:R.badminton,self:R.self,quotes:R.quotes,
     mustdo:R.mustdo,accounts:R.accounts,costing:R.costing,kb:R.kb,orders:R.orders,purchase:R.purchase,production:R.production,
     expenses:R.expenses,scanner:R.scanner,stock:R.stock,utilities:initUtilities,quotation:R.quotation,brands:R.brands,crm:R.crm,ledger:R.ledger,
     vehicles:R.vehicles,
-    gurbani:R.gurbani};
+    gurbani:R.gurbani,taxdates:R.taxdates};
   rmap[id]?.();
 }
 function goBack(){
@@ -3205,6 +3181,11 @@ const R={
       <td>${t.status!=="done"?mb("✅ Done",`markTx('tds',${t.id},'done')`):""}${t.status==="done"?mb("↩ Undo",`markTx('tds',${t.id},'pending')`):""}</td>
     </tr>`).join("");
   },
+  taxdates(){
+    try{ if(R.itax) R.itax(); }catch(e){}
+    try{ if(R.tds) R.tds(); }catch(e){}
+    try{ if(R.gst) R.gst(); }catch(e){}
+  },
   gst(){
     const due=D.gst.filter(g=>g.status==="pending");
     document.getElementById("gst-al").innerHTML=due.map(g=>{
@@ -3221,26 +3202,7 @@ const R={
       <td>${g.status!=="filed"?mb("✅ Filed",`markTx('gst',${g.id},'filed')`):""}${g.status==="filed"?mb("↩ Undo",`markTx('gst',${g.id},'pending')`):""}</td>
     </tr>`).join("");
   },
-  itc(){
-    let av=0,bl=0;
-    document.getElementById("itcb").innerHTML=D.itc.map(i=>{
-      const tot=i.igst+i.cgst+i.sgst;
-      if(i.eligible==="yes")av+=tot;else if(i.eligible==="no")bl+=tot;
-      return`<tr>
-        <td><b>${i.supplier}</b></td><td style="font-size:13px">${i.inv}</td>
-        <td style="font-size:13px">${fd(i.date)}</td>
-        <td class="amt">${i.igst?fa(i.igst):"—"}</td><td class="amt">${i.cgst?fa(i.cgst):"—"}</td>
-        <td class="amt">${i.sgst?fa(i.sgst):"—"}</td><td class="amt pos">${fa(tot)}</td>
-        <td>${i.eligible==="yes"?'<span class="pill pg">✅</span>':i.eligible==="no"?'<span class="pill pr">🔴</span>':'<span class="pill py">Partial</span>'}</td>
-        <td style="white-space:nowrap">${ab(`Mo.open('itc',${i.id})`,`delItem('itc',${i.id})`)}</td>
-      </tr>`;
-    }).join("");
-    document.getElementById("itce").style.display=D.itc.length?"none":"block";
-    document.getElementById("itcst").innerHTML=
-      sc("var(--green)","Available ITC",fa(av),"To claim")+
-      sc("var(--red)","Blocked ITC",fa(bl))+
-      sc("var(--ac)","Total Entries",D.itc.length);
-  },
+
   future(){
     document.getElementById("ftb").innerHTML=D.future.map(f=>`<tr class="${f.status==="done"?"dr":""}">
       <td><b>${f.plan}</b></td><td><span class="pill ps">${f.cat}</span></td>
@@ -6286,13 +6248,13 @@ function reRenderCurrent() {
     home:R_home, urgent:R.urgent, cod:R.cod, transport:R.transport,
     payment:R.payment, defaulter:R.defaulter, banking:R.banking,
     deadstock:R.deadstock, rd:R.rd, compliance:R.compliance,
-    itax:R.itax, tds:R.tds, gst:R.gst, itc:R.itc, future:R.future,
+    itax:R.itax, tds:R.tds, gst:R.gst,  future:R.future,
     tracker:()=>renderDT(document.getElementById("td")?.value||todayStr()),
     health:R.health, badminton:R.badminton, self:R.self, quotes:R.quotes,
     mustdo:R.mustdo, accounts:R.accounts, costing:R.costing, kb:R.kb,
     orders:R.orders, purchase:R.purchase, production:R.production,
     expenses:R.expenses, scanner:R.scanner, stock:R.stock, quotation:R.quotation, brands:R.brands, crm:R.crm, ledger:R.ledger,
-    vehicles:R.vehicles, gurbani:R.gurbani
+    vehicles:R.vehicles, gurbani:R.gurbani, taxdates:R.taxdates
   };
   rmap[id]?.();
 }
@@ -6482,7 +6444,7 @@ function loadFromLocal() {
     Object.keys(saved).forEach(k => { if (k in D) D[k] = saved[k]; });
     showSyncStatus("local");
     const active = document.querySelector(".mod.on");
-    if (active) { const id=active.id.replace("mod-",""); const rmap={home:R_home,urgent:R.urgent,cod:R.cod,transport:R.transport,payment:R.payment,defaulter:R.defaulter,banking:R.banking,deadstock:R.deadstock,rd:R.rd,compliance:R.compliance,itax:R.itax,tds:R.tds,gst:R.gst,itc:R.itc,future:R.future,health:R.health,badminton:R.badminton,self:R.self,quotes:R.quotes};rmap[id]?.(); }
+    if (active) { const id=active.id.replace("mod-",""); const rmap={home:R_home,urgent:R.urgent,cod:R.cod,transport:R.transport,payment:R.payment,defaulter:R.defaulter,banking:R.banking,deadstock:R.deadstock,rd:R.rd,compliance:R.compliance,itax:R.itax,tds:R.tds,gst:R.gst,future:R.future,health:R.health,badminton:R.badminton,self:R.self,quotes:R.quotes};rmap[id]?.(); }
     console.log("Data loaded from LocalStorage ✅");
   } catch(e) { console.warn("LocalStorage load failed:", e); }
 }
@@ -6576,7 +6538,7 @@ window.delItem = function(type, id) {
   // Re-render
   const rmap = {urgent:R.urgent,cod:R.cod,transport:R.transport,payment:R.payment,
     defaulter:R.defaulter,banking:R.banking,deadstock:R.deadstock,rd:R.rd,
-    compliance:R.compliance,itc:R.itc,future:R.future,purchase:R.purchase,expenses:R.expenses};
+    compliance:R.compliance,future:R.future,purchase:R.purchase,expenses:R.expenses};
   rmap[type]?.();
 };
 
