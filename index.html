@@ -9562,6 +9562,22 @@ function setCrmInterest(id, lvl){
 // ══════════════════════════════════════════
 
 
+const CRM_MIN_ORDER_VALUE = 10000;  // leads clearly stating a value below this are skipped
+function imParseOrderValue(l){
+  // Returns a number if the lead text CLEARLY states a rupee value, else null.
+  // Conservative: only ₹-tagged amounts; ignores phone/pincode/quantity.
+  const text = [l.message, l.product, l.subject].filter(Boolean).join(" ").toLowerCase();
+  if(!text) return null;
+  const pats=[
+    /(?:rs\.?|₹|inr|rupees?)\s*([\d,]{2,})/g,
+    /(?:order\s*value|budget|approx\.?\s*(?:order|value)|price|amount|value)\s*[:\-]?\s*(?:rs\.?|₹|inr)?\s*([\d,]{2,})/g,
+    /([\d,]{3,})\s*(?:rs\.?|₹|inr|rupees?)/g
+  ];
+  const vals=[];
+  pats.forEach(p=>{ let m; while((m=p.exec(text))){ const n=m[1].replace(/,/g,""); if(/^\d+$/.test(n)){ const v=parseInt(n,10); if(v>=100 && v<=5000000) vals.push(v); } } });
+  return vals.length ? Math.min(...vals) : null;
+}
+
 function imLeadToContact(l){
   return {
     id: "im_"+l.qid, name: l.name||"Unknown", city: l.city||"", phone: l.phone||"",
@@ -9621,9 +9637,27 @@ async function drainImInbox(force){
   if(!D.imLeads) D.imLeads = [];
   const knownQids = new Set(D.imLeads.map(l=>String(l.qid)));
   const blocked = new Set((D.imBlocked||[]).map(String));
-  const fresh = inbox.filter(l=>l.qid && !knownQids.has(String(l.qid)) && !blocked.has(String(l.qid)));
+  let fresh = inbox.filter(l=>l.qid && !knownQids.has(String(l.qid)) && !blocked.has(String(l.qid)));
   // discard any blocked leads sitting in the inbox
   if(blocked.size){ D.imInbox = inbox.filter(l=>!blocked.has(String(l.qid))); }
+
+  // ── Skip leads that CLEARLY state an order value below the minimum ──
+  let skippedLow = 0;
+  if(fresh.length){
+    const kept=[];
+    fresh.forEach(l=>{
+      const v = imParseOrderValue(l);
+      if(v!==null && v < CRM_MIN_ORDER_VALUE){
+        // block it so it never re-imports, and don't add to CRM/archive
+        if(!D.imBlocked) D.imBlocked=[];
+        if(!D.imBlocked.map(String).includes(String(l.qid))) D.imBlocked.push(String(l.qid));
+        skippedLow++;
+      } else {
+        kept.push(l);
+      }
+    });
+    if(skippedLow){ fresh = kept; autoSave("imBlocked"); }
+  }
 
   if(!fresh.length){
     D.imInbox = []; autoSave("imInbox");
@@ -9655,7 +9689,7 @@ async function drainImInbox(force){
   // 3. Clear inbox
   D.imInbox = []; autoSave("imInbox");
 
-  crmToast(`📥 ${fresh.length} new IndiaMart lead${fresh.length>1?"s":""}${imported?` · ${imported} added to CRM`:""}`);
+  crmToast(`📥 ${fresh.length} new IndiaMart lead${fresh.length>1?"s":""}${imported?` · ${imported} added to CRM`:""}${skippedLow?` · ${skippedLow} skipped (<₹${CRM_MIN_ORDER_VALUE/1000}k)`:""}`);
   console.log(`drainImInbox: archived ${fresh.length}, imported ${imported} to CRM`);
   try { if(typeof R.crm === "function" && document.getElementById("mod-crm")) R.crm(); } catch(e){}
 }
