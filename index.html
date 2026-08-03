@@ -2269,6 +2269,15 @@ function doUndo(){
 
 // ── NAV ──
 function go(id){
+  // ── nav history for iOS-style swipe-back ──
+  try{
+    if(!window.__navHist) window.__navHist=[];
+    const cur=document.querySelector(".mod.on")?.id?.replace("mod-","");
+    if(cur && cur!==id && !window.__navBackInProgress){
+      window.__navHist.push(cur);
+      if(window.__navHist.length>50) window.__navHist.shift();
+    }
+  }catch(e){}
   if(id === "ledger" && !LG.unlocked){ lgPrompt(); return; }
   if(id !== "ledger" && typeof LG !== "undefined" && LG.unlocked){
     lgFlushThenWipe();   // saves pending grid edits, then clears the key from memory
@@ -2296,6 +2305,48 @@ function go(id){
     gurbani:R.gurbani};
   rmap[id]?.();
 }
+function goBack(){
+  try{
+    if(window.__navHist && window.__navHist.length){
+      const prev=window.__navHist.pop();
+      window.__navBackInProgress=true;
+      go(prev);
+      window.__navBackInProgress=false;
+      return true;
+    }
+  }catch(e){ window.__navBackInProgress=false; }
+  // fallback: if a panel/sidebar/scanner is open, close it; else go home
+  if(typeof closeSB==="function") closeSB();
+  return false;
+}
+
+// ── iOS-style edge swipe-back (left edge, swipe right) ──
+(function(){
+  let sx=0, sy=0, tracking=false, startT=0;
+  const EDGE=30;      // must start within 30px of left edge
+  const MINX=70;      // must travel at least 70px right
+  const MAXY=60;      // vertical drift tolerance
+  document.addEventListener("touchstart", e=>{
+    if(!e.touches || e.touches.length!==1) { tracking=false; return; }
+    const t=e.touches[0];
+    // ignore if starting on the sidebar or a scrollable-x element
+    if(t.clientX <= EDGE){ sx=t.clientX; sy=t.clientY; startT=Date.now(); tracking=true; }
+    else tracking=false;
+  }, {passive:true});
+  document.addEventListener("touchend", e=>{
+    if(!tracking) return;
+    tracking=false;
+    const t=(e.changedTouches && e.changedTouches[0]); if(!t) return;
+    const dx=t.clientX - sx, dy=Math.abs(t.clientY - sy), dt=Date.now()-startT;
+    if(dx>=MINX && dy<=MAXY && dt<=600){
+      // if sidebar open, close it first; else navigate back
+      const sbOpen=document.querySelector(".sb-overlay.on, #sidebar.on, .sidebar.open");
+      if(sbOpen && typeof closeSB==="function"){ closeSB(); return; }
+      goBack();
+    }
+  }, {passive:true});
+})();
+
 
 // ── DATA ──
 const D={
