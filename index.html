@@ -10282,9 +10282,14 @@ window.AttModule=(function(){
     document.head.appendChild(st);
   }
   let flashTimer=null;
+  let actx=null;
+  function audioCtx(){try{if(!actx)actx=new (window.AudioContext||window.webkitAudioContext)();if(actx&&actx.state==="suspended")actx.resume();}catch(e){}return actx;}
+  function tone(freq,start,dur,type,vol){const c=audioCtx();if(!c)return;const o=c.createOscillator(),g=c.createGain();o.type=type||"sine";o.frequency.value=freq;o.connect(g);g.connect(c.destination);const t0=c.currentTime+start;g.gain.setValueAtTime(0.0001,t0);g.gain.exponentialRampToValueAtTime(vol||0.22,t0+0.012);g.gain.exponentialRampToValueAtTime(0.0001,t0+dur);o.start(t0);o.stop(t0+dur+0.03);}
+  function successSound(){tone(880,0,0.13,"sine",0.25);tone(1318,0.12,0.18,"sine",0.25);try{if(navigator.vibrate)navigator.vibrate(120);}catch(e){}}
+  function failSound(){tone(220,0,0.18,"square",0.18);tone(175,0.17,0.22,"square",0.18);try{if(navigator.vibrate)navigator.vibrate([70,50,70]);}catch(e){}}
   function flashSuccess(name,type,timeStr){
     const f=document.getElementById("att-flash");if(!f)return;
-    f.style.background="rgba(31,157,85,.95)";
+    f.style.background="rgba(31,157,85,.95)";successSound();
     f.innerHTML='<div class="att-pop"><svg viewBox="0 0 120 120" width="132" height="132"><circle cx="60" cy="60" r="56" fill="#fff"/><path d="M36 62 L54 80 L86 42" fill="none" stroke="#1f9d55" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/></svg>'
       +'<div style="color:#fff;font-size:30px;font-weight:800;margin-top:10px">'+name+'</div>'
       +'<div style="color:#fff;font-size:42px;font-weight:900;letter-spacing:3px;margin-top:2px">'+type+'</div>'
@@ -10294,7 +10299,7 @@ window.AttModule=(function(){
   }
   function flashFail(msg){
     const f=document.getElementById("att-flash");if(!f)return;
-    f.style.background="rgba(192,57,43,.95)";
+    f.style.background="rgba(192,57,43,.95)";failSound();
     f.innerHTML='<div class="att-pop"><svg viewBox="0 0 120 120" width="120" height="120"><circle cx="60" cy="60" r="56" fill="#fff"/><path d="M42 42 L78 78 M78 42 L42 78" stroke="#c0392b" stroke-width="12" stroke-linecap="round"/></svg>'
       +'<div style="color:#fff;font-size:20px;font-weight:700;margin-top:10px;padding:0 20px">'+msg+'</div></div>';
     f.style.display="flex";
@@ -10324,6 +10329,7 @@ window.AttModule=(function(){
     setS(EMP.length?"Ready. Tap IN or OUT.":"No workers enrolled yet.", EMP.length?"#1f9d55":"#b08a3e");
   }
   async function punch(type){
+    audioCtx();
     if(!EMP.length){setS("No workers enrolled","#c0392b");return;}
     setS("Look at the camera…","#b08a3e");
     let live; try{live=await descriptorFrom(curVideo);}catch(e){setS("Face error — retry","#c0392b");return;}
