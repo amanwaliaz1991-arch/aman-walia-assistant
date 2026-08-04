@@ -579,6 +579,7 @@ document.addEventListener("touchstart", function(e){
     <div class="sb-item" id="n-deadstock" onclick="go('deadstock')"><span class="sb-ico">📦</span>Dead Stock</div>
     <div class="sb-item" id="n-purchase" onclick="go('purchase')"><span class="sb-ico">🛒</span>Purchase / Reorder</div>
     <div class="sb-item" id="n-production" onclick="go('production')"><span class="sb-ico">🏭</span>Production</div>
+    <div class="sb-item" id="n-attendance" onclick="go('attendance')"><span class="sb-ico">🕐</span>Attendance</div>
     <div class="sb-item" id="n-quotation" onclick="go('quotation')"><span class="sb-ico">📄</span>Quotation Maker</div>
   </div>
   <div class="sb-grp">
@@ -1843,7 +1844,8 @@ document.addEventListener("touchstart", function(e){
 
 
 <!-- ████ STOCK ████ -->
-<div class="mod" id="mod-stock">
+<div class="mod" id="mod-attendance"><div id="att-root" style="padding:8px"></div></div>
+ <div class="mod" id="mod-stock">
   <div class="ph">
     <div><div class="pt">STOCK <span>INVENTORY</span></div>
     <div class="pt-sub">Current quantity · In/Out movements · Low-stock alerts</div></div>
@@ -2322,7 +2324,8 @@ function go(id){
     lgFlushThenWipe();   // saves pending grid edits, then clears the key from memory
   }
   // Employee access guard — only Stock allowed
-  if(typeof currentRole!=="undefined" && currentRole==="employee" && id!=="stock" && id!=="production"){ id = "stock"; }
+  if(typeof currentRole!=="undefined" && currentRole==="employee" && id!=="stock" && id!=="production" && id!=="attendance"){ id = "stock"; }
+  if(typeof AttModule!=="undefined" && id!=="attendance"){try{AttModule.stop();}catch(e){}}
   document.querySelectorAll(".mod").forEach(m=>m.classList.remove("on"));
   document.querySelectorAll(".sb-item,.bnav-item").forEach(m=>m.classList.remove("on"));
   // Ledger runs full-page (no sidebar) — it's a spreadsheet, it needs the width
@@ -2341,7 +2344,7 @@ function go(id){
     mustdo:R.mustdo,accounts:R.accounts,costing:R.costing,kb:R.kb,orders:R.orders,purchase:R.purchase,production:R.production,
     expenses:R.expenses,scanner:R.scanner,stock:R.stock,utilities:initUtilities,quotation:R.quotation,brands:R.brands,crm:R.crm,ledger:R.ledger,
     vehicles:R.vehicles,
-    gurbani:R.gurbani,taxdates:R.taxdates};
+    gurbani:R.gurbani,taxdates:R.taxdates,attendance:R.attendance};
   rmap[id]?.();
 }
 function goBack(){
@@ -2922,6 +2925,7 @@ function checkVehicleReminders(){
 }
 
 const R={
+  attendance(){ if(window.AttModule) AttModule.open(); },
   urgent(){
     // Urgent Orders merged into Orders. Redirect any stale link.
     if(typeof go==="function"){ go("orders"); }
@@ -7387,7 +7391,7 @@ function applyRole(){
   // Show/hide sidebar items — employee sees only Stock
   document.querySelectorAll(".sb-item").forEach(item=>{
     const id = item.id.replace("n-","");
-    item.style.display = (isEmp && id !== "stock" && id !== "production") ? "none" : "";
+    item.style.display = (isEmp && id !== "stock" && id !== "production" && id !== "attendance") ? "none" : "";
   });
   // Hide sidebar group labels for employee (only Stock's group should be visible)
   document.querySelectorAll(".sb-lbl").forEach(l=>{ l.style.display = isEmp ? "none" : ""; });
@@ -7409,7 +7413,7 @@ function applyRole(){
     rl.style.display = "inline-flex";
   }
   // Navigate to correct landing module
-  if(isEmp) go("stock");
+  if(isEmp) go(((location.search.indexOf("kiosk")>=0)||(location.hash.indexOf("attendance")>=0))?"attendance":"stock");
   else go("home");
 }
 
@@ -10197,6 +10201,238 @@ window.addEventListener("pagehide", ()=>{
 (function(){
   const el = document.getElementById("sync-status");
   if(el){ el.style.cursor = "default"; el.addEventListener("click", lgSecretTap); }
+})();
+
+/* ===== ATTENDANCE MODULE (injected) — reuses app's db + saveToFirebase ===== */
+window.AttModule=(function(){
+  const FACEAPI_SRC="https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1.7.15/dist/face-api.js";
+  const MODEL_URL ="https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1.7.15/model";
+  const MAINCOL="aman_assistant", EMP_DOC="attendanceEmployees", SET_DOC="attendanceSettings";
+  let modelsReady=false, subDone=false, EMP=[], stream=null, wakeLock=null;
+  let THRESH=0.50, MARGIN=0.06, curVideo=null, enShots=[];
+  const $r=()=>document.getElementById("att-root");
+  const isEmp=()=>(typeof currentRole!=="undefined" && currentRole==="employee");
+
+  /* ---- lazy face-api ---- */
+  function loadScript(src){return new Promise((res,rej)=>{
+    if(window.faceapi)return res();
+    const s=document.createElement("script");s.src=src;s.onload=()=>res();s.onerror=()=>rej(new Error("face lib"));document.head.appendChild(s);});}
+  async function ensureFace(){
+    if(modelsReady)return;
+    await loadScript(FACEAPI_SRC);
+    await faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL);
+    await faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL);
+    await faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL);
+    modelsReady=true;
+  }
+  const detOpts=()=>new faceapi.TinyFaceDetectorOptions({inputSize:288,scoreThreshold:0.5});
+  async function descriptorFrom(v){
+    const r=await faceapi.detectSingleFace(v,detOpts()).withFaceLandmarks().withFaceDescriptor();
+    return r?r.descriptor:null;}
+
+  /* ---- data (reuse app Firebase) ---- */
+  function subscribe(){
+    if(subDone||typeof db==="undefined"||!db)return; subDone=true;
+    db.collection(MAINCOL).doc(EMP_DOC).onSnapshot(d=>{
+      if(d.exists){try{EMP=JSON.parse(d.data().data)||[];}catch(e){EMP=[];}}else EMP=[];
+      const c=document.getElementById("att-count"); if(c)c.textContent="Enrolled: "+EMP.length;
+    },e=>console.warn("att emp",e));
+    db.collection(MAINCOL).doc(SET_DOC).onSnapshot(d=>{
+      if(d.exists){try{const s=JSON.parse(d.data().data)||{};if(s.thresh)THRESH=s.thresh;if(s.margin)MARGIN=s.margin;}catch(e){}}
+    });
+  }
+  async function saveEmployees(){ // reuse global saveToFirebase if present
+    if(typeof saveToFirebase==="function")return saveToFirebase(EMP_DOC,EMP);
+    return db.collection(MAINCOL).doc(EMP_DOC).set({data:JSON.stringify(EMP),updatedAt:new Date().toISOString()});
+  }
+  async function saveSettings(){
+    const o={thresh:THRESH,margin:MARGIN};
+    if(typeof saveToFirebase==="function")return saveToFirebase(SET_DOC,o);
+    return db.collection(MAINCOL).doc(SET_DOC).set({data:JSON.stringify(o),updatedAt:new Date().toISOString()});
+  }
+  function addPunch(p){db.collection(MAINCOL).doc("punch_"+p.empId+"_"+p.ts).set(p).catch(e=>console.warn(e));}
+  async function getPunches(from,to){
+    const snap=await db.collection(MAINCOL).where("ts",">=",from).where("ts","<=",to).get();
+    const out=[];snap.forEach(d=>out.push(d.data()));return out;}
+
+  /* ---- camera + wake lock ---- */
+  async function startCam(v){
+    if(!stream)stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:"user",width:{ideal:640},height:{ideal:480}},audio:false});
+    v.srcObject=stream;await v.play().catch(()=>{});}
+  function stopCam(){if(stream){stream.getTracks().forEach(t=>t.stop());stream=null;}}
+  async function wake(){try{if("wakeLock" in navigator)wakeLock=await navigator.wakeLock.request("screen");}catch(e){}}
+
+  /* ---- identify ---- */
+  function identify(live){
+    let best=99,bestEmp=null,second=99;
+    EMP.forEach(e=>{let d=99;(e.descriptors||[]).forEach(v=>{const dist=faceapi.euclideanDistance(live,Float32Array.from(v));if(dist<d)d=dist;});
+      if(d<best){second=best;best=d;bestEmp=e;}else if(d<second)second=d;});
+    return {emp:bestEmp,best:best,second:second};}
+
+  /* ---- UI helpers ---- */
+  const B=(id,txt,bg)=>`<button id="${id}" style="flex:1;border:none;border-radius:14px;padding:22px 0;font-size:22px;font-weight:700;color:#fff;letter-spacing:1px;background:${bg}">${txt}</button>`;
+  const SB=(id,txt)=>`<button id="${id}" style="width:100%;padding:14px;border-radius:12px;border:none;background:#C8B89A;color:#1A1614;font-weight:700;font-size:15px;margin-top:8px">${txt}</button>`;
+  const GB=(id,txt)=>`<button id="${id}" style="width:100%;padding:13px;border-radius:12px;border:1px solid #ccc;background:#fff;color:#222;font-size:15px;margin-top:8px">${txt}</button>`;
+  function setS(msg,col){const s=document.getElementById("att-status");if(s){s.textContent=msg;s.style.color=col||"#666";}}
+
+  /* ---- KIOSK ---- */
+  function kioskHTML(showAdmin){
+    return `<div style="max-width:520px;margin:0 auto;padding:6px">
+      <video id="att-video" autoplay muted playsinline style="width:100%;border-radius:12px;background:#000;transform:scaleX(-1);aspect-ratio:3/4;object-fit:cover"></video>
+      <div id="att-status" style="text-align:center;margin:10px 0;min-height:22px;color:#666">Loading…</div>
+      <div style="display:flex;gap:12px">${B("att-in","IN","#1f9d55")}${B("att-out","OUT","#c0392b")}</div>
+      ${showAdmin?`<div style="text-align:center;margin-top:14px"><button id="att-toadmin" style="background:none;border:none;color:#888;text-decoration:underline;font-size:13px">Admin panel</button></div>`:""}
+    </div>`;}
+  async function mountKiosk(showAdmin){
+    $r().innerHTML=kioskHTML(showAdmin);
+    curVideo=document.getElementById("att-video");
+    document.getElementById("att-in").onclick=()=>punch("IN");
+    document.getElementById("att-out").onclick=()=>punch("OUT");
+    if(showAdmin)document.getElementById("att-toadmin").onclick=()=>mountAdmin();
+    try{await startCam(curVideo);}catch(e){setS("Camera blocked — allow camera & use HTTPS","#c0392b");return;}
+    wake(); setS("Loading face models…","#b08a3e");
+    try{await ensureFace();}catch(e){setS("Model load failed — check internet","#c0392b");return;}
+    setS(EMP.length?"Ready. Tap IN or OUT.":"No workers enrolled yet.", EMP.length?"#1f9d55":"#b08a3e");
+  }
+  async function punch(type){
+    if(!EMP.length){setS("No workers enrolled","#c0392b");return;}
+    setS("Look at the camera…","#b08a3e");
+    let live; try{live=await descriptorFrom(curVideo);}catch(e){setS("Face error — retry","#c0392b");return;}
+    if(!live){setS("No face detected — try again","#c0392b");return;}
+    const {emp,best,second}=identify(live);
+    if(!emp||best>THRESH){setS("❌ Face not recognised — try again","#c0392b");return;}
+    if((second-best)<MARGIN){setS("⚠ Too close to another face — move closer & retry","#c0392b");return;}
+    const ts=Date.now();
+    addPunch({empId:emp.id,name:emp.name,type:type,ts:ts,day:new Date(ts).toLocaleDateString("en-CA")});
+    setS("✅ "+emp.name+" — "+type+" at "+new Date(ts).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"}),"#1f9d55");
+  }
+
+  /* ---- ADMIN (owner) ---- */
+  function mountAdmin(){
+    $r().innerHTML=`<div style="max-width:560px;margin:0 auto;padding:6px">
+      <div id="att-count" style="text-align:center;color:#b08a3e;font-size:13px;margin-bottom:8px">Enrolled: ${EMP.length}</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        ${GB("att-tab-kiosk","🖥 Kiosk")}${GB("att-tab-enroll","➕ Enroll")}
+        ${GB("att-tab-report","📋 Report")}${GB("att-tab-workers","👥 Workers")}${GB("att-tab-set","⚙️ Settings")}
+      </div>
+      <div id="att-panel" style="margin-top:12px"></div></div>`;
+    document.getElementById("att-tab-kiosk").onclick=()=>{stopCam();mountKiosk(true);};
+    document.getElementById("att-tab-enroll").onclick=panelEnroll;
+    document.getElementById("att-tab-report").onclick=panelReport;
+    document.getElementById("att-tab-workers").onclick=panelWorkers;
+    document.getElementById("att-tab-set").onclick=panelSettings;
+    panelReport();
+  }
+  const P=()=>document.getElementById("att-panel");
+
+  async function panelEnroll(){
+    enShots=[];
+    P().innerHTML=`<video id="att-envideo" autoplay muted playsinline style="width:100%;border-radius:12px;background:#000;transform:scaleX(-1);aspect-ratio:3/4;object-fit:cover"></video>
+      <div id="att-enstat" style="text-align:center;margin:8px 0;color:#666;min-height:20px">Fill name, capture 3 clear shots.</div>
+      <label style="font-size:13px;color:#666">Name</label><input id="att-enname" placeholder="e.g. Ramesh Kumar" style="width:100%;padding:11px;border:1px solid #ccc;border-radius:8px;margin:4px 0 8px">
+      <label style="font-size:13px;color:#666">Employee ID (auto if blank)</label><input id="att-enid" style="width:100%;padding:11px;border:1px solid #ccc;border-radius:8px;margin:4px 0 8px">
+      <div id="att-shots" style="text-align:center;color:#888;font-size:13px">Shots: 0 / 3</div>
+      ${SB("att-cap","📸 Capture shot")}<button id="att-save" disabled style="width:100%;padding:14px;border-radius:12px;border:none;background:#1f9d55;color:#fff;font-weight:700;margin-top:8px;opacity:.5">Save worker</button>`;
+    const ev=document.getElementById("att-envideo");
+    try{await startCam(ev);}catch(e){document.getElementById("att-enstat").textContent="Camera blocked";}
+    try{await ensureFace();}catch(e){}
+    document.getElementById("att-cap").onclick=async()=>{
+      const st=document.getElementById("att-enstat");
+      if(!modelsReady){st.textContent="Models still loading…";return;}
+      st.textContent="Capturing…";
+      const d=await descriptorFrom(ev);
+      if(!d){st.textContent="No face — face camera, good light.";return;}
+      enShots.push(Array.from(d));
+      document.getElementById("att-shots").textContent="Shots: "+enShots.length+" / 3";
+      st.textContent=enShots.length<3?"Good, capture another angle.":"3 shots done — save now.";
+      if(enShots.length>=3){const sv=document.getElementById("att-save");sv.disabled=false;sv.style.opacity="1";}
+    };
+    document.getElementById("att-save").onclick=async()=>{
+      const st=document.getElementById("att-enstat");
+      const name=document.getElementById("att-enname").value.trim();
+      let idv=document.getElementById("att-enid").value.trim();
+      if(!name){st.textContent="Enter a name";return;}
+      if(enShots.length<3){st.textContent="Capture 3 shots first";return;}
+      if(!idv){let n=1;while(EMP.some(e=>e.id==="EMP"+String(n).padStart(3,"0")))n++;idv="EMP"+String(n).padStart(3,"0");}
+      if(EMP.some(e=>e.id===idv)){st.textContent="Employee ID exists";return;}
+      EMP.push({id:idv,name:name,descriptors:enShots,createdAt:Date.now()});
+      try{await saveEmployees();st.textContent="✅ Saved "+name+" ("+idv+")";}
+      catch(e){st.textContent="Saved, will sync when online";}
+      enShots=[];document.getElementById("att-shots").textContent="Shots: 0 / 3";
+      document.getElementById("att-enname").value="";document.getElementById("att-enid").value="";
+      const sv=document.getElementById("att-save");sv.disabled=true;sv.style.opacity=".5";
+    };
+  }
+
+  function panelReport(){
+    stopCam();
+    const t=new Date(),f=new Date(t.getFullYear(),t.getMonth(),1);
+    const ymd=d=>d.toISOString().slice(0,10);
+    P().innerHTML=`<div style="display:flex;gap:8px">
+      <div style="flex:1"><label style="font-size:13px;color:#666">From</label><input type="date" id="att-rf" value="${ymd(f)}" style="width:100%;padding:10px;border:1px solid #ccc;border-radius:8px"></div>
+      <div style="flex:1"><label style="font-size:13px;color:#666">To</label><input type="date" id="att-rt" value="${ymd(t)}" style="width:100%;padding:10px;border:1px solid #ccc;border-radius:8px"></div></div>
+      ${SB("att-rshow","Show")}${GB("att-rcsv","⬇ Export CSV")}<div id="att-rout" style="margin-top:10px"></div>`;
+    let rows=[];
+    async function compute(){
+      const from=new Date(document.getElementById("att-rf").value+"T00:00:00").getTime();
+      const to=new Date(document.getElementById("att-rt").value+"T23:59:59").getTime();
+      const punches=await getPunches(from,to);const map={};
+      punches.forEach(p=>{const k=p.empId+"|"+p.day;(map[k]=map[k]||{empId:p.empId,name:p.name,day:p.day,events:[]}).events.push(p);});
+      rows=Object.values(map).map(g=>{g.events.sort((a,b)=>a.ts-b.ts);let mins=0,oi=null;
+        g.events.forEach(e=>{if(e.type==="IN")oi=e.ts;else if(e.type==="OUT"&&oi!=null){mins+=(e.ts-oi)/60000;oi=null;}});
+        return {empId:g.empId,name:g.name,day:g.day,first:new Date(g.events[0].ts),last:new Date(g.events[g.events.length-1].ts),punches:g.events.length,hours:mins/60,open:oi!=null};})
+        .sort((a,b)=>a.day<b.day?1:a.day>b.day?-1:(a.name>b.name?1:-1));
+      return rows;}
+    document.getElementById("att-rshow").onclick=async()=>{
+      document.getElementById("att-rout").innerHTML="Loading…";await compute();
+      if(!rows.length){document.getElementById("att-rout").innerHTML="<div style='color:#888;text-align:center'>No punches in range.</div>";return;}
+      const tm=d=>d.toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"});
+      let h="<table style='width:100%;border-collapse:collapse;font-size:13px'><tr style='color:#888'><th style='text-align:left;padding:6px'>Date</th><th style='text-align:left'>Name</th><th>In</th><th>Out</th><th>Hrs</th></tr>";
+      rows.forEach(r=>{h+=`<tr style='border-top:1px solid #eee'><td style='padding:6px'>${r.day.slice(5)}</td><td>${r.name}</td><td style='text-align:center'>${tm(r.first)}</td><td style='text-align:center'>${r.open?"<span style='color:#e0a020'>open</span>":tm(r.last)}</td><td style='text-align:center'>${r.hours.toFixed(1)}</td></tr>`;});
+      document.getElementById("att-rout").innerHTML=h+"</table>";};
+    document.getElementById("att-rcsv").onclick=async()=>{
+      if(!rows.length)await compute();
+      if(!rows.length){alert("Nothing to export");return;}
+      let csv="Employee ID,Name,Date,First In,Last Out,Punches,Hours,Status\n";
+      rows.forEach(r=>{csv+=[r.empId,'"'+r.name+'"',r.day,r.first.toLocaleTimeString(),r.open?"":r.last.toLocaleTimeString(),r.punches,r.hours.toFixed(2),r.open?"OPEN":"OK"].join(",")+"\n";});
+      const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([csv],{type:"text/csv"}));
+      a.download="attendance_"+document.getElementById("att-rf").value+"_to_"+document.getElementById("att-rt").value+".csv";a.click();};
+  }
+
+  function panelWorkers(){
+    stopCam();
+    let h=EMP.length?"":"<div style='color:#888;text-align:center'>No workers enrolled.</div>";
+    EMP.slice().sort((a,b)=>a.name>b.name?1:-1).forEach(e=>{
+      h+=`<div style="display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid #eee">
+        <div><b>${e.name}</b><br><span style="color:#999;font-size:12px">${e.id} · ${(e.descriptors||[]).length} shots</span></div>
+        <button data-del="${e.id}" style="padding:7px 12px;border:1px solid #d99;background:#fff;color:#c0392b;border-radius:8px">Delete</button></div>`;});
+    P().innerHTML=h;
+    P().querySelectorAll("[data-del]").forEach(b=>b.onclick=async()=>{
+      if(confirm("Delete this worker? Past punches stay in reports.")){EMP=EMP.filter(x=>x.id!==b.dataset.del);await saveEmployees();panelWorkers();}});
+  }
+
+  function panelSettings(){
+    stopCam();
+    P().innerHTML=`<label style="font-size:13px;color:#666">Match strictness (lower=stricter). Default 0.50</label>
+      <input id="att-sth" value="${THRESH}" inputmode="decimal" style="width:100%;padding:11px;border:1px solid #ccc;border-radius:8px;margin:4px 0 10px">
+      <label style="font-size:13px;color:#666">Look-alike margin (higher=safer). Default 0.06</label>
+      <input id="att-sma" value="${MARGIN}" inputmode="decimal" style="width:100%;padding:11px;border:1px solid #ccc;border-radius:8px;margin:4px 0 10px">
+      ${SB("att-ssave","Save settings")}`;
+    document.getElementById("att-ssave").onclick=async()=>{
+      const t=parseFloat(document.getElementById("att-sth").value),m=parseFloat(document.getElementById("att-sma").value);
+      if(t>0.3&&t<0.9)THRESH=t; if(m>=0&&m<0.3)MARGIN=m; await saveSettings(); alert("Saved");};
+  }
+
+  /* ---- entry ---- */
+  function open(){
+    try{
+      subscribe();
+      if(isEmp())mountKiosk(false); else mountAdmin();
+    }catch(e){console.error("AttModule",e);const r=$r();if(r)r.innerHTML="<div style='padding:20px;text-align:center;color:#c0392b'>Attendance failed to load. Reload the app.</div>";}
+  }
+  /* stop camera when leaving the module */
+  document.addEventListener("visibilitychange",()=>{if(document.hidden)stopCam();else if(wakeLock===null)wake();});
+  return {open:open, stop:stopCam};
 })();
 
 // ── INIT ──
