@@ -10275,16 +10275,45 @@ window.AttModule=(function(){
   const GB=(id,txt)=>`<button id="${id}" style="width:100%;padding:13px;border-radius:12px;border:1px solid #ccc;background:#fff;color:#222;font-size:15px;margin-top:8px">${txt}</button>`;
   function setS(msg,col){const s=document.getElementById("att-status");if(s){s.textContent=msg;s.style.color=col||"#666";}}
 
+  function ensureFlashStyles(){
+    if(document.getElementById("att-flash-css"))return;
+    const st=document.createElement("style");st.id="att-flash-css";
+    st.textContent="@keyframes attPop{0%{transform:scale(.4);opacity:0}60%{transform:scale(1.08)}100%{transform:scale(1);opacity:1}}.att-pop{animation:attPop .35s cubic-bezier(.2,.9,.3,1.2) both}";
+    document.head.appendChild(st);
+  }
+  let flashTimer=null;
+  function flashSuccess(name,type,timeStr){
+    const f=document.getElementById("att-flash");if(!f)return;
+    f.style.background="rgba(31,157,85,.95)";
+    f.innerHTML='<div class="att-pop"><svg viewBox="0 0 120 120" width="132" height="132"><circle cx="60" cy="60" r="56" fill="#fff"/><path d="M36 62 L54 80 L86 42" fill="none" stroke="#1f9d55" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/></svg>'
+      +'<div style="color:#fff;font-size:30px;font-weight:800;margin-top:10px">'+name+'</div>'
+      +'<div style="color:#fff;font-size:42px;font-weight:900;letter-spacing:3px;margin-top:2px">'+type+'</div>'
+      +'<div style="color:rgba(255,255,255,.92);font-size:16px;margin-top:4px">'+timeStr+'</div></div>';
+    f.style.display="flex";
+    clearTimeout(flashTimer);flashTimer=setTimeout(function(){f.style.display="none";setS("Ready. Tap IN or OUT.","#1f9d55");},2600);
+  }
+  function flashFail(msg){
+    const f=document.getElementById("att-flash");if(!f)return;
+    f.style.background="rgba(192,57,43,.95)";
+    f.innerHTML='<div class="att-pop"><svg viewBox="0 0 120 120" width="120" height="120"><circle cx="60" cy="60" r="56" fill="#fff"/><path d="M42 42 L78 78 M78 42 L42 78" stroke="#c0392b" stroke-width="12" stroke-linecap="round"/></svg>'
+      +'<div style="color:#fff;font-size:20px;font-weight:700;margin-top:10px;padding:0 20px">'+msg+'</div></div>';
+    f.style.display="flex";
+    clearTimeout(flashTimer);flashTimer=setTimeout(function(){f.style.display="none";setS("Ready. Tap IN or OUT.","#1f9d55");},1900);
+  }
+
   /* ---- KIOSK ---- */
   function kioskHTML(showAdmin){
     return `<div style="max-width:520px;margin:0 auto;padding:6px">
-      <video id="att-video" autoplay muted playsinline style="width:100%;border-radius:12px;background:#000;transform:scaleX(-1);aspect-ratio:3/4;object-fit:cover"></video>
+      <div style="position:relative">
+        <video id="att-video" autoplay muted playsinline style="width:100%;border-radius:12px;background:#000;transform:scaleX(-1);aspect-ratio:3/4;object-fit:cover"></video>
+        <div id="att-flash" style="position:absolute;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;border-radius:12px;text-align:center;pointer-events:none"></div>
+      </div>
       <div id="att-status" style="text-align:center;margin:10px 0;min-height:22px;color:#666">Loading…</div>
       <div style="display:flex;gap:12px">${B("att-in","IN","#1f9d55")}${B("att-out","OUT","#c0392b")}</div>
       ${showAdmin?`<div style="text-align:center;margin-top:14px"><button id="att-toadmin" style="background:none;border:none;color:#888;text-decoration:underline;font-size:13px">Admin panel</button></div>`:""}
     </div>`;}
   async function mountKiosk(showAdmin){
-    $r().innerHTML=kioskHTML(showAdmin);
+    $r().innerHTML=kioskHTML(showAdmin);ensureFlashStyles();
     curVideo=document.getElementById("att-video");
     document.getElementById("att-in").onclick=()=>punch("IN");
     document.getElementById("att-out").onclick=()=>punch("OUT");
@@ -10298,13 +10327,13 @@ window.AttModule=(function(){
     if(!EMP.length){setS("No workers enrolled","#c0392b");return;}
     setS("Look at the camera…","#b08a3e");
     let live; try{live=await descriptorFrom(curVideo);}catch(e){setS("Face error — retry","#c0392b");return;}
-    if(!live){setS("No face detected — try again","#c0392b");return;}
+    if(!live){flashFail("No face detected — try again");return;}
     const {emp,best,second}=identify(live);
-    if(!emp||best>THRESH){setS("❌ Face not recognised — try again","#c0392b");return;}
-    if((second-best)<MARGIN){setS("⚠ Too close to another face — move closer & retry","#c0392b");return;}
+    if(!emp||best>THRESH){flashFail("Not recognised — try again");return;}
+    if((second-best)<MARGIN){flashFail("Too close to another face — move closer & retry");return;}
     const ts=Date.now();
     addPunch({empId:emp.id,name:emp.name,type:type,ts:ts,day:new Date(ts).toLocaleDateString("en-CA")});
-    setS("✅ "+emp.name+" — "+type+" at "+new Date(ts).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"}),"#1f9d55");
+    flashSuccess(emp.name,type,new Date(ts).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"}));
   }
 
   /* ---- ADMIN (owner) ---- */
