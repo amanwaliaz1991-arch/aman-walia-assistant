@@ -1991,7 +1991,7 @@ document.addEventListener("touchstart", function(e){
           <button class="btn btn-sm btn-p" onclick="qtAddRow()">+ Blank Row</button>
         </div>
         <div class="tbl-scroll"><table class="tbl">
-          <thead><tr><th style="width:32px">#</th><th>Description</th><th style="width:70px">Qty</th><th style="width:70px">Unit</th><th style="width:100px">Rate (Rs)</th><th style="width:110px">Amount</th><th style="width:36px"></th></tr></thead>
+          <thead><tr><th style="width:32px">#</th><th>Description</th><th style="width:78px">Qty</th><th style="width:72px">Unit</th><th style="width:100px">Rate (Rs)</th><th style="width:110px">Amount</th><th style="width:36px"></th></tr></thead>
           <tbody id="qt-rows"></tbody>
         </table></div>
         <div class="fr" style="margin-top:12px">
@@ -2371,6 +2371,9 @@ function goBack(){
   document.addEventListener("touchstart", e=>{
     if(!e.touches || e.touches.length!==1) { tracking=false; return; }
     const t=e.touches[0];
+    // never hijack touches that begin on form fields, buttons, or scrollable tables
+    const el=e.target;
+    if(el && el.closest && el.closest("input,select,textarea,button,.tbl-scroll,.tbl,[contenteditable]")){ tracking=false; return; }
     // ignore if starting on the sidebar or a scrollable-x element
     if(t.clientX <= EDGE){ sx=t.clientX; sy=t.clientY; startT=Date.now(); tracking=true; }
     else tracking=false;
@@ -7707,9 +7710,9 @@ function qtAddRow(desc="", qty=1, unit="pcs", rate=""){
   tr.innerHTML = `
     <td style="color:var(--muted);font-size:13px" class="qt-sn"></td>
     <td><input class="inp" value="${desc.replace(/"/g,'&quot;')}" placeholder="Item description" style="width:100%;min-width:160px;font-size:13px" oninput="qtRecalc()" data-f="desc"></td>
-    <td><input class="inp" type="number" value="${qty}" style="width:100%;font-size:13px" oninput="qtRecalc()" data-f="qty"></td>
-    <td><input class="inp" value="${unit}" style="width:100%;font-size:13px" data-f="unit"></td>
-    <td><input class="inp" type="number" value="${rate}" style="width:100%;font-size:13px" oninput="qtRecalc()" data-f="rate"></td>
+    <td><input class="inp" type="number" inputmode="decimal" value="${qty}" style="width:100%;min-width:60px;font-size:14px;padding:11px 8px" oninput="qtRecalc()" data-f="qty"></td>
+    <td><input class="inp" value="${unit}" style="width:100%;min-width:56px;font-size:14px;padding:11px 8px" data-f="unit"></td>
+    <td><input class="inp" type="number" inputmode="decimal" value="${rate}" style="width:100%;min-width:80px;font-size:14px;padding:11px 8px" oninput="qtRecalc()" data-f="rate"></td>
     <td class="qt-amt" style="font-family:'JetBrains Mono';font-size:13px;font-weight:600">—</td>
     <td><button class="btn-d" onclick="document.getElementById('qtr-${rid}').remove();qtRecalc()">✕</button></td>`;
   tb.appendChild(tr);
