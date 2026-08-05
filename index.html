@@ -10260,7 +10260,7 @@ window.AttModule=(function(){
     if(!stream)stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:"user",width:{ideal:640},height:{ideal:480}},audio:false});
     v.srcObject=stream;await v.play().catch(()=>{});}
   function stopCam(){if(stream){stream.getTracks().forEach(t=>t.stop());stream=null;}}
-  async function wake(){try{if("wakeLock" in navigator)wakeLock=await navigator.wakeLock.request("screen");}catch(e){}}
+  async function wake(){try{if("wakeLock" in navigator){wakeLock=await navigator.wakeLock.request("screen");wakeLock.addEventListener("release",function(){wakeLock=null;});}}catch(e){}}
 
   /* ---- identify ---- */
   function identify(live){
@@ -10295,7 +10295,7 @@ window.AttModule=(function(){
       +'<div style="color:#fff;font-size:42px;font-weight:900;letter-spacing:3px;margin-top:2px">'+type+'</div>'
       +'<div style="color:rgba(255,255,255,.92);font-size:16px;margin-top:4px">'+timeStr+'</div></div>';
     f.style.display="flex";
-    clearTimeout(flashTimer);flashTimer=setTimeout(function(){f.style.display="none";setS("Ready. Tap IN or OUT.","#1f9d55");},2600);
+    clearTimeout(flashTimer);flashTimer=setTimeout(function(){f.style.display="none";setS("Ready. Tap IN or OUT.","#8ef0af");},2600);
   }
   function flashFail(msg){
     const f=document.getElementById("att-flash");if(!f)return;
@@ -10303,43 +10303,73 @@ window.AttModule=(function(){
     f.innerHTML='<div class="att-pop"><svg viewBox="0 0 120 120" width="120" height="120"><circle cx="60" cy="60" r="56" fill="#fff"/><path d="M42 42 L78 78 M78 42 L42 78" stroke="#c0392b" stroke-width="12" stroke-linecap="round"/></svg>'
       +'<div style="color:#fff;font-size:20px;font-weight:700;margin-top:10px;padding:0 20px">'+msg+'</div></div>';
     f.style.display="flex";
-    clearTimeout(flashTimer);flashTimer=setTimeout(function(){f.style.display="none";setS("Ready. Tap IN or OUT.","#1f9d55");},1900);
+    clearTimeout(flashTimer);flashTimer=setTimeout(function(){f.style.display="none";setS("Ready. Tap IN or OUT.","#8ef0af");},1900);
+  }
+  function flashWarn(msg){
+    const f=document.getElementById("att-flash");if(!f)return;
+    f.style.background="rgba(214,158,46,.96)";failSound();
+    f.innerHTML='<div class="att-pop"><svg viewBox="0 0 120 120" width="118" height="118"><circle cx="60" cy="60" r="56" fill="#fff"/><path d="M60 30 L60 68" stroke="#c98a1a" stroke-width="12" stroke-linecap="round"/><circle cx="60" cy="88" r="7" fill="#c98a1a"/></svg>'
+      +'<div style="color:#fff;font-size:23px;font-weight:800;margin-top:10px;padding:0 20px">'+msg+'</div></div>';
+    f.style.display="flex";
+    clearTimeout(flashTimer);flashTimer=setTimeout(function(){f.style.display="none";setS("Ready. Tap IN or OUT.","#8ef0af");},1900);
   }
 
   /* ---- KIOSK ---- */
-  function kioskHTML(showAdmin){
-    return `<div style="max-width:520px;margin:0 auto;padding:6px">
-      <div style="position:relative">
-        <video id="att-video" autoplay muted playsinline style="width:100%;border-radius:12px;background:#000;transform:scaleX(-1);aspect-ratio:3/4;object-fit:cover"></video>
-        <div id="att-flash" style="position:absolute;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;border-radius:12px;text-align:center;pointer-events:none"></div>
-      </div>
-      <div id="att-status" style="text-align:center;margin:10px 0;min-height:22px;color:#666">Loading…</div>
-      <div style="display:flex;gap:12px">${B("att-in","IN","#1f9d55")}${B("att-out","OUT","#c0392b")}</div>
-      ${showAdmin?`<div style="text-align:center;margin-top:14px"><button id="att-toadmin" style="background:none;border:none;color:#888;text-decoration:underline;font-size:13px">Admin panel</button></div>`:""}
-    </div>`;}
-  async function mountKiosk(showAdmin){
-    $r().innerHTML=kioskHTML(showAdmin);ensureFlashStyles();
+  /* full-screen kiosk + double-punch guard */
+  let punchState={}, busy=false;
+  async function seedState(){
+    try{const s=new Date();s.setHours(0,0,0,0);
+      const ps=await getPunches(s.getTime(),Date.now());ps.sort((a,b)=>a.ts-b.ts);
+      const m={};ps.forEach(p=>{m[p.empId]=p.type;});punchState=m;}catch(e){}
+  }
+  function removeKiosk(){const k=document.getElementById("att-kiosk-full");if(k)k.remove();}
+  function kioskHTML(owner){
+    const bt=(id,txt,bg)=>`<button id="${id}" style="flex:1;border:none;border-radius:16px;padding:26px 0;font-size:26px;font-weight:800;color:#fff;letter-spacing:2px;background:${bg};box-shadow:0 6px 18px rgba(0,0,0,.45)">${txt}</button>`;
+    return `<div id="att-kiosk-full" style="position:fixed;inset:0;z-index:99999;background:#000;overflow:hidden">
+      <video id="att-video" autoplay muted playsinline style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transform:scaleX(-1)"></video>
+      <div id="att-flash" style="position:absolute;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;text-align:center;pointer-events:none"></div>
+      <div id="att-status" style="position:absolute;left:0;right:0;bottom:132px;text-align:center;color:#fff;font-size:18px;text-shadow:0 1px 4px #000;padding:0 16px">Loading…</div>
+      <div style="position:absolute;left:0;right:0;bottom:0;display:flex;gap:14px;padding:16px 16px 22px">${bt("att-in","IN","#1f9d55")}${bt("att-out","OUT","#c0392b")}</div>
+      ${owner?`<button id="att-exit" style="position:absolute;top:12px;right:12px;z-index:5;background:rgba(0,0,0,.55);color:#fff;border:1px solid rgba(255,255,255,.35);border-radius:20px;padding:8px 14px;font-size:13px">\u2715 Exit</button>`:`<div id="att-exit-zone" style="position:absolute;top:0;left:0;width:64px;height:64px;z-index:5"></div>`}
+    </div>`;
+  }
+  async function mountKiosk(owner){
+    removeKiosk();
+    const host=document.createElement("div");host.innerHTML=kioskHTML(owner);
+    document.body.appendChild(host.firstElementChild);
+    ensureFlashStyles();
     curVideo=document.getElementById("att-video");
     document.getElementById("att-in").onclick=()=>punch("IN");
     document.getElementById("att-out").onclick=()=>punch("OUT");
-    if(showAdmin)document.getElementById("att-toadmin").onclick=()=>mountAdmin();
-    try{await startCam(curVideo);}catch(e){setS("Camera blocked — allow camera & use HTTPS","#c0392b");return;}
-    wake(); setS("Loading face models…","#b08a3e");
-    try{await ensureFace();}catch(e){setS("Model load failed — check internet","#c0392b");return;}
-    setS(EMP.length?"Ready. Tap IN or OUT.":"No workers enrolled yet.", EMP.length?"#1f9d55":"#b08a3e");
+    if(owner){document.getElementById("att-exit").onclick=()=>{removeKiosk();stopCam();mountAdmin();};}
+    else{let taps=0,tt=null;const z=document.getElementById("att-exit-zone");
+      if(z)z.onclick=()=>{taps++;clearTimeout(tt);tt=setTimeout(()=>taps=0,800);if(taps>=3){removeKiosk();stopCam();go("home");}};}
+    try{await startCam(curVideo);}catch(e){setS("Camera blocked — allow camera & use HTTPS","#ff8a7a");return;}
+    wake();
+    if(!window.__attWakeIv)window.__attWakeIv=setInterval(()=>{if(document.getElementById("att-kiosk-full")&&!wakeLock&&!document.hidden)wake();},30000);
+    setS("Loading face models…","#ffd479");
+    try{await ensureFace();}catch(e){setS("Model load failed — check internet","#ff8a7a");return;}
+    await seedState();
+    setS(EMP.length?"Ready. Tap IN or OUT.":"No workers enrolled yet.", EMP.length?"#8ef0af":"#ffd479");
   }
   async function punch(type){
     audioCtx();
-    if(!EMP.length){setS("No workers enrolled","#c0392b");return;}
-    setS("Look at the camera…","#b08a3e");
-    let live; try{live=await descriptorFrom(curVideo);}catch(e){setS("Face error — retry","#c0392b");return;}
-    if(!live){flashFail("No face detected — try again");return;}
+    if(busy)return;
+    if(!EMP.length){flashFail("No workers enrolled");return;}
+    busy=true; setS("Look at the camera…","#ffd479");
+    let live; try{live=await descriptorFrom(curVideo);}catch(e){busy=false;flashFail("Face error — retry");return;}
+    if(!live){busy=false;flashFail("No face detected — try again");return;}
     const {emp,best,second}=identify(live);
-    if(!emp||best>THRESH){flashFail("Not recognised — try again");return;}
-    if((second-best)<MARGIN){flashFail("Too close to another face — move closer & retry");return;}
+    if(!emp||best>THRESH){busy=false;flashFail("Not recognised — try again");return;}
+    if((second-best)<MARGIN){busy=false;flashFail("Too close to another face — retry");return;}
+    const cur=punchState[emp.id];
+    if(type==="IN" && cur==="IN"){busy=false;flashWarn(emp.name+" is already IN");return;}
+    if(type==="OUT" && cur!=="IN"){busy=false;flashWarn(emp.name+(cur==="OUT"?" is already OUT":" hasn't punched IN"));return;}
     const ts=Date.now();
     addPunch({empId:emp.id,name:emp.name,type:type,ts:ts,day:new Date(ts).toLocaleDateString("en-CA")});
+    punchState[emp.id]=type;
     flashSuccess(emp.name,type,new Date(ts).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"}));
+    busy=false;
   }
 
   /* ---- ADMIN (owner) ---- */
@@ -10466,8 +10496,9 @@ window.AttModule=(function(){
     }catch(e){console.error("AttModule",e);const r=$r();if(r)r.innerHTML="<div style='padding:20px;text-align:center;color:#c0392b'>Attendance failed to load. Reload the app.</div>";}
   }
   /* stop camera when leaving the module */
-  document.addEventListener("visibilitychange",()=>{if(document.hidden)stopCam();else if(wakeLock===null)wake();});
-  return {open:open, stop:stopCam};
+  document.addEventListener("visibilitychange",()=>{if(document.hidden)stopCam();else{if(!wakeLock)wake();}});
+  function stopAll(){removeKiosk();stopCam();}
+  return {open:open, stop:stopAll};
 })();
 
 // ── INIT ──
