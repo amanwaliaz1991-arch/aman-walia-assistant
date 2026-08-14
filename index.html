@@ -4869,14 +4869,13 @@ function R_home(){
   const mdList = document.getElementById("dash-mustdo-list");
   if(mdList){
     const catIcons2={health:"❤️",business:"💼",personal:"🧘",fitness:"🏃",learning:"📚",spiritual:"🙏"};
-    mdList.innerHTML = (D.mustdo||[]).slice(0,6).map(t=>`
+    mdList.innerHTML = (D.mustdo||[]).map(t=>`
       <div class="task-item ${t.doneToday?"di":""}" style="padding:10px 14px">
         <div class="chk ${t.doneToday?"done":""}" onclick="toggleMustDo(${t.id});R_home()" style="width:22px;height:22px;min-width:22px"></div>
         <span style="font-size:15px">${catIcons2[t.cat]||"✅"}</span>
         <span style="font-size:13.5px;flex:1;${t.doneToday?"text-decoration:line-through;color:var(--dim)":""}">${t.text}</span>
         ${t.time?`<span style="font-size:12px;color:var(--muted)">${t.time}</span>`:""}
       </div>`).join("")||`<div style="padding:14px;font-size:13px;color:var(--muted)">No tasks. <span style="color:var(--ac);cursor:pointer" onclick="go('mustdo')">+ Add →</span></div>`;
-    if((D.mustdo||[]).length>6) mdList.innerHTML += `<div style="padding:6px 14px;font-size:12px;color:var(--muted)">+${D.mustdo.length-6} more →</div>`;
   }
 
   // ── TODAY TASKS ──
