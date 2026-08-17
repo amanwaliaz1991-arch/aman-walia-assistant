@@ -2231,7 +2231,10 @@ document.addEventListener("touchstart", function(e){
   </div>
 
   <!-- SHEET TABS -->
-  <div id="lg-tabs" style="display:flex;gap:4px;align-items:center;overflow-x:auto;border-bottom:2px solid var(--b1);padding-bottom:0;margin-bottom:12px;white-space:nowrap"></div>
+  <div style="display:flex;align-items:stretch;gap:0;border-bottom:2px solid var(--b1);margin-bottom:12px">
+    <div id="lg-tabs" style="display:flex;gap:4px;align-items:center;overflow-x:auto;flex:1;min-width:0;white-space:nowrap;-webkit-overflow-scrolling:touch"></div>
+    <button class="btn btn-p" style="flex-shrink:0;align-self:center;margin-left:8px;font-weight:700;padding:9px 14px" onclick="lgPartyForm()">＋ Party</button>
+  </div>
 
   <div id="lg-sheet"></div>
 </div>
@@ -4083,8 +4086,7 @@ const R={
     const tab = (id,label,active) => `<button class="lg-tab${active?" on":""}" onclick="lgSheet('${id}')">${label}</button>`;
     document.getElementById("lg-tabs").innerHTML =
       tab("summary","📊 Summary", LG.sheet==="summary") +
-      parties.map(p=>tab(p.id, p.name, LG.sheet===p.id)).join("") +
-      `<button class="lg-tab" style="color:var(--ac);font-weight:700" onclick="lgPartyForm()">＋ Party</button>`;
+      parties.map(p=>tab(p.id, p.name, LG.sheet===p.id)).join("");
 
     const sheet = document.getElementById("lg-sheet");
     if(LG.sheet === "summary"){ sheet.innerHTML = lgSummaryHTML(); return; }
