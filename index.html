@@ -282,6 +282,8 @@ mark{background:#fef08a;border-radius:2px;padding:0 2px;}
 .lg-tab{background:var(--s2);border:1px solid var(--b1);border-bottom:none;border-radius:9px 9px 0 0;
   padding:11px 18px;font-size:15px;font-weight:600;cursor:pointer;color:var(--muted);
   white-space:nowrap;margin-bottom:-2px;transition:all .12s}
+.lg-tabbadge{display:inline-block;margin-left:6px;font-size:10px;font-weight:700;padding:1px 6px;border-radius:10px;vertical-align:middle;font-variant-numeric:tabular-nums}
+
 .lg-tab:hover{background:#fff;color:var(--ink)}
 .lg-tab.on{background:#fff;color:var(--ac);border-color:var(--b1);border-bottom:2px solid #fff;font-weight:800}
 table.lg-grid{border-collapse:separate;border-spacing:0}
@@ -4085,11 +4087,28 @@ const R={
     if(!LG.sheet) LG.sheet = "summary";
     if(LG.sheet !== "summary" && !parties.find(p=>p.id===LG.sheet)) LG.sheet = "summary";
 
-    // ── Sheet tabs ──
+    // ── Sheet tabs (with balance badge per party) ──
     const tab = (id,label,active) => `<button class="lg-tab${active?" on":""}" onclick="lgSheet('${id}')">${label}</button>`;
+    const tabWithBal = (p,active) => {
+      const bal = lgBalOf(p.id);
+      const abs = Math.abs(Math.round(bal));
+      // short amount: 12500 -> 12.5k, 250000 -> 2.5L
+      let short;
+      if(abs>=100000) short = "₹"+(abs/100000).toFixed(abs%100000?1:0)+"L";
+      else if(abs>=1000) short = "₹"+(abs/1000).toFixed(abs%1000?1:0)+"k";
+      else short = "₹"+abs;
+      let badge="";
+      if(abs>0){
+        // positive balance = they owe you (receivable, green); negative = you owe (payable, red)
+        const col = bal>0 ? "var(--green)" : "var(--red)";
+        const bg = bal>0 ? "rgba(22,163,74,.12)" : "rgba(220,38,38,.12)";
+        badge = `<span class="lg-tabbadge" style="color:${col};background:${bg}">${short}</span>`;
+      }
+      return `<button class="lg-tab${active?" on":""}" onclick="lgSheet('${p.id}')">${p.name}${badge}</button>`;
+    };
     document.getElementById("lg-tabs").innerHTML =
       tab("summary","📊 Summary", LG.sheet==="summary") +
-      parties.map(p=>tab(p.id, p.name, LG.sheet===p.id)).join("");
+      parties.map(p=>tabWithBal(p, LG.sheet===p.id)).join("");
 
     const sheet = document.getElementById("lg-sheet");
     if(LG.sheet === "summary"){ sheet.innerHTML = lgSummaryHTML(); const _sq=document.getElementById("lg-search"); if(_sq && _sq.value) lgFilterParties(_sq.value); return; }
@@ -8695,12 +8714,16 @@ async function lgDoImport(){
 // ══════════════════════════════════════════
 function lgFilterParties(q){
   q=(q||"").trim().toLowerCase();
-  // Filter the party tabs
+  const parties = (LG.data&&LG.data.parties)||[];
+  // Filter the party tabs — match against the party's name, city, phone & gstin
   document.querySelectorAll("#lg-tabs .lg-tab").forEach(tab=>{
     // never hide the Summary tab
     if(tab.textContent.includes("Summary")){ tab.style.display=""; return; }
-    const match = !q || tab.textContent.toLowerCase().includes(q);
-    tab.style.display = match ? "" : "none";
+    const oc = tab.getAttribute("onclick")||"";
+    const m = oc.match(/lgSheet\('([^']+)'\)/);
+    const p = m ? parties.find(x=>x.id===m[1]) : null;
+    const hay = p ? [p.name,p.city,p.phone,p.gstin].filter(Boolean).join(" ").toLowerCase() : tab.textContent.toLowerCase();
+    tab.style.display = (!q || hay.includes(q)) ? "" : "none";
   });
   // If on the summary view, filter its table rows too
   const sheet=document.getElementById("lg-sheet");
