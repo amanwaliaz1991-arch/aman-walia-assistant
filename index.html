@@ -2231,8 +2231,8 @@ document.addEventListener("touchstart", function(e){
   </div>
 
   <!-- SHEET TABS -->
-  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;gap:8px">
-    <div style="font-size:12px;color:var(--muted);font-weight:600">Select a party's ledger below</div>
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;gap:8px;flex-wrap:wrap">
+    <input class="inp" id="lg-search" placeholder="🔍 Search party by name / city…" style="flex:1;min-width:180px;font-size:13px;padding:9px 12px" oninput="lgFilterParties(this.value)">
     <button class="btn btn-p" style="flex-shrink:0;font-weight:700;padding:9px 16px" onclick="lgPartyForm()">＋ Add Party</button>
   </div>
   <div style="display:flex;align-items:stretch;gap:0;border-bottom:2px solid var(--b1);margin-bottom:12px">
@@ -4092,9 +4092,10 @@ const R={
       parties.map(p=>tab(p.id, p.name, LG.sheet===p.id)).join("");
 
     const sheet = document.getElementById("lg-sheet");
-    if(LG.sheet === "summary"){ sheet.innerHTML = lgSummaryHTML(); return; }
+    if(LG.sheet === "summary"){ sheet.innerHTML = lgSummaryHTML(); const _sq=document.getElementById("lg-search"); if(_sq && _sq.value) lgFilterParties(_sq.value); return; }
     sheet.innerHTML = lgGridHTML(parties.find(p=>p.id===LG.sheet));
     lgRecalc();
+    const _sq=document.getElementById("lg-search"); if(_sq && _sq.value) lgFilterParties(_sq.value);
   },
 
   accounts(){
@@ -8692,6 +8693,28 @@ async function lgDoImport(){
 // Rows edit in place; balances recompute live.
 // Never re-renders the grid while typing (focus).
 // ══════════════════════════════════════════
+function lgFilterParties(q){
+  q=(q||"").trim().toLowerCase();
+  // Filter the party tabs
+  document.querySelectorAll("#lg-tabs .lg-tab").forEach(tab=>{
+    // never hide the Summary tab
+    if(tab.textContent.includes("Summary")){ tab.style.display=""; return; }
+    const match = !q || tab.textContent.toLowerCase().includes(q);
+    tab.style.display = match ? "" : "none";
+  });
+  // If on the summary view, filter its table rows too
+  const sheet=document.getElementById("lg-sheet");
+  if(sheet){
+    sheet.querySelectorAll("table.tbl tbody tr").forEach(tr=>{
+      // only filter rows that look like party rows (have onclick lgSheet)
+      const clickable = tr.getAttribute("onclick")||"";
+      if(!clickable.includes("lgSheet")) return;
+      const txt=tr.textContent.toLowerCase();
+      tr.style.display = (!q || txt.includes(q)) ? "" : "none";
+    });
+  }
+}
+
 function lgSheet(id){ LG.sheet = id; R.ledger(); }
 
 function lgToggleDense(){
