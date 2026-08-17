@@ -2231,9 +2231,12 @@ document.addEventListener("touchstart", function(e){
   </div>
 
   <!-- SHEET TABS -->
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;gap:8px">
+    <div style="font-size:12px;color:var(--muted);font-weight:600">Select a party's ledger below</div>
+    <button class="btn btn-p" style="flex-shrink:0;font-weight:700;padding:9px 16px" onclick="lgPartyForm()">＋ Add Party</button>
+  </div>
   <div style="display:flex;align-items:stretch;gap:0;border-bottom:2px solid var(--b1);margin-bottom:12px">
     <div id="lg-tabs" style="display:flex;gap:4px;align-items:center;overflow-x:auto;flex:1;min-width:0;white-space:nowrap;-webkit-overflow-scrolling:touch"></div>
-    <button class="btn btn-p" style="flex-shrink:0;align-self:center;margin-left:8px;font-weight:700;padding:9px 14px" onclick="lgPartyForm()">＋ Party</button>
   </div>
 
   <div id="lg-sheet"></div>
