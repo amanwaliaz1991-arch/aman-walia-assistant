@@ -381,58 +381,78 @@ document.addEventListener("touchstart", function(e){
   const t=e.touches&&e.touches[0]; if(!t) return;
   _uniTouchXY={x:t.clientX,y:t.clientY}
 
-/* ── Brand Launch Tracker (compact) ── */
-.blt-hero{background:linear-gradient(135deg,#1a2332,#0f1620);border-radius:16px;padding:18px;color:#fff;position:relative;overflow:hidden;margin-bottom:16px}
-.blt-hero::after{content:"";position:absolute;right:-30px;top:-30px;width:140px;height:140px;background:radial-gradient(circle,rgba(217,119,6,.2),transparent 70%);pointer-events:none}
-.blt-hlabel{font-size:10px;letter-spacing:2px;text-transform:uppercase;color:#d97706;font-weight:700;margin-bottom:5px}
-.blt-htitle{font-size:19px;font-weight:800;line-height:1.15;position:relative;z-index:1}
-.blt-hstats{display:flex;margin-top:16px;position:relative;z-index:1}
-.blt-hstat{flex:1;text-align:center;border-right:1px solid rgba(255,255,255,.1)}
+/* ── Brand Launch Tracker (premium) ── */
+.blt-hero{background:linear-gradient(150deg,#1e293b 0%,#0f172a 60%,#020617 100%);border-radius:20px;padding:20px;color:#fff;position:relative;overflow:hidden;margin-bottom:14px;box-shadow:0 10px 30px -10px rgba(15,23,42,.5)}
+.blt-hero::before{content:"🏏";position:absolute;right:-8px;bottom:-14px;font-size:96px;opacity:.06;transform:rotate(-18deg)}
+.blt-hero::after{content:"";position:absolute;left:0;top:0;right:0;height:3px;background:linear-gradient(90deg,#C8B89A,#16a34a,#ea580c)}
+.blt-hlabel{font-size:10px;letter-spacing:2.5px;text-transform:uppercase;color:#fbbf24;font-weight:800;margin-bottom:7px}
+.blt-htitle{font-size:20px;font-weight:800;line-height:1.15;position:relative;z-index:1}
+.blt-hsub{font-size:12px;color:#94a3b8;margin-top:3px}
+.blt-hstats{display:flex;margin-top:16px;background:rgba(255,255,255,.05);border-radius:12px;padding:11px 4px;position:relative;z-index:1}
+.blt-hstat{flex:1;text-align:center;border-right:1px solid rgba(255,255,255,.08)}
 .blt-hstat:last-child{border:none}
-.blt-hstat-n{font-size:22px;font-weight:800;font-variant-numeric:tabular-nums}
-.blt-hstat-l{font-size:9px;letter-spacing:.5px;text-transform:uppercase;color:#9aa5b4;margin-top:2px}
-.blt-brand{background:var(--s1);border-radius:14px;margin-bottom:14px;overflow:hidden;border:1px solid var(--b1)}
-.blt-btop{padding:14px 16px;display:flex;align-items:center;gap:12px;position:relative}
+.blt-hstat-n{font-size:21px;font-weight:800;font-variant-numeric:tabular-nums;line-height:1}
+.blt-hstat-l{font-size:8.5px;letter-spacing:.6px;text-transform:uppercase;color:#94a3b8;margin-top:3px}
+.blt-due{background:var(--s1);border:1px solid var(--b1);border-radius:14px;padding:13px 15px;margin-bottom:14px}
+.blt-duehdr{display:flex;align-items:center;gap:7px;font-size:12px;font-weight:800;color:var(--tx);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px}
+.blt-duecnt{background:var(--red);color:#fff;font-size:10px;padding:1px 7px;border-radius:10px;margin-left:auto}
+.blt-dueitem{display:flex;align-items:center;gap:10px;padding:7px 0;border-top:1px solid var(--s2);cursor:pointer}
+.blt-duedot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.blt-duetxt{flex:1;font-size:13px;font-weight:600;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.blt-duebrand{font-size:10px;color:var(--muted);font-weight:700}
+.blt-duewhen{font-size:11px;font-weight:700;white-space:nowrap}
+.blt-brand{background:var(--s1);border-radius:16px;margin-bottom:14px;overflow:hidden;border:1px solid var(--b1);box-shadow:0 2px 8px -4px rgba(22,29,43,.1)}
+.blt-btop{padding:15px 16px 13px;position:relative;background:linear-gradient(180deg,var(--s2),var(--s1))}
+.blt-btoprow{display:flex;align-items:center;gap:12px}
 .blt-bacc{position:absolute;left:0;top:0;bottom:0;width:4px}
-.blt-bicon{width:40px;height:40px;border-radius:11px;display:grid;place-items:center;font-size:21px;flex-shrink:0}
-.blt-bname{font-size:17px;font-weight:800;cursor:pointer}
+.blt-bicon{width:42px;height:42px;border-radius:12px;display:grid;place-items:center;font-size:22px;flex-shrink:0;box-shadow:0 2px 6px -2px rgba(0,0,0,.15)}
+.blt-bname{font-size:18px;font-weight:800;letter-spacing:-.2px;cursor:pointer}
 .blt-bdesc{font-size:11px;color:var(--muted);margin-top:1px}
-.blt-bright{margin-left:auto;text-align:right;flex-shrink:0}
-.blt-cdnum{font-size:19px;font-weight:800;line-height:1}
-.blt-cdlbl{font-size:9px;text-transform:uppercase;letter-spacing:.5px;color:var(--muted)}
-.blt-settgt{font-size:11px;color:var(--ac);cursor:pointer;font-weight:600;line-height:1.3}
-.blt-bprog{padding:0 16px 14px}
-.blt-bptop{display:flex;justify-content:space-between;font-size:11px;color:var(--muted);margin-bottom:5px}
-.blt-bpbar{height:8px;background:var(--s2);border-radius:5px;overflow:hidden}
-.blt-bpfill{height:100%;border-radius:5px;transition:width .3s}
+.blt-bcount{margin-left:auto;text-align:right;flex-shrink:0}
+.blt-bcountdays{font-size:20px;font-weight:800;line-height:1;font-variant-numeric:tabular-nums}
+.blt-bcountlbl{font-size:9px;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-top:2px}
+.blt-settgt{font-size:11px;color:var(--ac);cursor:pointer;font-weight:700;text-align:right;line-height:1.3}
+.blt-bprog{margin-top:13px}
+.blt-bprogtop{display:flex;justify-content:space-between;align-items:baseline;font-size:11px;color:var(--muted);margin-bottom:5px}
+.blt-bprogpct{font-size:15px;font-weight:800}
+.blt-bprogbar{height:9px;background:var(--b1);border-radius:6px;overflow:hidden;position:relative}
+.blt-bprogfill{height:100%;border-radius:6px;transition:width .4s}
 .blt-ms{border-top:1px solid var(--b1)}
-.blt-msrow{padding:12px 16px;display:flex;align-items:center;gap:11px;cursor:pointer}
-.blt-check{width:20px;height:20px;border-radius:6px;border:2px solid var(--b2);flex-shrink:0;display:grid;place-items:center;font-size:12px;background:var(--s1)}
+.blt-msrow{padding:12px 16px;display:flex;align-items:center;gap:11px;cursor:pointer;transition:background .12s}
+.blt-msrow:active{background:var(--s2)}
+.blt-check{width:22px;height:22px;border-radius:7px;border:2px solid var(--b2);flex-shrink:0;display:grid;place-items:center;font-size:12px;background:var(--s1);transition:.15s}
 .blt-check.done{background:var(--green);border-color:var(--green);color:#fff}
-.blt-check.prog{border-color:var(--orange)}
+.blt-check.prog{border-color:var(--orange);background:rgba(234,88,12,.08)}
 .blt-msmid{flex:1;min-width:0}
-.blt-mstitle{font-size:14px;font-weight:600;line-height:1.25}
-.blt-mstitle.done{text-decoration:line-through;color:var(--dim)}
-.blt-msmini{display:flex;align-items:center;gap:7px;margin-top:5px}
-.blt-minibar{flex:1;height:5px;background:var(--s2);border-radius:3px;overflow:hidden;max-width:130px}
+.blt-mstitle{font-size:14px;font-weight:700;line-height:1.25}
+.blt-mstitle.done{color:var(--dim);text-decoration:line-through}
+.blt-metarow{display:flex;align-items:center;gap:6px;margin-top:5px;flex-wrap:wrap}
+.blt-tag{font-size:10px;font-weight:700;padding:2px 7px;border-radius:6px;display:inline-flex;align-items:center;gap:3px}
+.blt-tag.supplier{background:rgba(37,99,235,.1);color:var(--ac)}
+.blt-tag.cost{background:rgba(13,148,136,.1);color:var(--teal)}
+.blt-tag.due{background:rgba(234,88,12,.1);color:var(--orange)}
+.blt-tag.due.soon{background:rgba(220,38,38,.12);color:var(--red)}
+.blt-minibar{height:5px;background:var(--s2);border-radius:3px;overflow:hidden;width:100%;max-width:150px;margin-top:6px}
 .blt-minifill{height:100%;background:var(--teal);border-radius:3px}
-.blt-minitxt{font-size:10.5px;color:var(--muted);font-weight:600;white-space:nowrap}
-.blt-msright{display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0}
-.blt-msdue{font-size:11px;color:var(--muted);white-space:nowrap}
-.blt-msdue.soon{color:var(--red);font-weight:600}
+.blt-msright{display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0}
+.blt-stepbadge{font-size:10px;font-weight:700;color:var(--muted);background:var(--s2);padding:2px 7px;border-radius:10px;white-space:nowrap}
 .blt-chev{font-size:10px;color:var(--dim);transition:.2s}
 .blt-ms.open .blt-chev{transform:rotate(90deg)}
-.blt-subs{max-height:0;overflow:hidden;transition:max-height .28s ease}
-.blt-ms.open .blt-subs{max-height:900px}
-.blt-subsin{padding:0 16px 12px 47px}
+.blt-subs{max-height:0;overflow:hidden;transition:max-height .3s ease;background:var(--s2)}
+.blt-ms.open .blt-subs{max-height:1200px}
+.blt-subsin{padding:12px 16px 14px 49px}
 .blt-sub{display:flex;align-items:center;gap:9px;padding:6px 0;font-size:13px;cursor:pointer}
-.blt-subbox{width:17px;height:17px;border-radius:5px;border:1.5px solid var(--b2);flex-shrink:0;display:grid;place-items:center;font-size:10px}
+.blt-subbox{width:18px;height:18px;border-radius:5px;border:1.5px solid var(--b2);flex-shrink:0;display:grid;place-items:center;font-size:11px;background:var(--s1)}
 .blt-subbox.done{background:var(--teal);border-color:var(--teal);color:#fff}
 .blt-sub.done span{text-decoration:line-through;color:var(--dim)}
-.blt-mstools{display:flex;gap:6px;margin-top:8px}
-.blt-mstools button{background:var(--s2);border:1px solid var(--b1);border-radius:6px;cursor:pointer;font-size:12px;padding:3px 10px;color:var(--muted)}
-.blt-addstep{font-size:12px;color:var(--ac);cursor:pointer;padding:6px 0 0;font-weight:600}
-.blt-addms{padding:11px 16px;text-align:center;font-size:12px;color:var(--ac);font-weight:600;cursor:pointer;border-top:1px solid var(--b1);background:var(--s2)}
+.blt-detgrid{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 10px}
+.blt-detchip{background:var(--s1);border:1px solid var(--b1);border-radius:8px;padding:7px 10px;font-size:11px;flex:1;min-width:88px;cursor:pointer}
+.blt-detchip .dl{color:var(--dim);font-size:9px;text-transform:uppercase;letter-spacing:.4px;font-weight:700}
+.blt-detchip .dv{color:var(--tx);font-size:12.5px;font-weight:700;margin-top:2px}
+.blt-addstep{font-size:12px;color:var(--ac);cursor:pointer;padding:8px 0 2px;font-weight:700}
+.blt-mstools{display:flex;gap:6px;margin-top:10px}
+.blt-mstools button{flex:1;background:var(--s1);border:1px solid var(--b1);border-radius:7px;cursor:pointer;font-size:11.5px;padding:7px;color:var(--muted);font-weight:600}
+.blt-addms{padding:12px;text-align:center;font-size:12px;color:var(--ac);font-weight:800;cursor:pointer;border-top:1px dashed var(--b2);background:var(--s2)}
 </style>
   <!-- Firebase SDK -->
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
@@ -2059,6 +2079,12 @@ document.addEventListener("touchstart", function(e){
         </select></div>
       <div class="fg" style="margin-bottom:10px"><label>Milestone *</label>
         <input class="inp" id="br-title" placeholder="e.g. Finalize sticker design" style="width:100%"></div>
+      <div class="fr" style="margin-bottom:10px">
+        <div class="fg"><label>🏭 Supplier / Vendor</label>
+          <input class="inp" id="br-supplier" placeholder="e.g. Feather Graphics" style="width:100%"></div>
+        <div class="fg"><label>💰 Cost (₹)</label>
+          <input class="inp" id="br-cost" type="number" inputmode="decimal" placeholder="0" style="width:100%"></div>
+      </div>
       <div class="fr" style="margin-bottom:10px">
         <div class="fg"><label>Target Date</label>
           <input class="inp" id="br-due" type="date" style="width:100%"></div>
@@ -3821,28 +3847,50 @@ const R={
     if(!window.__brOpen) window.__brOpen={};
     const brands = ["AURA","SixHo","Punjab"];
     const bMeta = {
-      "AURA":{icon:"✨",color:"#C8B89A",bg:"#f5f0e8",desc:"Premium English willow"},
-      "SixHo":{icon:"🎾",color:"#16a34a",bg:"#e7f6ec",desc:"Tennis ball specialist"},
-      "Punjab":{icon:"🦁",color:"#ea580c",bg:"#fdede3",desc:"Punjab Cricket · @punjabkri"}
+      "AURA":{icon:"✨",color:"#C8B89A",grad:"linear-gradient(90deg,#C8B89A,#b8a888)",bg:"#f5f0e8",desc:"Premium English willow · TM filed"},
+      "SixHo":{icon:"🎾",color:"#16a34a",grad:"linear-gradient(90deg,#22c55e,#16a34a)",bg:"#e7f6ec",desc:"Tennis ball specialist · TM filed"},
+      "Punjab":{icon:"🦁",color:"#ea580c",grad:"linear-gradient(90deg,#fb923c,#ea580c)",bg:"#fdede3",desc:"Punjab Cricket · @punjabkri"}
     };
     const subDone=(m)=>(m.subtasks||[]).filter(s=>s.done).length;
     const subTot=(m)=>(m.subtasks||[]).length;
     const msProg=(m)=> m.status==="done"?1 : subTot(m)>0 ? subDone(m)/subTot(m) : m.status==="progress"?0.5:0;
+    const daysTo=(d)=> d ? Math.floor((new Date(d+"T00:00:00")-new Date(todayStr()+"T00:00:00"))/86400000) : null;
+    const fdShort=(d)=>{ if(!d) return ""; const dt=new Date(d+"T00:00:00"); return dt.toLocaleDateString("en-GB",{day:"numeric",month:"short"}); };
 
+    // overall stats
     const doneC=ms.filter(m=>m.status==="done").length;
     const progC=ms.filter(m=>m.status==="progress").length;
-    const stepC=ms.reduce((a,m)=>a+subTot(m),0);
+    let totProg=0; ms.forEach(m=>totProg+=msProg(m));
+    const overallPct = ms.length ? Math.round(totProg/ms.length*100) : 0;
     if(document.getElementById("br-stats")) document.getElementById("br-stats").innerHTML="";
 
     const hero=`<div class="blt-hero">
-      <div class="blt-hlabel">🏏 Brand Launch Tracker</div>
-      <div class="blt-htitle">3 Brands on the Crease</div>
+      <div class="blt-hlabel">Brand Launch Command Centre</div>
+      <div class="blt-htitle">3 Brands · The Road to Launch</div>
+      <div class="blt-hsub">AURA · SixHo · Punjab Cricket</div>
       <div class="blt-hstats">
         <div class="blt-hstat"><div class="blt-hstat-n">${ms.length}</div><div class="blt-hstat-l">Milestones</div></div>
         <div class="blt-hstat"><div class="blt-hstat-n" style="color:#4ade80">${doneC}</div><div class="blt-hstat-l">Done</div></div>
-        <div class="blt-hstat"><div class="blt-hstat-n" style="color:#fb923c">${progC}</div><div class="blt-hstat-l">In Play</div></div>
-        <div class="blt-hstat"><div class="blt-hstat-n" style="color:#fbbf24">${stepC}</div><div class="blt-hstat-l">Steps</div></div>
+        <div class="blt-hstat"><div class="blt-hstat-n" style="color:#fb923c">${progC}</div><div class="blt-hstat-l">Active</div></div>
+        <div class="blt-hstat"><div class="blt-hstat-n" style="color:#fbbf24">${overallPct}%</div><div class="blt-hstat-l">Overall</div></div>
       </div></div>`;
+
+    // ── Due Soon strip: milestones with a due date within 21 days, not done ──
+    const due = ms.filter(m=>m.status!=="done" && m.due && daysTo(m.due)!==null && daysTo(m.due)<=21)
+      .sort((a,b)=>daysTo(a.due)-daysTo(b.due)).slice(0,5);
+    let dueHtml="";
+    if(due.length){
+      dueHtml=`<div class="blt-due"><div class="blt-duehdr">⏰ Due Soon <span class="blt-duecnt">${due.length}</span></div>`+
+        due.map(m=>{
+          const dd=daysTo(m.due);
+          const col = dd<0?"#dc2626":dd<=3?"#dc2626":dd<=10?"#ea580c":"#d97706";
+          const when = dd<0?`${Math.abs(dd)}d over`:dd===0?"Today":`${dd}d`;
+          return `<div class="blt-dueitem" onclick="go('brands');window.__brOpen[${m.id}]=true;R.brands()">
+            <div class="blt-duedot" style="background:${col}"></div>
+            <div class="blt-duetxt">${m.title} <span class="blt-duebrand">· ${m.brand}</span></div>
+            <div class="blt-duewhen" style="color:${col}">${when}</div></div>`;
+        }).join("")+`</div>`;
+    }
 
     const brandsHtml = brands.map(b=>{
       const meta=bMeta[b];
@@ -3853,67 +3901,84 @@ const R={
       const tgt=targets[b];
       let cdHtml;
       if(tgt){
-        const days=Math.floor((new Date(tgt+"T00:00:00")-new Date(todayStr()+"T00:00:00"))/86400000);
-        const col = days<0?"var(--dim)":days<=30?"var(--red)":meta.color;
-        const big = days<0?"✓":days===0?"🚀":days;
-        const lbl = days<0?"launched":days===0?"today":"days left";
-        cdHtml=`<div class="blt-cdnum" style="color:${col};cursor:pointer" onclick="setBrandTarget('${b}')">${big}</div><div class="blt-cdlbl">${lbl}</div>`;
+        const dd=daysTo(tgt);
+        const col = dd<0?"var(--dim)":dd<=30?"var(--red)":meta.color;
+        const big = dd<0?"✓":dd===0?"🚀":dd;
+        const lbl = dd<0?"launched":dd===0?"today":"days to launch";
+        cdHtml=`<div class="blt-bcountdays" style="color:${col};cursor:pointer" onclick="setBrandTarget('${b}')">${big}</div><div class="blt-bcountlbl">${lbl}</div>`;
       } else {
         cdHtml=`<div class="blt-settgt" onclick="setBrandTarget('${b}')">🎯 Set launch<br>target</div>`;
       }
 
       const msHtml = bms.length ? bms.map(m=>{
-        const days = m.due ? Math.floor((new Date(m.due)-new Date())/86400000) : null;
+        const dd = daysTo(m.due);
         const cls = m.status==="done"?"done":subDone(m)>0||m.status==="progress"?"prog":"";
         const mark = m.status==="done"?"✓":"";
         const sd=subDone(m), stt=subTot(m);
         const isOpen = window.__brOpen[m.id];
-        const dueTxt = m.due&&m.status!=="done" ? (days<0?`<span class="blt-msdue soon">${Math.abs(days)}d over</span>`:days===0?'<span class="blt-msdue soon">Today</span>':`<span class="blt-msdue">${days}d</span>`) : (m.status==="done"&&stt>0?`<span class="blt-msdue">${sd}/${stt}</span>`:"");
-        // mini bar only when NOT done and has steps
-        const mini = (m.status!=="done" && stt>0) ? `<div class="blt-msmini"><div class="blt-minibar"><div class="blt-minifill" style="width:${Math.round(sd/stt*100)}%"></div></div><span class="blt-minitxt">${sd}/${stt} steps</span></div>` : "";
-        const subs = `<div class="blt-subs"><div class="blt-subsin">${stt>0?(m.subtasks||[]).map((s,si)=>`
+        // meta tags (collapsed view)
+        let tags="";
+        if(m.status!=="done"){
+          if(m.supplier) tags+=`<span class="blt-tag supplier">🏭 ${m.supplier}</span>`;
+          if(m.cost) tags+=`<span class="blt-tag cost">₹ ${Number(m.cost).toLocaleString("en-IN")}</span>`;
+          if(m.due){ const soon=dd!==null&&dd<=7; tags+=`<span class="blt-tag due ${soon?'soon':''}">📅 ${dd<0?Math.abs(dd)+"d over":dd===0?"Today":dd<=30?dd+"d left":fdShort(m.due)}</span>`; }
+        }
+        const metaRow = tags?`<div class="blt-metarow">${tags}</div>`:"";
+        const mini = (m.status!=="done" && stt>0) ? `<div class="blt-minibar"><div class="blt-minifill" style="width:${Math.round(sd/stt*100)}%"></div></div>` : "";
+        // expanded detail chips
+        let chips="";
+        if(m.supplier||m.cost||m.due){
+          chips=`<div class="blt-detgrid">`+
+            (m.supplier?`<div class="blt-detchip" onclick="event.stopPropagation();openBrMilestone(${m.id})"><div class="dl">🏭 Supplier</div><div class="dv">${m.supplier}</div></div>`:"")+
+            (m.cost?`<div class="blt-detchip" onclick="event.stopPropagation();openBrMilestone(${m.id})"><div class="dl">💰 Cost</div><div class="dv">₹${Number(m.cost).toLocaleString("en-IN")}</div></div>`:"")+
+            (m.due?`<div class="blt-detchip" onclick="event.stopPropagation();openBrMilestone(${m.id})"><div class="dl">📅 Due</div><div class="dv">${fdShort(m.due)} ${new Date(m.due).getFullYear()}</div></div>`:"")+
+            `</div>`;
+        }
+        const subs = `<div class="blt-subs"><div class="blt-subsin">${chips}${stt>0?(m.subtasks||[]).map((s,si)=>`
             <div class="blt-sub ${s.done?'done':''}" onclick="event.stopPropagation();toggleBrSub(${m.id},${si})">
               <div class="blt-subbox ${s.done?'done':''}">${s.done?"✓":""}</div><span>${s.text}</span></div>`).join(""):`<div style="font-size:12px;color:var(--muted)">No steps yet.</div>`}
             <div class="blt-addstep" onclick="event.stopPropagation();addBrSub(${m.id})">+ add step</div>
             ${m.notes?`<div style="font-size:11.5px;color:var(--muted);margin-top:8px">📝 ${m.notes}</div>`:""}
             <div class="blt-mstools">
-              <button onclick="event.stopPropagation();cycleBrStatus(${m.id})">↻ status</button>
-              <button onclick="event.stopPropagation();openBrMilestone(${m.id})">✏️ edit</button>
-              <button onclick="event.stopPropagation();delBrMilestone(${m.id})">🗑</button>
+              <button onclick="event.stopPropagation();cycleBrStatus(${m.id})">↻ Status</button>
+              <button onclick="event.stopPropagation();openBrMilestone(${m.id})">✏️ Edit</button>
+              <button onclick="event.stopPropagation();delBrMilestone(${m.id})">🗑 Delete</button>
             </div></div></div>`;
         return `<div class="blt-ms ${isOpen?'open':''}">
           <div class="blt-msrow" onclick="toggleBrMs(${m.id})">
             <div class="blt-check ${cls}" onclick="event.stopPropagation();cycleBrStatus(${m.id})">${mark}</div>
             <div class="blt-msmid">
               <div class="blt-mstitle ${m.status==='done'?'done':''}">${m.title}</div>
-              ${mini}
+              ${metaRow}${mini}
             </div>
-            <div class="blt-msright">${dueTxt}<span class="blt-chev">▶</span></div>
+            <div class="blt-msright">${stt>0?`<span class="blt-stepbadge">${sd}/${stt}</span>`:""}<span class="blt-chev">▶</span></div>
           </div>${subs}</div>`;
       }).join("") : "";
 
       return `<div class="blt-brand">
         <div class="blt-btop">
           <div class="blt-bacc" style="background:${meta.color}"></div>
-          <div class="blt-bicon" style="background:${meta.bg}">${meta.icon}</div>
-          <div style="min-width:0">
-            <div class="blt-bname" onclick="setBrandTarget('${b}')">${b}</div>
-            <div class="blt-bdesc">${meta.desc}</div>
+          <div class="blt-btoprow">
+            <div class="blt-bicon" style="background:${meta.bg}">${meta.icon}</div>
+            <div style="min-width:0">
+              <div class="blt-bname" onclick="setBrandTarget('${b}')">${b}</div>
+              <div class="blt-bdesc">${meta.desc}</div>
+            </div>
+            <div class="blt-bcount">${cdHtml}</div>
           </div>
-          <div class="blt-bright">${cdHtml}</div>
-        </div>
-        <div class="blt-bprog">
-          <div class="blt-bptop"><span>${doneN} of ${bms.length} milestones</span><span style="font-weight:700;color:${meta.color}">${pct}%</span></div>
-          <div class="blt-bpbar"><div class="blt-bpfill" style="width:${pct}%;background:${meta.color}"></div></div>
+          <div class="blt-bprog">
+            <div class="blt-bprogtop"><span>${doneN} of ${bms.length} milestones complete</span><span class="blt-bprogpct" style="color:${meta.color}">${pct}%</span></div>
+            <div class="blt-bprogbar"><div class="blt-bprogfill" style="width:${pct}%;background:${meta.grad}"></div></div>
+          </div>
         </div>
         ${msHtml}
         <div class="blt-addms" onclick="openBrMilestone(null,'${b}')">+ Add milestone</div>
       </div>`;
     }).join("");
 
-    document.getElementById("br-brands").innerHTML = hero + brandsHtml;
+    document.getElementById("br-brands").innerHTML = hero + dueHtml + brandsHtml;
   },
-      crm(){
+        crm(){
     const all = D.crm||[];
     const seg = window.__crmSeg || "retailer";
     const tab = window.__crmTab || "pending";
@@ -7996,6 +8061,8 @@ function openBrMilestone(id, presetBrand){
   document.getElementById("br-due").value = m ? (m.due||"") : "";
   document.getElementById("br-status").value = m ? (m.status||"pending") : "pending";
   document.getElementById("br-notes").value = m ? (m.notes||"") : "";
+  var _sup=document.getElementById("br-supplier"); if(_sup) _sup.value = m ? (m.supplier||"") : "";
+  var _cost=document.getElementById("br-cost"); if(_cost) _cost.value = m ? (m.cost||"") : "";
   document.getElementById("br-mo").style.display = "flex";
   setTimeout(()=>document.getElementById("br-title")?.focus(),80);
 }
@@ -8009,7 +8076,9 @@ function saveBrMilestone(){
     title,
     due: document.getElementById("br-due").value || "",
     status: document.getElementById("br-status").value,
-    notes: document.getElementById("br-notes").value.trim()
+    notes: document.getElementById("br-notes").value.trim(),
+    supplier: (document.getElementById("br-supplier")?.value||"").trim(),
+    cost: (document.getElementById("br-cost")?.value||"").trim()
   };
   if(!D.brandMilestones) D.brandMilestones=[];
   if(brEditId){
