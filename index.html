@@ -8334,13 +8334,19 @@ async function lgTryCodeword(text){
 }
 
 let __lgTaps = 0, __lgTapTimer = null;
-function lgSecretTap(){
+function lgSecretTap(ev){
+  if(ev){ try{ ev.preventDefault(); ev.stopPropagation(); }catch(e){} }
   if(typeof currentRole!=="undefined" && currentRole==="employee") return;
   __lgTaps++;
   clearTimeout(__lgTapTimer);
-  __lgTapTimer = setTimeout(()=>{ __lgTaps = 0; }, 1500);
+  __lgTapTimer = setTimeout(()=>{ __lgTaps = 0; }, 2500);
+  // subtle haptic + visual nudge as you get close
+  if(__lgTaps>=3 && __lgTaps<5){
+    if(navigator.vibrate) try{ navigator.vibrate(15); }catch(e){}
+  }
   if(__lgTaps >= 5){
     __lgTaps = 0;
+    if(navigator.vibrate) try{ navigator.vibrate([30,40,30]); }catch(e){}
     lgPrompt();
   }
 }
@@ -10319,10 +10325,21 @@ window.addEventListener("pagehide", ()=>{
   if(pendingSaves.size) flushNow();
 });
 
-// Hidden ledger entry point: 5 quick taps on the sync-status dot
+// Hidden ledger entry point: 5 quick taps on the sync-status area
 (function(){
   const el = document.getElementById("sync-status");
-  if(el){ el.style.cursor = "default"; el.addEventListener("click", lgSecretTap); }
+  if(!el) return;
+  el.style.cursor = "default";
+  el.style.touchAction = "manipulation";   // prevent double-tap zoom swallowing taps
+  el.style.padding = "8px 6px";             // bigger tap target
+  el.style.margin = "-8px -6px";            // keep layout unchanged
+  el.style.webkitUserSelect = "none";
+  el.style.userSelect = "none";
+  // On touch devices, use touchend (fires reliably per-tap); guard against the
+  // synthetic click that follows so a single physical tap isn't counted twice.
+  let usedTouch = false;
+  el.addEventListener("touchend", (e)=>{ usedTouch = true; lgSecretTap(e); }, {passive:false});
+  el.addEventListener("click", (e)=>{ if(usedTouch){ usedTouch=false; return; } lgSecretTap(e); });
 })();
 
 /* ===== ATTENDANCE MODULE (injected) — reuses app's db + saveToFirebase ===== */
