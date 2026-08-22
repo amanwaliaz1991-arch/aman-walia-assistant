@@ -307,6 +307,30 @@ table.lg-grid td input[type="date"].lg-c{font-size:14.5px}
   .lg-tab{padding:9px 14px;font-size:14px}
   table.lg-grid td .lg-c{padding:11px 8px;font-size:15px}
   table.lg-grid td .amt-in{font-size:14.5px}
+  /* card layout for ledger grid on mobile */
+  #mod-ledger .tbl-scroll{overflow-x:visible}
+  table.lg-grid, table.lg-grid tbody, table.lg-grid tr, table.lg-grid td{display:block;width:auto}
+  table.lg-grid thead{display:none}
+  table.lg-grid tbody tr{background:var(--s1);border:1px solid var(--b1);border-radius:12px;margin-bottom:10px;padding:6px 12px}
+  table.lg-grid tbody tr.lg-open{background:#fffdf5;border-color:#f0e5c0}
+  table.lg-grid td{border:none !important;padding:4px 0;display:flex;align-items:center;justify-content:space-between;gap:10px}
+  table.lg-grid td::before{content:attr(data-lbl);font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;flex-shrink:0}
+  table.lg-grid td .lg-c{width:auto;flex:1;text-align:right;max-width:60%;min-height:40px}
+  table.lg-grid td[data-lbl="Particulars"] .lg-c{text-align:left}
+  table.lg-grid td.lg-bal{font-weight:800;font-size:15px;border-top:1px dashed var(--b1) !important;margin-top:2px;padding-top:7px}
+  table.lg-grid td.lg-delcell{justify-content:flex-end;padding-top:5px}
+  table.lg-grid td.lg-delcell::before{content:""}
+  table.lg-grid td.lg-delcell .btn-d{font-size:12px;color:var(--red);background:rgba(220,38,38,.08);border:1px solid rgba(220,38,38,.2);border-radius:7px;padding:6px 12px;width:auto}
+  table.lg-grid tfoot{display:block}
+  table.lg-grid tfoot tr{display:flex;flex-wrap:wrap;background:#1e293b;color:#fff;border-radius:12px;padding:12px;gap:10px}
+  table.lg-grid tfoot td{display:flex;flex-direction:column;border:none !important;padding:0;font-size:14px;color:#fff;font-weight:800}
+  table.lg-grid tfoot td::before{content:attr(data-lbl);color:#94a3b8;text-transform:uppercase;font-size:10px;font-weight:700}
+  table.lg-summary, table.lg-summary tbody, table.lg-summary tr, table.lg-summary td{display:block;width:auto}
+  table.lg-summary thead{display:none}
+  table.lg-summary tbody tr{background:var(--s1);border:1px solid var(--b1);border-radius:12px;margin-bottom:10px;padding:10px 13px}
+  table.lg-summary td{border:none !important;padding:4px 0;display:flex;justify-content:space-between;gap:10px;font-size:13px}
+  table.lg-summary td::before{content:attr(data-lbl);font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase}
+  table.lg-summary td:first-child{font-size:15px;font-weight:800;border-bottom:1px solid var(--b1) !important;padding-bottom:7px;margin-bottom:4px}
 }
 
 /* ── Full-page ledger mode ──
@@ -453,6 +477,8 @@ document.addEventListener("touchstart", function(e){
 .blt-mstools{display:flex;gap:6px;margin-top:10px}
 .blt-mstools button{flex:1;background:var(--s1);border:1px solid var(--b1);border-radius:7px;cursor:pointer;font-size:11.5px;padding:7px;color:var(--muted);font-weight:600}
 .blt-addms{padding:12px;text-align:center;font-size:12px;color:var(--ac);font-weight:800;cursor:pointer;border-top:1px dashed var(--b2);background:var(--s2)}
+
+
 </style>
   <!-- Firebase SDK -->
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
@@ -8856,7 +8882,7 @@ function lgSummaryHTML(){
       ${sc("var(--gold)","Total Entries",entries)}
     </div>
     <div class="card"><div class="card-hdr">All Parties</div>
-    <div class="tbl-scroll"><table class="tbl">
+    <div class="tbl-scroll"><table class="tbl lg-summary">
       <thead><tr><th>Party</th><th>City</th><th style="text-align:right">Opening</th>
         <th style="text-align:right">Debit</th><th style="text-align:right">Credit</th>
         <th style="text-align:right">Closing</th><th style="width:50px"></th></tr></thead>
@@ -8866,13 +8892,13 @@ function lgSummaryHTML(){
         const c = rows.reduce((s,e)=>s+(parseFloat(e.credit)||0),0);
         const bal = lgBalOf(p.id);
         return `<tr style="cursor:pointer" onclick="lgSheet('${p.id}')">
-          <td><b>${p.name}</b>${p.gstin?`<div style="font-size:11px;color:var(--muted)">${p.gstin}</div>`:""}</td>
-          <td style="font-size:12.5px">${p.city||"—"}</td>
-          <td class="amt" style="text-align:right">${lgOpening(p)?fa(Math.abs(lgOpening(p)))+" "+drcr(lgOpening(p)):"—"}</td>
-          <td class="amt" style="text-align:right;color:var(--green)">${d?fa(d):"—"}</td>
-          <td class="amt" style="text-align:right;color:var(--red)">${c?fa(c):"—"}</td>
-          <td class="amt" style="text-align:right;font-weight:800;color:${bal>0?"var(--green)":bal<0?"var(--red)":"inherit"}">${fa(Math.abs(Math.round(bal)))} ${drcr(bal)}</td>
-          <td onclick="event.stopPropagation()"><button class="btn-e" onclick="lgPartyForm('${p.id}')">✏️</button></td>
+          <td data-lbl=""><b>${p.name}</b>${p.gstin?`<div style="font-size:11px;color:var(--muted)">${p.gstin}</div>`:""}</td>
+          <td data-lbl="City" style="font-size:12.5px">${p.city||"—"}</td>
+          <td class="amt" data-lbl="Opening" style="text-align:right">${lgOpening(p)?fa(Math.abs(lgOpening(p)))+" "+drcr(lgOpening(p)):"—"}</td>
+          <td class="amt" data-lbl="Debit" style="text-align:right;color:var(--green)">${d?fa(d):"—"}</td>
+          <td class="amt" data-lbl="Credit" style="text-align:right;color:var(--red)">${c?fa(c):"—"}</td>
+          <td class="amt" data-lbl="Closing" style="text-align:right;font-weight:800;color:${bal>0?"var(--green)":bal<0?"var(--red)":"inherit"}">${fa(Math.abs(Math.round(bal)))} ${drcr(bal)}</td>
+          <td data-lbl="" onclick="event.stopPropagation()"><button class="btn-e" onclick="lgPartyForm('${p.id}')">✏️ Edit</button></td>
         </tr>`;
       }).join("")}</tbody>
       <tfoot><tr style="background:var(--s2);font-weight:800">
@@ -8923,11 +8949,11 @@ function lgGridHTML(p){
           ${rows.map(e=>lgRowHTML(e)).join("")}
         </tbody>
         <tfoot><tr style="background:var(--s2);font-weight:800">
-          <td colspan="3" style="text-align:right">Totals</td>
-          <td class="amt" style="text-align:right" id="lg-td">—</td>
-          <td class="amt" style="text-align:right" id="lg-tc">—</td>
-          <td class="amt" style="text-align:right" id="lg-tb">—</td>
-          <td></td>
+          <td colspan="3" style="text-align:right" data-lbl="">Totals</td>
+          <td class="amt" style="text-align:right" id="lg-td" data-lbl="Debit">—</td>
+          <td class="amt" style="text-align:right" id="lg-tc" data-lbl="Credit">—</td>
+          <td class="amt" style="text-align:right" id="lg-tb" data-lbl="Balance">—</td>
+          <td style="display:none"></td>
         </tr></tfoot>
       </table>
     </div>
@@ -8940,13 +8966,13 @@ function lgGridHTML(p){
 
 function lgRowHTML(e){
   return `<tr data-id="${e.id}">
-    <td><input class="lg-c" type="date" data-f="date" value="${e.date||""}"></td>
-    <td><input class="lg-c" data-f="particulars" value="${(e.particulars||"").replace(/"/g,"&quot;")}" placeholder="Description"></td>
-    <td><input class="lg-c" data-f="ref" value="${(e.ref||"").replace(/"/g,"&quot;")}" placeholder="Bill / UTR"></td>
-    <td><input class="lg-c amt-in" data-f="debit" value="${e.debit||""}" placeholder="0" inputmode="decimal"></td>
-    <td><input class="lg-c amt-in" data-f="credit" value="${e.credit||""}" placeholder="0" inputmode="decimal"></td>
-    <td class="lg-bal">—</td>
-    <td><button class="btn-d" onclick="lgDelRow('${e.id}')">✕</button></td>
+    <td data-lbl="Date"><input class="lg-c" type="date" data-f="date" value="${e.date||""}"></td>
+    <td data-lbl="Particulars"><input class="lg-c" data-f="particulars" value="${(e.particulars||"").replace(/"/g,"&quot;")}" placeholder="Description"></td>
+    <td data-lbl="Ref"><input class="lg-c" data-f="ref" value="${(e.ref||"").replace(/"/g,"&quot;")}" placeholder="Bill / UTR"></td>
+    <td data-lbl="Debit (+)"><input class="lg-c amt-in" data-f="debit" value="${e.debit||""}" placeholder="0" inputmode="decimal"></td>
+    <td data-lbl="Credit (−)"><input class="lg-c amt-in" data-f="credit" value="${e.credit||""}" placeholder="0" inputmode="decimal"></td>
+    <td class="lg-bal" data-lbl="Balance">—</td>
+    <td class="lg-delcell"><button class="btn-d" onclick="lgDelRow('${e.id}')">✕ Delete row</button></td>
   </tr>`;
 }
 
