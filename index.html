@@ -322,15 +322,21 @@ table.lg-grid td input[type="date"].lg-c{font-size:14.5px}
   table.lg-grid td.lg-delcell::before{content:""}
   table.lg-grid td.lg-delcell .btn-d{font-size:12px;color:var(--red);background:rgba(220,38,38,.08);border:1px solid rgba(220,38,38,.2);border-radius:7px;padding:6px 12px;width:auto}
   table.lg-grid tfoot{display:block}
-  table.lg-grid tfoot tr{display:flex;flex-wrap:wrap;background:#1e293b;color:#fff;border-radius:12px;padding:12px;gap:10px}
-  table.lg-grid tfoot td{display:flex;flex-direction:column;border:none !important;padding:0;font-size:14px;color:#fff;font-weight:800}
-  table.lg-grid tfoot td::before{content:attr(data-lbl);color:#94a3b8;text-transform:uppercase;font-size:10px;font-weight:700}
+  table.lg-grid tfoot tr.lg-totrow{display:flex;flex-wrap:wrap;background:#1e293b !important;color:#fff;border-radius:12px;padding:14px;gap:12px;justify-content:space-between}
+  table.lg-grid tfoot td{display:flex;flex-direction:column;border:none !important;padding:0;font-size:15px;color:#fff;font-weight:800;flex:1;min-width:90px}
+  table.lg-grid tfoot td.lg-totlabel{display:none}
+  table.lg-grid tfoot td::before{content:attr(data-lbl);color:#94a3b8;text-transform:uppercase;font-size:9.5px;font-weight:700;margin-bottom:3px}
   table.lg-summary, table.lg-summary tbody, table.lg-summary tr, table.lg-summary td{display:block;width:auto}
   table.lg-summary thead{display:none}
   table.lg-summary tbody tr{background:var(--s1);border:1px solid var(--b1);border-radius:12px;margin-bottom:10px;padding:10px 13px}
   table.lg-summary td{border:none !important;padding:4px 0;display:flex;justify-content:space-between;gap:10px;font-size:13px}
   table.lg-summary td::before{content:attr(data-lbl);font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase}
   table.lg-summary td:first-child{font-size:15px;font-weight:800;border-bottom:1px solid var(--b1) !important;padding-bottom:7px;margin-bottom:4px}
+  /* party header on mobile: stack actions full-width */
+  .lg-partyhdr{flex-direction:column;gap:10px}
+  .lg-partyactions{width:100%;gap:6px}
+  .lg-partyactions .btn{flex:1;min-width:calc(50% - 6px);text-align:center;padding:9px 8px;font-size:12.5px}
+  .lg-partyactions .btn.btn-p{min-width:100%}
 }
 
 /* ── Full-page ledger mode ──
@@ -479,6 +485,18 @@ document.addEventListener("touchstart", function(e){
 .blt-addms{padding:12px;text-align:center;font-size:12px;color:var(--ac);font-weight:800;cursor:pointer;border-top:1px dashed var(--b2);background:var(--s2)}
 
 
+
+/* Ledger party header (clean) */
+.lg-partyhdr{display:flex;align-items:flex-start;gap:12px;padding:14px 16px;border-bottom:1px solid var(--b1);flex-wrap:wrap}
+.lg-partyinfo{flex:1;min-width:0}
+.lg-partyname{font-size:16px;font-weight:800;line-height:1.2}
+.lg-partymeta{font-size:11.5px;color:var(--muted);margin-top:3px;word-break:break-word}
+.lg-partyactions{display:flex;gap:6px;flex-wrap:wrap;flex-shrink:0}
+.lg-partyactions .btn{white-space:nowrap}
+.lg-partyactions .lg-delbtn{color:var(--red);border-color:rgba(220,38,38,.3)}
+
+.lg-totrow{background:var(--s2);font-weight:800}
+.lg-totrow td{padding:10px 9px}
 </style>
   <!-- Firebase SDK -->
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
@@ -8914,16 +8932,18 @@ function lgGridHTML(p){
   const rows = lgRowsFor(p.id).slice().sort((a,b)=>(a.date||"9999").localeCompare(b.date||"9999"));
   return `
   <div class="card" style="margin-bottom:12px">
-    <div class="card-hdr">
-      ${p.name}
-      <span style="font-weight:400;font-size:12px;color:var(--muted)">${[p.city,p.phone,p.gstin].filter(Boolean).join(" · ")}</span>
-      <span style="float:right;display:flex;gap:6px;flex-wrap:wrap">
-        <button class="btn btn-sm" onclick="lgSortRows()">↕ Sort</button>
+    <div class="lg-partyhdr">
+      <div class="lg-partyinfo">
+        <div class="lg-partyname">${p.name}</div>
+        ${[p.city,p.phone,p.gstin].filter(Boolean).length?`<div class="lg-partymeta">${[p.city,p.phone,p.gstin].filter(Boolean).join(" · ")}</div>`:""}
+      </div>
+      <div class="lg-partyactions">
         <button class="btn btn-sm btn-p" onclick="lgStatement('${p.id}','pdf')">📄 PDF</button>
         <button class="btn btn-sm" onclick="lgStatement('${p.id}','img')">🖼️ Image</button>
-        <button class="btn-e" onclick="lgPartyForm('${p.id}')">✏️</button>
-        <button class="btn-d" onclick="lgDelParty('${p.id}')">🗑</button>
-      </span>
+        <button class="btn btn-sm" onclick="lgSortRows()">↕ Sort</button>
+        <button class="btn btn-sm" onclick="lgPartyForm('${p.id}')">✏️ Edit</button>
+        <button class="btn btn-sm lg-delbtn" onclick="lgDelParty('${p.id}')">🗑 Delete</button>
+      </div>
     </div>
     <div class="tbl-scroll">
       <table class="tbl lg-grid">
@@ -8948,11 +8968,11 @@ function lgGridHTML(p){
           </tr>
           ${rows.map(e=>lgRowHTML(e)).join("")}
         </tbody>
-        <tfoot><tr style="background:var(--s2);font-weight:800">
-          <td colspan="3" style="text-align:right" data-lbl="">Totals</td>
-          <td class="amt" style="text-align:right" id="lg-td" data-lbl="Debit">—</td>
-          <td class="amt" style="text-align:right" id="lg-tc" data-lbl="Credit">—</td>
-          <td class="amt" style="text-align:right" id="lg-tb" data-lbl="Balance">—</td>
+        <tfoot><tr class="lg-totrow">
+          <td colspan="3" style="text-align:right" data-lbl="" class="lg-totlabel">Totals</td>
+          <td class="amt" style="text-align:right" id="lg-td" data-lbl="Total Debit">—</td>
+          <td class="amt" style="text-align:right" id="lg-tc" data-lbl="Total Credit">—</td>
+          <td class="amt" style="text-align:right" id="lg-tb" data-lbl="Closing Balance">—</td>
           <td style="display:none"></td>
         </tr></tfoot>
       </table>
