@@ -334,6 +334,10 @@ table.lg-grid td input[type="date"].lg-c{font-size:14.5px}
   table.lg-summary td:first-child{font-size:15px;font-weight:800;border-bottom:1px solid var(--b1) !important;padding-bottom:7px;margin-bottom:4px}
   /* party tabs: wrap so ALL parties are visible (no hidden horizontal scroll) */
   #lg-tabs{flex-wrap:wrap !important;overflow-x:visible !important;white-space:normal !important;gap:6px !important;padding-bottom:4px}
+  /* CRITICAL: never trap the ledger in a fixed-height inner scrollbox on mobile — let the page scroll normally so all parties/rows are reachable */
+  #mod-ledger .tbl-scroll{max-height:none !important;overflow-y:visible !important;overflow-x:visible !important}
+  body.lg-full #mod-ledger .tbl-scroll{max-height:none !important;overflow-y:visible !important}
+  body.lg-full .main{overflow-y:auto !important}
   #lg-tabs .lg-tab{border-radius:9px !important;border-bottom:1px solid var(--b1) !important;margin-bottom:0 !important;padding:9px 13px;font-size:13.5px}
   #lg-tabs .lg-tab.on{border-color:var(--ac) !important}
   /* the tabs row container shouldn't force a bottom border line that clips */
