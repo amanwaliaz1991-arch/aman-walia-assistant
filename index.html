@@ -337,7 +337,8 @@ table.lg-grid td input[type="date"].lg-c{font-size:14.5px}
   /* CRITICAL: never trap the ledger in a fixed-height inner scrollbox on mobile — let the page scroll normally so all parties/rows are reachable */
   #mod-ledger .tbl-scroll{max-height:none !important;overflow-y:visible !important;overflow-x:visible !important}
   body.lg-full #mod-ledger .tbl-scroll{max-height:none !important;overflow-y:visible !important}
-  body.lg-full .main{overflow-y:auto !important}
+  /* full-page mode: .main must fill the viewport height and scroll internally (body is overflow:hidden) */
+  body.lg-full .main{height:100vh !important;max-height:100vh !important;overflow-y:auto !important;-webkit-overflow-scrolling:touch !important;padding-bottom:80px !important}
   #lg-tabs .lg-tab{border-radius:9px !important;border-bottom:1px solid var(--b1) !important;margin-bottom:0 !important;padding:9px 13px;font-size:13.5px}
   #lg-tabs .lg-tab.on{border-color:var(--ac) !important}
   /* the tabs row container shouldn't force a bottom border line that clips */
