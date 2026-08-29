@@ -5,7 +5,7 @@
 // problem where updates didn't appear until manual cache clear.
 // ══════════════════════════════════════════════════════════
 
-const CACHE = "awa-cache-v2";           // bump this string to force a full refresh
+const CACHE = "awa-cache-v3";           // bump this string to force a full refresh
 const OFFLINE_URLS = ["/", "/index.html"];
 
 // Install: pre-cache the shell, activate immediately
@@ -35,6 +35,7 @@ self.addEventListener("fetch", (e) => {
   if (req.method !== "GET") return;
   const url = new URL(req.url);
   if (url.origin !== self.location.origin) return;   // let Firebase/IndiaMart/etc pass through untouched
+  if (url.pathname === "/version.json") return;      // never cache the version file — always hit network
 
   // Network-first: try the live server, fall back to cache if offline.
   e.respondWith(
