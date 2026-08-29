@@ -218,7 +218,7 @@ export default {
       const p = url.pathname;
       // Force browsers to always revalidate the app shell + service worker,
       // so updates are never stuck behind a stale cache.
-      const isShell = p === "/" || p === "/index.html" || p.endsWith(".html") || p === "/sw.js";
+      const isShell = p === "/" || p === "/index.html" || p.endsWith(".html") || p === "/sw.js" || p === "/version.json";
       if (isShell) {
         const h = new Headers(assetRes.headers);
         h.set("Cache-Control", "no-cache, no-store, must-revalidate");
