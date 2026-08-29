@@ -507,6 +507,25 @@ document.addEventListener("touchstart", function(e){
 
 .lg-totrow{background:var(--s2);font-weight:800}
 .lg-totrow td{padding:10px 9px}
+
+/* Secure Ledger top — clean & proportional */
+.lg-toolbar{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
+.lg-toolbar .btn{flex:1;min-width:calc(50% - 6px);white-space:nowrap;padding:9px 10px;font-size:13px}
+.lg-searchrow{display:flex;gap:8px;margin-bottom:10px}
+.lg-searchrow #lg-search{flex:1;min-width:0;font-size:14px;padding:11px 12px}
+.lg-addparty{flex-shrink:0;font-weight:700;padding:11px 16px;white-space:nowrap}
+.lg-tabsrow{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px;padding-bottom:8px;border-bottom:2px solid var(--b1)}
+.lg-tabsrow .lg-tab{border-radius:9px;border:1px solid var(--b1);margin-bottom:0;padding:9px 13px;font-size:13.5px}
+.lg-tabsrow .lg-tab.on{border-color:var(--ac);color:var(--ac);background:#eef4ff}
+@media(min-width:821px){
+  .lg-toolbar{justify-content:flex-end}
+  .lg-toolbar .btn{flex:0 0 auto;min-width:0}
+}
+@media(max-width:820px){
+  .lg-addparty{padding:11px 14px;font-size:13.5px}
+  /* keep tabs wrapping, never horizontal-scroll */
+  .lg-tabsrow{overflow-x:visible !important;white-space:normal !important}
+}
 </style>
   <!-- Firebase SDK -->
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
@@ -704,7 +723,7 @@ document.addEventListener("touchstart", function(e){
       <div class="pt" id="dash-greeting">GOOD MORNING, <span>AMAN</span> ☀️</div>
       <div style="font-size:13px;color:var(--muted);margin-top:2px" id="dash-date-full">Loading…</div>
       <div style="font-size:12px;color:var(--dim);margin-top:1px" id="dash-month-info"></div>
-      <div style="font-size:11px;color:var(--green);margin-top:3px;font-weight:600" id="app-version">✅ Auto-update active · v2026.08.03-1</div>
+      <div style="font-size:11px;color:var(--green);margin-top:3px;font-weight:600" id="app-version">✅ LEDGER FIXED · v2026.08.29-NEW</div>
     </div>
     <!-- Daily Quote -->
     <div id="dash-quote-box" style="flex:1;max-width:340px;background:linear-gradient(135deg,#eff6ff,#f5f3ff);border:1px solid #c7d2fe;border-radius:12px;padding:12px 16px;cursor:pointer" onclick="fetchDailyQuote(true)">
@@ -2302,24 +2321,26 @@ document.addEventListener("touchstart", function(e){
 <div class="mod" id="mod-ledger">
   <div class="ph">
     <div><div class="pt">SECURE <span>LEDGER</span></div>
-    <div class="pt-sub">🔐 Encrypted · stays open until you tap Lock, navigate away, or 10 min idle</div></div>
-    <div style="display:flex;gap:8px;flex-wrap:wrap">
-      <span id="lg-savestate" style="font-size:12px;color:var(--muted);align-self:center"></span>
-      <button class="btn" id="lg-densebtn" onclick="lgToggleDense()">⇕ Compact</button>
-      <button class="btn" id="lg-fullbtn" onclick="lgToggleFull()">⛶ Full Page</button>
-      <button class="btn" onclick="lgImportForm()">📋 Paste Import</button>
-      <button class="btn" onclick="lgLock(false)">🔒 Lock</button>
-    </div>
+    <div class="pt-sub">🔐 Encrypted · stays open until you Lock or 10 min idle</div></div>
+    <span id="lg-savestate" style="font-size:12px;color:var(--muted);align-self:center"></span>
   </div>
 
-  <!-- SHEET TABS -->
-  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;gap:8px;flex-wrap:wrap">
-    <input class="inp" id="lg-search" placeholder="🔍 Search party by name / city…" style="flex:1;min-width:180px;font-size:13px;padding:9px 12px" oninput="lgFilterParties(this.value)">
-    <button class="btn btn-p" style="flex-shrink:0;font-weight:700;padding:9px 16px" onclick="lgPartyForm()">＋ Add Party</button>
+  <!-- Toolbar -->
+  <div class="lg-toolbar">
+    <button class="btn" id="lg-densebtn" onclick="lgToggleDense()">⇕ Compact</button>
+    <button class="btn" id="lg-fullbtn" onclick="lgToggleFull()">⛶ Full Page</button>
+    <button class="btn" onclick="lgImportForm()">📋 Import</button>
+    <button class="btn" onclick="lgLock(false)">🔒 Lock</button>
   </div>
-  <div style="display:flex;align-items:stretch;gap:0;border-bottom:2px solid var(--b1);margin-bottom:12px">
-    <div id="lg-tabs" style="display:flex;gap:4px;align-items:center;overflow-x:auto;flex:1;min-width:0;white-space:nowrap;-webkit-overflow-scrolling:touch"></div>
+
+  <!-- Search + Add Party -->
+  <div class="lg-searchrow">
+    <input class="inp" id="lg-search" placeholder="🔍 Search party…" oninput="lgFilterParties(this.value)">
+    <button class="btn btn-p lg-addparty" onclick="lgPartyForm()">＋ Add Party</button>
   </div>
+
+  <!-- Party tabs -->
+  <div id="lg-tabs" class="lg-tabsrow"></div>
 
   <div id="lg-sheet"></div>
 </div>
