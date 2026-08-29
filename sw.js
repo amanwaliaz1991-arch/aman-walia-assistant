@@ -5,7 +5,7 @@
 // problem where updates didn't appear until manual cache clear.
 // ══════════════════════════════════════════════════════════
 
-const CACHE = "awa-cache-v1";           // bump this string to force a full refresh
+const CACHE = "awa-cache-v2";           // bump this string to force a full refresh
 const OFFLINE_URLS = ["/", "/index.html"];
 
 // Install: pre-cache the shell, activate immediately
