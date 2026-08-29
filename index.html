@@ -2373,7 +2373,8 @@ document.addEventListener("touchstart", function(e){
 
 <script>
 // ── BUILD VERSION (auto-updated on each push) ──
-const BUILD_STAMP = "29 Aug 2026, 01:16 PM IST";
+const BUILD_STAMP = "29 Aug 2026, 01:18 PM IST";
+const BUILD_ID = "20260829131816";
 // paint the build stamp into the dashboard as soon as the DOM is ready
 function paintBuildStamp(){
   var el=document.getElementById("app-version");
@@ -10782,6 +10783,36 @@ if ("serviceWorker" in navigator) {
     });
   });
 }
+
+// ── RELIABLE VERSION CHECK (works even when iOS SW update is flaky) ──
+// Fetches a tiny version file with a cache-buster; if the server build is newer
+// than the one running, it wipes caches and hard-reloads to the fresh version.
+async function checkForNewVersion(){
+  try{
+    const bust = Date.now() + "_" + Math.random().toString(36).slice(2);
+    const res = await fetch("/version.json?cb=" + bust, { cache: "no-store" });
+    if(!res.ok) return;
+    const data = await res.json();
+    if(data && data.build && typeof BUILD_ID !== "undefined" && data.build > BUILD_ID){
+      // A newer version is live. Clear everything and reload.
+      try{
+        if("serviceWorker" in navigator){
+          const regs = await navigator.serviceWorker.getRegistrations();
+          await Promise.all(regs.map(r=>r.unregister()));
+        }
+        if(window.caches){
+          const keys = await caches.keys();
+          await Promise.all(keys.map(k=>caches.delete(k)));
+        }
+      }catch(e){}
+      // hard reload, cache-busted
+      location.replace(location.pathname + "?v=" + data.build);
+    }
+  }catch(e){ /* offline or blocked — ignore */ }
+}
+// Check on load and whenever the app is brought back to the foreground
+window.addEventListener("load", ()=> setTimeout(checkForNewVersion, 1500));
+document.addEventListener("visibilitychange", ()=>{ if(!document.hidden) checkForNewVersion(); });
 </script>
 </body>
 </html>
