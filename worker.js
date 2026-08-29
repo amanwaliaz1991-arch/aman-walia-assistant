@@ -213,7 +213,21 @@ export default {
     }
 
     // ── Everything else: static assets ──
-    return env.ASSETS.fetch(request);
+    {
+      const assetRes = await env.ASSETS.fetch(request);
+      const p = url.pathname;
+      // Force browsers to always revalidate the app shell + service worker,
+      // so updates are never stuck behind a stale cache.
+      const isShell = p === "/" || p === "/index.html" || p.endsWith(".html") || p === "/sw.js";
+      if (isShell) {
+        const h = new Headers(assetRes.headers);
+        h.set("Cache-Control", "no-cache, no-store, must-revalidate");
+        h.set("Pragma", "no-cache");
+        h.set("Expires", "0");
+        return new Response(assetRes.body, { status: assetRes.status, statusText: assetRes.statusText, headers: h });
+      }
+      return assetRes;
+    }
   },
 
   // ── Cloudflare Cron Trigger ──
