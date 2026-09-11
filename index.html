@@ -69,7 +69,7 @@ html,body{height:100%;background:var(--bg);color:var(--tx);font-family:"Plus Jak
 .bnav-scan{background:linear-gradient(135deg,var(--ac),var(--a2));border-radius:50%;width:46px;height:46px;display:flex;align-items:center;justify-content:center;font-size:22px;box-shadow:0 4px 12px rgba(37,99,235,.4);margin-top:-14px;flex-shrink:0;}
 
 /* ── MODULES ── */
-.mod{display:none;animation:fi .18s ease;}
+.mod{display:none;animation:fi .18s ease;height:auto;}
 .mod.on{display:block;}
 @keyframes fi{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:none}}
 .ph{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:14px;gap:10px;flex-wrap:wrap;}
@@ -2376,8 +2376,8 @@ document.addEventListener("touchstart", function(e){
 
 <script>
 // ── BUILD VERSION (auto-updated on each push) ──
-const BUILD_STAMP = "11 Sep 2026, 12:27 PM IST";
-const BUILD_ID = "20260911122723";
+const BUILD_STAMP = "11 Sep 2026, 03:03 PM IST";
+const BUILD_ID = "20260911150322";
 // paint the build stamp into the dashboard as soon as the DOM is ready
 function paintBuildStamp(){
   var el=document.getElementById("app-version");
@@ -2452,7 +2452,7 @@ function go(id){
   document.querySelectorAll(".mod").forEach(m=>m.classList.remove("on"));
   document.querySelectorAll(".sb-item,.bnav-item").forEach(m=>m.classList.remove("on"));
   // Ledger runs full-page (no sidebar) — it's a spreadsheet, it needs the width
-  document.body.classList.toggle("lg-full", id === "ledger" && localStorage.getItem("lg_full") !== "0");   // default ON
+  document.body.classList.toggle("lg-full", id === "ledger" && localStorage.getItem("lg_full") === "1");   // default OFF (normal scroll works reliably)
   document.body.classList.toggle("lg-dense", id === "ledger" && localStorage.getItem("lg_dense") === "1");
   document.getElementById("mod-"+id)?.classList.add("on");
   document.getElementById("n-"+id)?.classList.add("on");
