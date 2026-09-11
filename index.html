@@ -2376,9 +2376,11 @@ document.addEventListener("touchstart", function(e){
 
 <script>
 // ── BUILD VERSION (auto-updated on each push) ──
-const BUILD_STAMP = "11 Sep 2026, 03:03 PM IST";
-const BUILD_ID = "20260911150322";
-// paint the build stamp into the dashboard as soon as the DOM is ready
+const BUILD_STAMP = "11 Sep 2026, 03:22 PM IST";
+const BUILD_ID = "20260911152220";
+
+// One-time: ensure secure ledger opens in the working full-page mode
+try{ if(localStorage.getItem("lg_full_reset_v2")!=="1"){ localStorage.removeItem("lg_full"); localStorage.setItem("lg_full_reset_v2","1"); } }catch(e){}// paint the build stamp into the dashboard as soon as the DOM is ready
 function paintBuildStamp(){
   var el=document.getElementById("app-version");
   if(el) el.textContent="✅ Updated: "+BUILD_STAMP;
@@ -2452,7 +2454,7 @@ function go(id){
   document.querySelectorAll(".mod").forEach(m=>m.classList.remove("on"));
   document.querySelectorAll(".sb-item,.bnav-item").forEach(m=>m.classList.remove("on"));
   // Ledger runs full-page (no sidebar) — it's a spreadsheet, it needs the width
-  document.body.classList.toggle("lg-full", id === "ledger" && localStorage.getItem("lg_full") === "1");   // default OFF (normal scroll works reliably)
+  document.body.classList.toggle("lg-full", id === "ledger" && localStorage.getItem("lg_full") !== "0");   // default ON (full-page scroll works reliably)
   document.body.classList.toggle("lg-dense", id === "ledger" && localStorage.getItem("lg_dense") === "1");
   document.getElementById("mod-"+id)?.classList.add("on");
   document.getElementById("n-"+id)?.classList.add("on");
