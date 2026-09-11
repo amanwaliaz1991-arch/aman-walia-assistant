@@ -528,6 +528,8 @@ document.addEventListener("touchstart", function(e){
   /* keep tabs wrapping, never horizontal-scroll */
   .lg-tabsrow{overflow-x:visible !important;white-space:normal !important}
 }
+
+
 </style>
   <!-- Firebase SDK -->
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
@@ -2374,8 +2376,8 @@ document.addEventListener("touchstart", function(e){
 
 <script>
 // ── BUILD VERSION (auto-updated on each push) ──
-const BUILD_STAMP = "29 Aug 2026, 01:26 PM IST";
-const BUILD_ID = "20260829132613";
+const BUILD_STAMP = "11 Sep 2026, 12:20 PM IST";
+const BUILD_ID = "20260911122007";
 // paint the build stamp into the dashboard as soon as the DOM is ready
 function paintBuildStamp(){
   var el=document.getElementById("app-version");
@@ -8988,7 +8990,7 @@ function lgGridHTML(p){
         <button class="btn btn-sm lg-delbtn" onclick="lgDelParty('${p.id}')">🗑 Delete</button>
       </div>
     </div>
-    <div class="tbl-scroll">
+    <div class="tbl-scroll" style="overflow:visible;max-height:none">
       <table class="tbl lg-grid">
         <thead><tr>
           <th style="width:118px">Date</th>
@@ -9144,7 +9146,14 @@ function lgAddRow(){
   body.insertAdjacentHTML("beforeend", lgRowHTML(e));
   lgRecalc();
   lgMarkDirty();
-  body.querySelector(`tr[data-id="${e.id}"] [data-f="particulars"]`)?.focus();
+  const newInput = body.querySelector(`tr[data-id="${e.id}"] [data-f="particulars"]`);
+  const newRow = body.querySelector(`tr[data-id="${e.id}"]`);
+  // Make sure the freshly-added row is actually visible before focusing,
+  // otherwise it can be clipped inside the scroll area and appear "uneditable".
+  if(newRow && newRow.scrollIntoView){
+    try{ newRow.scrollIntoView({block:"center", behavior:"smooth"}); }catch(_){ newRow.scrollIntoView(); }
+  }
+  setTimeout(()=>{ newInput?.focus(); }, 60);
 }
 
 function lgDelRow(id){
