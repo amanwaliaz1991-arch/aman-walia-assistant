@@ -2434,8 +2434,8 @@ document.addEventListener("touchstart", function(e){
 
 <script>
 // ── BUILD VERSION (auto-updated on each push) ──
-const BUILD_STAMP = "30 Sep 2026, 06:15 PM IST";
-const BUILD_ID = "20260930181500";
+const BUILD_STAMP = "30 Sep 2026, 06:30 PM IST";
+const BUILD_ID = "20260930183022";
 
 // One-time: ensure secure ledger opens in the working full-page mode
 try{ if(localStorage.getItem("lg_full_reset_v2")!=="1"){ localStorage.removeItem("lg_full"); localStorage.setItem("lg_full_reset_v2","1"); } }catch(e){}// paint the build stamp into the dashboard as soon as the DOM is ready
@@ -10892,12 +10892,12 @@ const AC = {
     const sel=document.getElementById("ac-agent"); if(!sel) return;
     sel.innerHTML = agents.length ? agents.map(a=>`<option ${a===this.agent?"selected":""}>${this.esc(a)}</option>`).join("") : `<option value="">No agents yet</option>`;
     const all=this.bills().filter(b=>b.agent===this.agent);
-    const pend=all.filter(b=>b.status==="pending"), paid=all.filter(b=>b.status==="paid");
+    const pend=all.filter(b=>b.status==="pending"||b.status==="partial"), paid=all.filter(b=>b.status==="paid");
     const due=paid.filter(b=>!b.commPaid), cp=paid.filter(b=>b.commPaid);
     const sum=(a,f)=>a.reduce((s,b)=>s+f(b),0), n=a=>a.length+" bill"+(a.length===1?"":"s");
     document.getElementById("ac-stats").innerHTML =
-      sc("var(--red)","Payment Pending",this.rs(sum(pend,b=>+b.amount)),n(pend))+
-      sc("var(--green)","Payment Received",this.rs(sum(paid,b=>+b.paidAmount||0)),n(paid))+
+      sc("var(--red)","Payment Pending",this.rs(sum(pend,b=>(+b.amount)-(+b.paidAmount||0))),n(pend))+
+      sc("var(--green)","Payment Received",this.rs(sum(all,b=>+b.paidAmount||0)),n(paid))+
       sc("var(--ac)","Commission Paid",this.rs(sum(cp,b=>this.comm(b))),"of "+this.rs(sum(paid,b=>this.comm(b)))+" earned")+
       sc("var(--orange)","Commission Due",this.rs(sum(due,b=>this.comm(b))),n(due)+" not settled");
     document.getElementById("ac-payall").style.display = due.length ? "" : "none";
@@ -10927,11 +10927,11 @@ const AC = {
       return `<tr><td data-l="Bill"><span class="ac-num">${this.esc(b.billNo)}</span><span class="ac-sub">${this.dmy(b.date)}</span></td>
         <td data-l="Party"><b>${this.esc(b.party)}</b><span class="ac-sub">${this.esc(b.station||"")}</span></td>
         <td class="r ac-num" data-l="Bill amt">${this.rs(b.amount)}</td><td data-l="Payment">${pay}</td>
-        <td class="r ac-num" data-l="Received">${b.status==="paid"?this.rs(b.paidAmount):"—"}</td>
+        <td class="r ac-num" data-l="Received">${(+b.paidAmount||0)>0?(this.rs(b.paidAmount)+(b.status!=="paid"?'<span class="ac-sub">bal '+this.rs((+b.amount)-(+b.paidAmount||0))+'</span>':"")):"—"}</td>
         <td class="r" data-l="Commission">${c}</td><td class="r"><div class="ac-acts">${acts}</div></td></tr>`;
     }).join("");
     ft.innerHTML=`<tr><td colspan="2">${n(list)}</td><td class="r ac-num" data-l="Bill amt">${this.rs(sum(list.filter(b=>b.status!=="cancelled"),b=>+b.amount))}</td><td></td>
-      <td class="r ac-num" data-l="Received">${this.rs(sum(list,b=>b.status==="paid"?+b.paidAmount:0))}</td><td class="r ac-num" data-l="Commission">${this.rs(sum(list,b=>this.comm(b)))}</td><td></td></tr>`;
+      <td class="r ac-num" data-l="Received">${this.rs(sum(list,b=>+b.paidAmount||0))}</td><td class="r ac-num" data-l="Commission">${this.rs(sum(list,b=>this.comm(b)))}</td><td></td></tr>`;
   },
 
   open(html){ document.getElementById("ac-box").innerHTML=html; document.getElementById("ac-mo").style.display="flex"; },
