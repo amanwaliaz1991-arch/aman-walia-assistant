@@ -2434,8 +2434,8 @@ document.addEventListener("touchstart", function(e){
 
 <script>
 // ── BUILD VERSION (auto-updated on each push) ──
-const BUILD_STAMP = "30 Sep 2026, 06:30 PM IST";
-const BUILD_ID = "20260930183022";
+const BUILD_STAMP = "30 Sep 2026, 06:43 PM IST";
+const BUILD_ID = "20260930184341";
 
 // One-time: ensure secure ledger opens in the working full-page mode
 try{ if(localStorage.getItem("lg_full_reset_v2")!=="1"){ localStorage.removeItem("lg_full"); localStorage.setItem("lg_full_reset_v2","1"); } }catch(e){}// paint the build stamp into the dashboard as soon as the DOM is ready
@@ -10917,10 +10917,11 @@ const AC = {
       let pay;
       if(b.status==="pending"){ const d=this.days(b.date); pay=`<span class="pill pr">Pending</span><span class="ac-sub ${d>30?"old":""}">${d} days</span>`; }
       else if(b.status==="paid") pay=`<span class="pill pg">Received ${this.dmy(b.paidDate)}</span><span class="ac-sub">${this.esc(b.paidMode||"")}</span>`;
+      else if(b.status==="partial"){ const d=this.days(b.date); pay=`<span class="pill" style="background:#fef3c7;color:#92400e">Part paid</span><span class="ac-sub ${d>30?"old":""}">${d} days · bal ${this.rs((+b.amount)-(+b.paidAmount||0))}</span>`; }
       else pay=`<span class="pill" style="background:var(--s2);color:var(--muted)">Cancelled</span><span class="ac-sub">${this.esc(b.note||"")}</span>`;
       const c = b.status==="paid" ? `<span class="ac-num">${this.rs(this.comm(b))}</span><br>${b.commPaid?`<span class="pill pg">Paid ${this.dmy(b.commPaidDate)}</span>`:`<span class="pill po">Due</span>`}` : "—";
       let acts="";
-      if(b.status==="pending") acts+=`<button class="btn btn-p" onclick="AC.openPay('${b.id}')">Mark received</button>`;
+      if(b.status==="pending"||b.status==="partial") acts+=`<button class="btn btn-p" onclick="AC.openPay('${b.id}')">${b.status==="partial"?"Add payment":"Mark received"}</button>`;
       if(b.status==="paid" && !b.commPaid) acts+=`<button class="btn" onclick="AC.openComm(['${b.id}'])">Commission paid</button>`;
       if(b.status==="paid") acts+=`<button class="btn" onclick="${b.commPaid?`AC.openComm(['${b.id}'])`:`AC.openPay('${b.id}')`}">Edit payment</button>`;
       acts+=`<button class="btn" onclick="AC.openBill('${b.id}')">Edit</button>`;
@@ -10950,7 +10951,7 @@ const AC = {
         <label>Bill date<input class="inp" type="date" id="acf-date" value="${b?b.date:todayStr()}"></label>
         <label>Bill amount ₹ (incl. GST)<input class="inp" type="number" step="0.01" id="acf-amt" value="${b?b.amount:""}"></label>
         <label>Commission %<input class="inp" type="number" step="0.1" id="acf-rate" value="${lastRate}"></label>
-        <label>Status<select class="sel" id="acf-status">${[["pending","Payment pending"],["paid","Received"],["cancelled","Cancelled"]].map(([v,l])=>`<option value="${v}" ${(b?b.status:"pending")===v?"selected":""}>${l}</option>`).join("")}</select></label>
+        <label>Status<select class="sel" id="acf-status">${[["pending","Payment pending"],["partial","Part paid"],["paid","Received"],["cancelled","Cancelled"]].map(([v,l])=>`<option value="${v}" ${(b?b.status:"pending")===v?"selected":""}>${l}</option>`).join("")}</select></label>
         <label style="grid-column:1/-1">Note<input class="inp" id="acf-note" value="${this.esc(b?b.note||"":"")}"></label>
       </div>
       <div class="ac-row">${b?`<button class="btn" style="color:var(--red)" onclick="AC.del(this)">Delete bill</button>`:""}<span style="flex:1"></span>
@@ -10992,7 +10993,7 @@ const AC = {
   calcPay(){ const a=Number(this.v("acp-amt")||0), ex=a/(1+this.GST/100), r=Number(this.cur?.rate||5);
     document.getElementById("acp-calc").innerHTML=`Without GST: <b>${this.rs(ex)}</b> · Commission ${r}%: <b>${this.rs(Math.round(ex*r)/100)}</b>`; },
   savePay(){ const a=Number(this.v("acp-amt")); if(!(a>0)){ this.toast("Enter the amount received"); return; }
-    Object.assign(this.cur,{status:"paid",paidDate:this.v("acp-date"),paidAmount:a,paidMode:this.v("acp-mode")}); this.close(); this.save("Payment recorded"); },
+    const _st = a < (+this.cur.amount)-0.5 ? "partial":"paid"; Object.assign(this.cur,{status:_st,paidDate:this.v("acp-date"),paidAmount:a,paidMode:this.v("acp-mode")}); this.close(); this.save(_st==="partial"?"Part payment recorded":"Payment recorded"); },
   unpay(){ Object.assign(this.cur,{status:"pending",paidDate:"",paidAmount:0,paidMode:"",commPaid:false,commPaidDate:"",commMode:""}); this.close(); this.save("Marked pending"); },
 
   openComm(ids){
