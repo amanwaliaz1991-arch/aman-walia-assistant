@@ -534,6 +534,38 @@ document.addEventListener("touchstart", function(e){
   <!-- Firebase SDK -->
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<style id="ac-style">
+/* ── Agent Commission ── */
+#mod-agentcomm .ac-tabs{display:flex;flex-wrap:wrap;gap:4px;background:var(--s2);border:1px solid var(--b1);border-radius:10px;padding:3px;margin-bottom:12px}
+#mod-agentcomm .ac-tabs button{border:0;background:transparent;padding:7px 12px;border-radius:8px;font-size:13px;font-weight:600;color:var(--muted);cursor:pointer;font-family:inherit}
+#mod-agentcomm .ac-tabs button.on{background:var(--s1);color:var(--tx);box-shadow:0 1px 3px rgba(0,0,0,.08)}
+#mod-agentcomm .ac-num{font-family:"JetBrains Mono",monospace;font-variant-numeric:tabular-nums}
+#mod-agentcomm .tbl td.r,#mod-agentcomm .tbl th.r{text-align:right}
+#mod-agentcomm .ac-sub{display:block;font-size:11.5px;color:var(--muted);margin-top:2px}
+#mod-agentcomm .ac-sub.old{color:var(--red);font-weight:700}
+#mod-agentcomm .ac-acts{display:flex;gap:5px;flex-wrap:wrap;justify-content:flex-end}
+#mod-agentcomm .ac-acts .btn{padding:5px 9px;font-size:12px}
+#mod-agentcomm tfoot td{font-weight:700;border-top:2px solid var(--b1)}
+#mod-agentcomm .ac-note{font-size:12px;color:var(--muted);padding:10px 16px}
+#ac-mo{position:fixed;inset:0;background:rgba(15,23,42,.5);z-index:9000;display:none;align-items:center;justify-content:center;padding:16px}
+#ac-mo .ac-box{background:var(--s1);border-radius:14px;width:min(480px,100%);max-height:calc(100% - 32px);overflow:auto;padding:18px;display:grid;gap:12px;box-shadow:0 10px 40px rgba(0,0,0,.25)}
+#ac-mo h3{margin:0;font-size:17px}
+#ac-mo .ac-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+#ac-mo label{display:grid;gap:4px;font-size:12px;color:var(--muted);font-weight:600}
+#ac-mo .inp,#ac-mo .sel{width:100%;padding:9px 11px}
+#ac-mo .ac-calc{background:var(--s2);border:1px solid var(--b1);border-radius:8px;padding:10px 12px;font-size:13px}
+#ac-mo .ac-row{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;align-items:center}
+@media(max-width:600px){
+  #ac-mo .ac-grid{grid-template-columns:1fr}
+  #mod-agentcomm .tbl thead{display:none}
+  #mod-agentcomm .tbl,#mod-agentcomm .tbl tbody,#mod-agentcomm .tbl tr,#mod-agentcomm .tbl td{display:block;width:100%}
+  #mod-agentcomm .tbl tr{border-bottom:1px solid var(--b1);padding:10px 12px}
+  #mod-agentcomm .tbl td{border:0;padding:3px 0;text-align:left!important}
+  #mod-agentcomm .tbl td[data-l]::before{content:attr(data-l);display:inline-block;min-width:92px;font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px}
+  #mod-agentcomm .ac-acts{justify-content:flex-start;margin-top:6px}
+  #mod-agentcomm tfoot{display:block}
+}
+</style>
 </head>
 <body>
 <div class="app">
@@ -684,6 +716,7 @@ document.addEventListener("touchstart", function(e){
   <div class="sb-grp">
     <div class="sb-lbl">Finance & Legal</div>
     <div class="sb-item" id="n-payment" onclick="go('payment')"><span class="sb-ico">💰</span>Payment Follow-Up<span class="sb-bdg" id="b-pay">0</span></div>
+    <div class="sb-item" id="n-agentcomm" onclick="go('agentcomm')"><span class="sb-ico">🤝</span>Agent Commission</div>
     <div class="sb-item" id="n-defaulter" onclick="go('defaulter')"><span class="sb-ico">⚠️</span>Notices / Defaulters</div>
     <div class="sb-item" id="n-banking" onclick="go('banking')"><span class="sb-ico">🏦</span>Banking Issues</div>
     <div class="sb-item" id="n-taxdates" onclick="go('taxdates')"><span class="sb-ico">🧾</span>Tax Dates<span class="sb-bdg" id="b-taxdates"></span></div>
@@ -900,6 +933,31 @@ document.addEventListener("touchstart", function(e){
   <div class="tbl-scroll"><table class="tbl"><thead><tr><th>Track #</th><th>Party</th><th>Courier</th><th>Type</th><th>Amount</th><th>Status</th><th>Actions</th></tr></thead><tbody id="trb"></tbody></table></div>
   <div id="tre" class="es" style="display:none"><div class="em">🚚</div>No issues.</div></div>
 </div>
+
+<!-- AGENT COMMISSION -->
+<div class="mod" id="mod-agentcomm">
+  <div class="ph"><div><div class="pt">AGENT <span>COMMISSION</span></div><div class="pt-sub">Bills by agent · Payment received / pending · Commission on value without GST</div></div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+    <select class="sel" id="ac-agent" onchange="AC.setAgent(this.value)" style="width:150px"></select>
+    <button class="btn btn-p" onclick="AC.openBill()">+ Add Bill</button>
+  </div></div>
+  <div class="g4" id="ac-stats"></div>
+  <div class="card">
+    <div class="card-hdr" style="flex-wrap:wrap;gap:8px"><span id="ac-title">Bills</span>
+      <button class="btn" id="ac-payall" onclick="AC.openCommAll()" style="display:none;padding:6px 10px;font-size:12.5px">Pay all due commission</button></div>
+    <div style="padding:12px 16px 0"><div class="ac-tabs" id="ac-tabs">
+      <button data-f="pending" onclick="AC.setFilter('pending')">Payment pending</button>
+      <button data-f="paid" onclick="AC.setFilter('paid')">Received</button>
+      <button data-f="due" onclick="AC.setFilter('due')">Commission due</button>
+      <button data-f="all" onclick="AC.setFilter('all')">All bills</button>
+    </div></div>
+    <div class="tbl-scroll"><table class="tbl"><thead><tr><th>Bill</th><th>Party</th><th class="r">Bill Amt</th><th>Payment</th><th class="r">Received</th><th class="r">Commission</th><th class="r">Actions</th></tr></thead>
+      <tbody id="ac-rows"></tbody><tfoot id="ac-foot"></tfoot></table></div>
+    <div id="ac-empty" class="es" style="display:none"></div>
+    <div class="ac-note">Commission = amount received ÷ (1 + GST%) × agent's rate. Days counted from bill date. Cancelled bills carry no commission.</div>
+  </div>
+</div>
+<div id="ac-mo" onclick="if(event.target===this)AC.close()"><div class="ac-box" id="ac-box"></div></div>
 
 <!-- PAYMENT -->
 <div class="mod" id="mod-payment">
@@ -2377,7 +2435,7 @@ document.addEventListener("touchstart", function(e){
 <script>
 // ── BUILD VERSION (auto-updated on each push) ──
 const BUILD_STAMP = "11 Sep 2026, 03:22 PM IST";
-const BUILD_ID = "20260911152220";
+const BUILD_ID = "20260930181500";
 
 // One-time: ensure secure ledger opens in the working full-page mode
 try{ if(localStorage.getItem("lg_full_reset_v2")!=="1"){ localStorage.removeItem("lg_full"); localStorage.setItem("lg_full_reset_v2","1"); } }catch(e){}// paint the build stamp into the dashboard as soon as the DOM is ready
@@ -2468,7 +2526,7 @@ function go(id){
     health:R.health,badminton:R.badminton,self:R.self,quotes:R.quotes,
     mustdo:R.mustdo,accounts:R.accounts,costing:R.costing,kb:R.kb,orders:R.orders,purchase:R.purchase,production:R.production,
     expenses:R.expenses,scanner:R.scanner,stock:R.stock,utilities:initUtilities,quotation:R.quotation,brands:R.brands,crm:R.crm,ledger:R.ledger,
-    vehicles:R.vehicles,
+    vehicles:R.vehicles,agentcomm:R.agentcomm,
     gurbani:R.gurbani,taxdates:R.taxdates,attendance:R.attendance};
   rmap[id]?.();
 }
@@ -2648,6 +2706,8 @@ const D={
   prodStock:[],
 
   expenses:[],
+
+  agentBills:[{"id":"T-26-27-377","agent":"Harish Ji","billNo":"T/26-27/377","party":"Goyal Sports & Sons","station":"Batala","date":"2026-08-20","amount":19320,"status":"paid","paidDate":"2026-09-22","paidAmount":19320,"paidMode":"IDBI 139476","commPaid":true,"commPaidDate":"2026-09-30","commMode":"cash","rate":5},{"id":"T-26-27-381","agent":"Harish Ji","billNo":"T/26-27/381","party":"Guleria Sports","station":"Gurdaspur","date":"2026-08-21","amount":15645,"status":"paid","paidDate":"2026-09-28","paidAmount":15645,"paidMode":"UPI","commPaid":true,"commPaidDate":"2026-09-30","commMode":"cash","rate":5},{"id":"T-26-27-410","agent":"Harish Ji","billNo":"T/26-27/410","party":"Kanna Sports Products","station":"Salem","date":"2026-09-04","amount":80698,"status":"pending","commPaid":false,"rate":5},{"id":"T-26-27-416","agent":"Harish Ji","billNo":"T/26-27/416","party":"G.S. Banwait Sports","station":"Anandpur Sahib","date":"2026-09-08","amount":22050,"status":"cancelled","commPaid":false,"note":"C/Note SCN/26-27/17 dt 14-09","rate":5},{"id":"T-26-27-417","agent":"Harish Ji","billNo":"T/26-27/417","party":"J S Sports","station":"Rupnagar","date":"2026-09-08","amount":18900,"status":"pending","commPaid":false,"rate":5},{"id":"T-26-27-418","agent":"Harish Ji","billNo":"T/26-27/418","party":"Sant Sports","station":"Jalandhar","date":"2026-09-09","amount":10510,"status":"pending","commPaid":false,"rate":5},{"id":"T-26-27-419","agent":"Harish Ji","billNo":"T/26-27/419","party":"Gupta Sports","station":"Morinda","date":"2026-09-09","amount":31000,"status":"pending","commPaid":false,"rate":5},{"id":"T-26-27-434","agent":"Harish Ji","billNo":"T/26-27/434","party":"Mahindra Sports and Music","station":"Pathankot","date":"2026-09-12","amount":22050,"status":"pending","commPaid":false,"rate":5},{"id":"T-26-27-435","agent":"Harish Ji","billNo":"T/26-27/435","party":"MC Sports & Music House","station":"Moga","date":"2026-09-12","amount":24278,"status":"pending","commPaid":false,"rate":5},{"id":"T-26-27-436","agent":"Harish Ji","billNo":"T/26-27/436","party":"G.S. Banwait Sports","station":"Anandpur Sahib","date":"2026-09-12","amount":22050,"status":"pending","commPaid":false,"rate":5},{"id":"T-26-27-456","agent":"Harish Ji","billNo":"T/26-27/456","party":"Athlatin Sports Venture","station":"Dhuri","date":"2026-09-17","amount":34335,"status":"pending","commPaid":false,"rate":5},{"id":"T-26-27-460","agent":"Harish Ji","billNo":"T/26-27/460","party":"JK Sports","station":"Kovilpatti","date":"2026-09-19","amount":72450,"status":"pending","commPaid":false,"rate":5},{"id":"T-26-27-476","agent":"Harish Ji","billNo":"T/26-27/476","party":"Goyal Sports & Sons","station":"Batala","date":"2026-09-24","amount":27458,"status":"pending","commPaid":false,"rate":5},{"id":"T-26-27-477","agent":"Harish Ji","billNo":"T/26-27/477","party":"Aarya Sports","station":"Ambikapur","date":"2026-09-24","amount":51600,"status":"pending","commPaid":false,"rate":5}],
 
   quotes:[
     {id:1,text:"Success is not final, failure is not fatal: it is the courage to continue that counts.",author:"Winston Churchill",cat:"courage"},
@@ -6559,6 +6619,7 @@ function reRenderCurrent() {
   // Don't redraw the page behind an open modal/form — that can wipe out
   // whatever the user is mid-way through (e.g., the New Party dialog).
   if(document.getElementById("crm-mo")?.style.display === "flex") return;
+  if(document.getElementById("ac-mo")?.style.display === "flex") return;
   if(document.getElementById("im-mo")?.style.display === "flex") return;
   const active = document.querySelector(".mod.on");
   if (!active) return;
@@ -6576,7 +6637,7 @@ function reRenderCurrent() {
     mustdo:R.mustdo, accounts:R.accounts, costing:R.costing, kb:R.kb,
     orders:R.orders, purchase:R.purchase, production:R.production,
     expenses:R.expenses, scanner:R.scanner, stock:R.stock, quotation:R.quotation, brands:R.brands, crm:R.crm, ledger:R.ledger,
-    vehicles:R.vehicles, gurbani:R.gurbani, taxdates:R.taxdates
+    vehicles:R.vehicles, gurbani:R.gurbani, taxdates:R.taxdates, agentcomm:R.agentcomm
   };
   rmap[id]?.();
 }
@@ -6590,7 +6651,7 @@ function loadAllFromFirebase() {
     "deadstock","rd","compliance","itax","tds","gst","itc","future",
     "dayData","healthHabits","healthGoals","bdmGames","bdmSkills",
     "bdmDrills","selfGoals","books","weeklyReviews","quotes","uid",
-    "mustdo","accounts","costing","costCats","kb","stock","stockCats","stockLog","menuOrder","quotations","brandMilestones","brandTargets","crm_1","crm_2","crm_3","crm_4","crm_5","crm_6","crm_7","crm_8","crm_9","crm_10","crm_11","crm_12","crmMeta","imLeads_1","imLeads_2","imLeads_3","imLeads_4","imLeads_5","imLeads_6","imLeads_7","imLeads_8","imLeads_9","imLeads_10","imLeads_11","imLeads_12","imLeads_13","imLeads_14","imLeads_15","imLeads_16","imLeads_17","imLeads_18","imLeads_19","imLeads_20","imLeadsMeta","imLeads","imConfig","imInbox","ledgerCfg","ledgerVault","orders","purchase","production","prodStock","expenses","scanHistory","vehicles","waTemplates","imBlocked","gurbani"
+    "mustdo","accounts","costing","costCats","kb","stock","stockCats","stockLog","menuOrder","quotations","brandMilestones","brandTargets","crm_1","crm_2","crm_3","crm_4","crm_5","crm_6","crm_7","crm_8","crm_9","crm_10","crm_11","crm_12","crmMeta","imLeads_1","imLeads_2","imLeads_3","imLeads_4","imLeads_5","imLeads_6","imLeads_7","imLeads_8","imLeads_9","imLeads_10","imLeads_11","imLeads_12","imLeads_13","imLeads_14","imLeads_15","imLeads_16","imLeads_17","imLeads_18","imLeads_19","imLeads_20","imLeadsMeta","imLeads","imConfig","imInbox","ledgerCfg","ledgerVault","orders","purchase","production","prodStock","expenses","agentBills","scanHistory","vehicles","waTemplates","imBlocked","gurbani"
   ];
 
   let initialLoadDone = false;
@@ -6666,7 +6727,7 @@ function loadAllFromFirebase() {
 
   // Note: pushIfMissing disabled - onSnapshot handles all data loading
   // Only push truly new collections that have never been in Firebase
-  const newOnlyCollections = ["scanHistory"];
+  const newOnlyCollections = ["scanHistory","agentBills"];
   newOnlyCollections.forEach(col => pushIfMissing(col));
 
   collections.forEach(col => {
@@ -6753,7 +6814,7 @@ function loadAllFromFirebase() {
 // ── LOCALSTORAGE FALLBACK ──
 function saveToLocal() {
   try {
-    const save = {urgent:D.urgent,cod:D.cod,transport:D.transport,payment:D.payment,defaulter:D.defaulter,banking:D.banking,deadstock:D.deadstock,rd:D.rd,compliance:D.compliance,itax:D.itax,tds:D.tds,gst:D.gst,itc:D.itc,future:D.future,dayData:D.dayData,healthHabits:D.healthHabits,healthGoals:D.healthGoals,bdmGames:D.bdmGames,bdmSkills:D.bdmSkills,bdmDrills:D.bdmDrills,selfGoals:D.selfGoals,books:D.books,weeklyReviews:D.weeklyReviews,quotes:D.quotes,uid:D.uid,orders:D.orders,purchase:D.purchase,production:D.production,prodStock:D.prodStock,expenses:D.expenses,scanHistory:D.scanHistory,mustdo:D.mustdo,accounts:D.accounts,costing:D.costing,costCats:D.costCats,kb:D.kb,stock:D.stock,stockCats:D.stockCats,stockLog:D.stockLog,menuOrder:D.menuOrder,quotations:D.quotations,brandMilestones:D.brandMilestones,imLeads:D.imLeads};
+    const save = {urgent:D.urgent,cod:D.cod,transport:D.transport,payment:D.payment,defaulter:D.defaulter,banking:D.banking,deadstock:D.deadstock,rd:D.rd,compliance:D.compliance,itax:D.itax,tds:D.tds,gst:D.gst,itc:D.itc,future:D.future,dayData:D.dayData,healthHabits:D.healthHabits,healthGoals:D.healthGoals,bdmGames:D.bdmGames,bdmSkills:D.bdmSkills,bdmDrills:D.bdmDrills,selfGoals:D.selfGoals,books:D.books,weeklyReviews:D.weeklyReviews,quotes:D.quotes,uid:D.uid,orders:D.orders,purchase:D.purchase,production:D.production,prodStock:D.prodStock,expenses:D.expenses,agentBills:D.agentBills,scanHistory:D.scanHistory,mustdo:D.mustdo,accounts:D.accounts,costing:D.costing,costCats:D.costCats,kb:D.kb,stock:D.stock,stockCats:D.stockCats,stockLog:D.stockLog,menuOrder:D.menuOrder,quotations:D.quotations,brandMilestones:D.brandMilestones,imLeads:D.imLeads};
     localStorage.setItem("aman_walia_data", JSON.stringify(save));
   } catch(e) { console.warn("LocalStorage save failed:", e); }
 }
@@ -7659,6 +7720,7 @@ const MENU_META = {
   production:{label:"Production",icon:"🏭",group:"Operations"},
   quotation:{label:"Quotation Maker",icon:"📄",group:"Operations"},
   payment:{label:"Payment Follow-Up",icon:"💰",group:"Finance & Legal"},
+  agentcomm:{label:"Agent Commission",icon:"🤝",group:"Finance & Legal"},
   defaulter:{label:"Notices / Defaulters",icon:"⚠️",group:"Finance & Legal"},
   banking:{label:"Banking Issues",icon:"🏦",group:"Finance & Legal"},
   itax:{label:"Income Tax Dates",icon:"📅",group:"Finance & Legal"},
@@ -10795,6 +10857,163 @@ if ("serviceWorker" in navigator) {
     });
   });
 }
+
+// ══════════ AGENT COMMISSION ══════════
+// Data: D.agentBills = [{id, agent, billNo, party, station, date, amount, rate, status:"pending"|"paid"|"cancelled",
+//        paidDate, paidAmount, paidMode, commPaid, commPaidDate, commMode, note}]
+const AC = {
+  GST: 5,
+  agent: localStorage.getItem("ac_agent") || "",
+  filter: "pending",
+  cur: null,
+  list: [],
+  bills(){ return Array.isArray(D.agentBills) ? D.agentBills : (D.agentBills = []); },
+  agents(){ return [...new Set(this.bills().map(b=>b.agent).filter(Boolean))].sort(); },
+  comm(b){ return b.status==="paid" ? Math.round((Number(b.paidAmount||0)/(1+this.GST/100))*Number(b.rate||5))/100 : 0; },
+  rs(n){ return "₹"+(Math.round(Number(n||0)*100)/100).toLocaleString("en-IN",{maximumFractionDigits:2}); },
+  dmy(s){ if(!s) return ""; const p=s.split("-"); return p[2]+"-"+p[1]+"-"+p[0].slice(2); },
+  days(s){ return Math.round((new Date(todayStr())-new Date(s))/864e5); },
+  esc(s){ return String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])); },
+  find(id){ return this.bills().find(b=>b.id===id); },
+  save(msg){ autoSave("agentBills"); this.render(); if(msg) this.toast(msg); },
+  toast(t){
+    let el=document.getElementById("ac-toast");
+    if(!el){ el=document.createElement("div"); el.id="ac-toast";
+      el.style.cssText="position:fixed;left:50%;bottom:calc(84px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:#1a2332;color:#fff;padding:9px 16px;border-radius:8px;font-size:13px;font-weight:600;z-index:9500";
+      document.body.appendChild(el); }
+    el.textContent=t; el.style.display="block"; clearTimeout(this._t); this._t=setTimeout(()=>el.style.display="none",2200);
+  },
+  setAgent(a){ this.agent=a; try{localStorage.setItem("ac_agent",a);}catch(e){} this.render(); },
+  setFilter(f){ this.filter=f; this.render(); },
+
+  render(){
+    const agents=this.agents();
+    if(!this.agent || !agents.includes(this.agent)) this.agent = agents.includes("Harish Ji") ? "Harish Ji" : (agents[0]||"");
+    const sel=document.getElementById("ac-agent"); if(!sel) return;
+    sel.innerHTML = agents.length ? agents.map(a=>`<option ${a===this.agent?"selected":""}>${this.esc(a)}</option>`).join("") : `<option value="">No agents yet</option>`;
+    const all=this.bills().filter(b=>b.agent===this.agent);
+    const pend=all.filter(b=>b.status==="pending"), paid=all.filter(b=>b.status==="paid");
+    const due=paid.filter(b=>!b.commPaid), cp=paid.filter(b=>b.commPaid);
+    const sum=(a,f)=>a.reduce((s,b)=>s+f(b),0), n=a=>a.length+" bill"+(a.length===1?"":"s");
+    document.getElementById("ac-stats").innerHTML =
+      sc("var(--red)","Payment Pending",this.rs(sum(pend,b=>+b.amount)),n(pend))+
+      sc("var(--green)","Payment Received",this.rs(sum(paid,b=>+b.paidAmount||0)),n(paid))+
+      sc("var(--ac)","Commission Paid",this.rs(sum(cp,b=>this.comm(b))),"of "+this.rs(sum(paid,b=>this.comm(b)))+" earned")+
+      sc("var(--orange)","Commission Due",this.rs(sum(due,b=>this.comm(b))),n(due)+" not settled");
+    document.getElementById("ac-payall").style.display = due.length ? "" : "none";
+    document.querySelectorAll("#ac-tabs button").forEach(b=>b.classList.toggle("on",b.dataset.f===this.filter));
+    let list = this.filter==="pending"?pend : this.filter==="paid"?paid : this.filter==="due"?due : all;
+    list=[...list].sort((a,b)=>this.filter==="pending"?String(a.date).localeCompare(b.date):String(b.date).localeCompare(a.date));
+    document.getElementById("ac-title").textContent = (this.agent||"Agent")+" — "+({pending:"Payment pending",paid:"Payment received",due:"Commission due",all:"All bills"}[this.filter]);
+    const tb=document.getElementById("ac-rows"), ft=document.getElementById("ac-foot"), em=document.getElementById("ac-empty");
+    if(!list.length){
+      tb.innerHTML=""; ft.innerHTML=""; em.style.display="block";
+      em.innerHTML = !agents.length ? `<div class="em">🤝</div>No agent bills yet. Tap <b>+ Add Bill</b> to enter the first one.`
+        : `<div class="em">✅</div>`+({pending:"No payment pending for this agent.",paid:"No payments received yet.",due:"No commission due. Everything is settled.",all:"No bills for this agent."}[this.filter]);
+      return;
+    }
+    em.style.display="none";
+    tb.innerHTML=list.map(b=>{
+      let pay;
+      if(b.status==="pending"){ const d=this.days(b.date); pay=`<span class="pill pr">Pending</span><span class="ac-sub ${d>30?"old":""}">${d} days</span>`; }
+      else if(b.status==="paid") pay=`<span class="pill pg">Received ${this.dmy(b.paidDate)}</span><span class="ac-sub">${this.esc(b.paidMode||"")}</span>`;
+      else pay=`<span class="pill" style="background:var(--s2);color:var(--muted)">Cancelled</span><span class="ac-sub">${this.esc(b.note||"")}</span>`;
+      const c = b.status==="paid" ? `<span class="ac-num">${this.rs(this.comm(b))}</span><br>${b.commPaid?`<span class="pill pg">Paid ${this.dmy(b.commPaidDate)}</span>`:`<span class="pill po">Due</span>`}` : "—";
+      let acts="";
+      if(b.status==="pending") acts+=`<button class="btn btn-p" onclick="AC.openPay('${b.id}')">Mark received</button>`;
+      if(b.status==="paid" && !b.commPaid) acts+=`<button class="btn" onclick="AC.openComm(['${b.id}'])">Commission paid</button>`;
+      if(b.status==="paid") acts+=`<button class="btn" onclick="${b.commPaid?`AC.openComm(['${b.id}'])`:`AC.openPay('${b.id}')`}">Edit payment</button>`;
+      acts+=`<button class="btn" onclick="AC.openBill('${b.id}')">Edit</button>`;
+      return `<tr><td data-l="Bill"><span class="ac-num">${this.esc(b.billNo)}</span><span class="ac-sub">${this.dmy(b.date)}</span></td>
+        <td data-l="Party"><b>${this.esc(b.party)}</b><span class="ac-sub">${this.esc(b.station||"")}</span></td>
+        <td class="r ac-num" data-l="Bill amt">${this.rs(b.amount)}</td><td data-l="Payment">${pay}</td>
+        <td class="r ac-num" data-l="Received">${b.status==="paid"?this.rs(b.paidAmount):"—"}</td>
+        <td class="r" data-l="Commission">${c}</td><td class="r"><div class="ac-acts">${acts}</div></td></tr>`;
+    }).join("");
+    ft.innerHTML=`<tr><td colspan="2">${n(list)}</td><td class="r ac-num" data-l="Bill amt">${this.rs(sum(list.filter(b=>b.status!=="cancelled"),b=>+b.amount))}</td><td></td>
+      <td class="r ac-num" data-l="Received">${this.rs(sum(list,b=>b.status==="paid"?+b.paidAmount:0))}</td><td class="r ac-num" data-l="Commission">${this.rs(sum(list,b=>this.comm(b)))}</td><td></td></tr>`;
+  },
+
+  open(html){ document.getElementById("ac-box").innerHTML=html; document.getElementById("ac-mo").style.display="flex"; },
+  close(){ document.getElementById("ac-mo").style.display="none"; this.cur=null; },
+  v(id){ return (document.getElementById(id)?.value||"").trim(); },
+
+  openBill(id){
+    const b=id?this.find(id):null; this.cur=b;
+    const lastRate = b ? b.rate : (this.bills().filter(x=>x.agent===this.agent).slice(-1)[0]?.rate ?? 5);
+    this.open(`<h3>${b?"Edit bill "+this.esc(b.billNo):"Add bill"}</h3>
+      <div class="ac-grid">
+        <label>Agent<input class="inp" id="acf-agent" list="acf-agents" value="${this.esc(b?b.agent:this.agent)}"><datalist id="acf-agents">${this.agents().map(a=>`<option value="${this.esc(a)}">`).join("")}</datalist></label>
+        <label>Bill no.<input class="inp" id="acf-bill" value="${this.esc(b?b.billNo:"")}" placeholder="T/26-27/480" ${b?"disabled":""}></label>
+        <label>Party<input class="inp" id="acf-party" value="${this.esc(b?b.party:"")}"></label>
+        <label>Station<input class="inp" id="acf-station" value="${this.esc(b?b.station||"":"")}"></label>
+        <label>Bill date<input class="inp" type="date" id="acf-date" value="${b?b.date:todayStr()}"></label>
+        <label>Bill amount ₹ (incl. GST)<input class="inp" type="number" step="0.01" id="acf-amt" value="${b?b.amount:""}"></label>
+        <label>Commission %<input class="inp" type="number" step="0.1" id="acf-rate" value="${lastRate}"></label>
+        <label>Status<select class="sel" id="acf-status">${[["pending","Payment pending"],["paid","Received"],["cancelled","Cancelled"]].map(([v,l])=>`<option value="${v}" ${(b?b.status:"pending")===v?"selected":""}>${l}</option>`).join("")}</select></label>
+        <label style="grid-column:1/-1">Note<input class="inp" id="acf-note" value="${this.esc(b?b.note||"":"")}"></label>
+      </div>
+      <div class="ac-row">${b?`<button class="btn" style="color:var(--red)" onclick="AC.del(this)">Delete bill</button>`:""}<span style="flex:1"></span>
+        <button class="btn" onclick="AC.close()">Cancel</button><button class="btn btn-p" onclick="AC.saveBill()">Save</button></div>`);
+  },
+  saveBill(){
+    const d={agent:this.v("acf-agent"),billNo:this.v("acf-bill"),party:this.v("acf-party"),station:this.v("acf-station"),date:this.v("acf-date"),
+      amount:Number(this.v("acf-amt")),rate:Number(this.v("acf-rate")||5),status:this.v("acf-status"),note:this.v("acf-note")};
+    if(!d.agent||!d.billNo||!d.party||!d.date||!(d.amount>0)){ this.toast("Fill agent, bill no., party, date and amount"); return; }
+    if(this.cur){
+      if(d.status==="paid" && this.cur.status!=="paid"){ d.paidAmount=d.amount; d.paidDate=todayStr(); }
+      if(d.status!=="paid"){ Object.assign(d,{paidAmount:0,paidDate:"",paidMode:"",commPaid:false,commPaidDate:"",commMode:""}); }
+      Object.assign(this.cur,d);
+    }else{
+      const id=d.billNo.replace(/[^A-Za-z0-9_.-]/g,"-");
+      if(this.find(id)){ this.toast("Bill "+d.billNo+" already exists"); return; }
+      if(d.status==="paid"){ d.paidAmount=d.amount; d.paidDate=d.date; }
+      this.bills().push({id,...d,commPaid:false});
+    }
+    this.agent=d.agent; const wasEdit=!!this.cur; this.close(); this.save(wasEdit?"Bill updated":"Bill added");
+  },
+  del(btn){
+    if(!btn.dataset.arm){ btn.dataset.arm="1"; btn.textContent="Tap again to delete"; return; }
+    D.agentBills=this.bills().filter(b=>b!==this.cur); this.close(); this.save("Bill deleted");
+  },
+
+  openPay(id){
+    const b=this.find(id); if(!b) return; this.cur=b;
+    this.open(`<h3>Payment received</h3><div style="font-size:13px;color:var(--muted)">${this.esc(b.party)} · ${this.esc(b.billNo)} · bill ${this.rs(b.amount)}</div>
+      <div class="ac-grid">
+        <label>Date received<input class="inp" type="date" id="acp-date" value="${b.paidDate||todayStr()}"></label>
+        <label>Amount ₹<input class="inp" type="number" step="0.01" id="acp-amt" value="${b.paidAmount||b.amount}" oninput="AC.calcPay()"></label>
+        <label style="grid-column:1/-1">Mode / reference<input class="inp" id="acp-mode" value="${this.esc(b.paidMode||"")}" placeholder="UPI, IDBI chq 139476…"></label>
+      </div><div class="ac-calc" id="acp-calc"></div>
+      <div class="ac-row">${b.status==="paid"?`<button class="btn" style="color:var(--red)" onclick="AC.unpay()">Mark unpaid</button>`:""}<span style="flex:1"></span>
+        <button class="btn" onclick="AC.close()">Cancel</button><button class="btn btn-p" onclick="AC.savePay()">Save payment</button></div>`);
+    this.calcPay();
+  },
+  calcPay(){ const a=Number(this.v("acp-amt")||0), ex=a/(1+this.GST/100), r=Number(this.cur?.rate||5);
+    document.getElementById("acp-calc").innerHTML=`Without GST: <b>${this.rs(ex)}</b> · Commission ${r}%: <b>${this.rs(Math.round(ex*r)/100)}</b>`; },
+  savePay(){ const a=Number(this.v("acp-amt")); if(!(a>0)){ this.toast("Enter the amount received"); return; }
+    Object.assign(this.cur,{status:"paid",paidDate:this.v("acp-date"),paidAmount:a,paidMode:this.v("acp-mode")}); this.close(); this.save("Payment recorded"); },
+  unpay(){ Object.assign(this.cur,{status:"pending",paidDate:"",paidAmount:0,paidMode:"",commPaid:false,commPaidDate:"",commMode:""}); this.close(); this.save("Marked pending"); },
+
+  openComm(ids){
+    this.list=ids.map(i=>this.find(i)).filter(Boolean); if(!this.list.length) return;
+    const one=this.list.length===1?this.list[0]:null, tot=this.list.reduce((s,b)=>s+this.comm(b),0);
+    this.open(`<h3>Commission paid to ${this.esc(this.list[0].agent)}</h3>
+      <div style="font-size:13px;color:var(--muted)">${one?this.esc(one.party)+" · "+this.esc(one.billNo):this.list.length+" bills with commission due"}</div>
+      <div class="ac-grid">
+        <label>Date paid<input class="inp" type="date" id="acc-date" value="${one&&one.commPaidDate||todayStr()}"></label>
+        <label>Mode / reference<input class="inp" id="acc-mode" value="${this.esc(one&&one.commMode||"")}" placeholder="Cash, UPI…"></label>
+      </div>
+      <div class="ac-calc">Commission: <b>${this.rs(tot)}</b>${one?"":"<br>"+this.list.map(b=>this.esc(b.party)+" "+this.rs(this.comm(b))).join(" · ")}</div>
+      <div class="ac-row">${one&&one.commPaid?`<button class="btn" style="color:var(--red)" onclick="AC.uncomm()">Mark commission unpaid</button>`:""}${one?`<button class="btn" onclick="AC.openPay('${one.id}')">Edit payment</button>`:""}<span style="flex:1"></span>
+        <button class="btn" onclick="AC.close()">Cancel</button><button class="btn btn-p" onclick="AC.saveComm()">Save</button></div>`);
+  },
+  openCommAll(){ this.openComm(this.bills().filter(b=>b.agent===this.agent&&b.status==="paid"&&!b.commPaid).map(b=>b.id)); },
+  saveComm(){ const dt=this.v("acc-date"), md=this.v("acc-mode"); this.list.forEach(b=>Object.assign(b,{commPaid:true,commPaidDate:dt,commMode:md}));
+    const k=this.list.length; this.close(); this.save(k>1?k+" bills: commission marked paid":"Commission marked paid"); },
+  uncomm(){ Object.assign(this.list[0],{commPaid:false,commPaidDate:"",commMode:""}); this.close(); this.save("Commission marked due"); },
+};
+R.agentcomm = ()=>AC.render();
 
 // ── RELIABLE VERSION CHECK (works even when iOS SW update is flaky) ──
 // Fetches a tiny version file with a cache-buster; if the server build is newer
