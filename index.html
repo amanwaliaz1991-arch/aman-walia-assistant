@@ -2290,6 +2290,7 @@ document.addEventListener("touchstart", function(e){
       <input class="inp" id="crm-search" placeholder="🔍 Name, phone, address…" oninput="R.crm()" style="flex:1;min-width:170px;font-size:13px">
       <select class="sel" id="crm-f-country" onchange="R.crm()" style="width:120px;font-size:13px"><option value="">All Countries</option></select>
       <select class="sel" id="crm-f-city" onchange="R.crm()" style="width:140px;font-size:13px"><option value="">All Cities</option></select>
+      <select class="sel" id="crm-f-region" onchange="R.crm()" style="width:150px;font-size:13px"><option value="">All Regions</option></select>
       <select class="sel" id="crm-f-priority" onchange="R.crm()" style="width:130px;font-size:13px">
         <option value="">All Priority</option><option value="🔥 HOT">🔥 HOT</option><option value="⚡ HIGH">⚡ HIGH</option>
         <option value="✅ MEDIUM">✅ MEDIUM</option><option value="📋 LOW">📋 LOW</option><option value="❓ COLD">❓ COLD</option>
@@ -4136,6 +4137,7 @@ const R={
     const sq  = (document.getElementById("crm-search")?.value||"").toLowerCase();
     const fC  = document.getElementById("crm-f-country")?.value||"";
     const fCity = document.getElementById("crm-f-city")?.value||"";
+    const fR  = document.getElementById("crm-f-region")?.value||"";
     const fP  = document.getElementById("crm-f-priority")?.value||"";
     const fS  = document.getElementById("crm-f-source")?.value||"";
     const fI  = document.getElementById("crm-f-interest")?.value||"";
@@ -4161,6 +4163,11 @@ const R={
       const cities = [...new Set(all.map(c=>c.city).filter(Boolean))].sort();
       citySel.innerHTML = '<option value="">All Cities</option>' + cities.map(c=>`<option value="${c}">${c}</option>`).join("");
     }
+    const rSel = document.getElementById("crm-f-region");
+    if(rSel && rSel.options.length<=1 && all.length){
+      const regions = [...new Set(all.map(c=>c.mfrRegion).filter(Boolean))].sort();
+      rSel.innerHTML = '<option value="">All Regions</option>' + regions.map(c=>`<option value="${c}">${c}</option>`).join("");
+    }
 
     // Segment + tab + filters
     const inSeg = (c,s) =>
@@ -4181,6 +4188,7 @@ const R={
     else if(tab==="issues") list = list.filter(c=>["wrong_number","no_whatsapp","no_number"].includes(c.status));
     if(fC)    list = list.filter(c=>c.country===fC);
     if(fCity) list = list.filter(c=>c.city===fCity);
+    if(fR)    list = list.filter(c=>c.mfrRegion===fR);
     if(fP)    list = list.filter(c=>c.priority===fP);
     if(fS)    list = list.filter(c=>c.source===fS);
     if(fI)    list = list.filter(c=>(c.interest||"")===fI);
