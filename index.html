@@ -2271,6 +2271,7 @@ document.addEventListener("touchstart", function(e){
       <button class="btn btn-sm" style="font-size:12px;white-space:nowrap" onclick="manageWaTpls()">⚙️ Templates</button>
       <span style="font-size:11px;color:var(--dim)">Use {name} {city}</span>
       <span style="font-size:12px;color:var(--green);font-weight:700;white-space:nowrap">Sent today: <span id="crm-daily">0</span></span>
+      <button class="btn btn-sm btn-p" style="font-size:12px;white-space:nowrap" onclick="auraBatchOpen()">📤 AURA batch</button>
     </div>
   </div>
 
@@ -2436,7 +2437,7 @@ document.addEventListener("touchstart", function(e){
 <script>
 // ── BUILD VERSION (auto-updated on each push) ──
 const BUILD_STAMP = "30 Sep 2026, 06:43 PM IST";
-const BUILD_ID = "20261013111500";
+const BUILD_ID = "20261103110000";
 
 // One-time: ensure secure ledger opens in the working full-page mode
 try{ if(localStorage.getItem("lg_full_reset_v2")!=="1"){ localStorage.removeItem("lg_full"); localStorage.setItem("lg_full_reset_v2","1"); } }catch(e){}// paint the build stamp into the dashboard as soon as the DOM is ready
@@ -8280,6 +8281,85 @@ function payAgingFilter(key){
 
 
 
+
+
+// ══ AURA batch: pick next 20 Indian retailers for the WhatsApp sender, then mark sent from its log ══
+const AURA_NOTE="AURA grips catalogue + launch offer";
+function auraDigits(c){let d=String(c.phone||"").replace(/\D/g,"");if(d.length===10)d="91"+d;return d;}
+function auraNextBatch(n=20){
+  const seen=new Set(),out=[];
+  for(const c of (D.crm||[])){
+    if(c.bizType==="manufacturer"||c.source==="indiamart")continue;
+    if(!/^(in|india)$/i.test(c.country||"IN"))continue;
+    if(c.status!=="pending"||c.contactCount)continue;
+    if(/not on whatsapp/i.test(c.userNotes||""))continue;
+    if((c.contactLog||[]).some(l=>/AURA/.test(l.note||"")))continue;
+    const p=auraDigits(c);
+    if(!/^91[6-9]\d{9}$/.test(p)||/(12345|23456|34567|45678|56789)$/.test(p)||seen.has(p))continue;
+    seen.add(p);out.push(c);if(out.length>=n)break;
+  }
+  return out;
+}
+function auraLeft(){return auraNextBatch(1e9).length;}
+function auraBatchOpen(){
+  const list=auraNextBatch(20);
+  const txt=list.map(c=>`${String(c.name||"").replace(/[,*]/g,"").trim()}${c.city?" "+c.city:""}, ${auraDigits(c)}`).join("\n");
+  document.getElementById("crm-mo-t").textContent="📤 AURA batch — India retailers";
+  document.getElementById("crm-mo-b").innerHTML=`
+    <div style="font-size:12.5px;color:var(--muted);margin-bottom:6px">Next ${list.length} of ${auraLeft()} pending retailers (no bat makers, no IndiaMart, India mobiles only).</div>
+    <div style="font-weight:700;font-size:13px;margin:4px 0">1. Copy and paste into AURA Sender</div>
+    <textarea id="aura-list" class="inp" rows="8" style="width:100%;box-sizing:border-box;font-size:12px;font-family:monospace" readonly>${txt.replace(/</g,"&lt;")}</textarea>
+    <button class="btn btn-p" style="margin:6px 0 14px" onclick="auraCopy()">📋 Copy list</button>
+    <div style="font-weight:700;font-size:13px;margin:4px 0">2. After the run: paste the sender's log here</div>
+    <textarea id="aura-log" class="inp" rows="6" style="width:100%;box-sizing:border-box;font-size:12px" placeholder="1. Shop Name — sent ✅ (+91 98xxx xxxxx)&#10;2. Shop Name — not on WhatsApp / failed to open"></textarea>
+    <button class="btn btn-p" style="margin-top:6px" onclick="auraMarkFromLog()">✅ Mark sent in CRM</button>
+    <div id="aura-res" style="font-size:12.5px;margin-top:8px"></div>`;
+  document.getElementById("crm-mo").style.display="flex";
+}
+function auraCopy(){
+  const t=document.getElementById("aura-list");
+  const done=()=>crmToast("📋 Copied — paste into AURA Sender");
+  if(navigator.clipboard)navigator.clipboard.writeText(t.value).then(done,()=>{t.select();document.execCommand("copy");done();});
+  else{t.select();document.execCommand("copy");done();}
+}
+function auraMarkFromLog(){
+  const log=document.getElementById("aura-log").value;
+  const listTxt=document.getElementById("aura-list").value;
+  const nameToNum={};
+  listTxt.split("\n").forEach(l=>{const m=l.match(/^(.*?),\s*(\d{10,})\s*$/);if(m)nameToNum[m[1].trim().toLowerCase()]=m[2];});
+  const today=todayStr(),tm=new Date().toLocaleTimeString("en-IN",{hour:"2-digit",minute:"2-digit"});
+  const find=ph=>(D.crm||[]).filter(x=>String(x.phone||"").replace(/\D/g,"").endsWith(String(ph).slice(-10)));
+  const marked=[],flagged=[],unknown=[];
+  log.split("\n").forEach(line=>{
+    const m=line.match(/^\s*\d+\.\s*(.*?)\s+—\s+(.*)$/);if(!m)return;
+    const name=m[1].trim(),res=m[2];
+    let num=nameToNum[name.toLowerCase()];
+    const ph=(res.match(/\+?\d[\d ]{9,}/)||[""])[0].replace(/\D/g,"");
+    if(!num&&ph.length>=10)num=ph;
+    if(!num){unknown.push(name);return;}
+    const cs=find(num);if(!cs.length){unknown.push(name);return;}
+    for(const c of cs){
+      if(/sent ✅|text sent/i.test(res)){
+        if((c.contactLog||[]).some(l=>l.date===today&&/AURA/.test(l.note||"")))continue;
+        c.lastContact=today;c.contactCount=(c.contactCount||0)+1;c.contactLog=c.contactLog||[];
+        c.contactLog.push({date:today,time:tm,via:"WhatsApp",note:AURA_NOTE+(/text sent/i.test(res)?" (text only, PDF failed)":"")});
+        if(c.contactLog.length>30)c.contactLog=c.contactLog.slice(-30);
+        if(c.status==="pending")c.status="done";
+        saveCrmContact(c.id);marked.push(c.name);
+      }else if(/not on whatsapp|failed to open/i.test(res)){
+        if(!/not on whatsapp/i.test(c.userNotes||"")){c.userNotes=((c.userNotes||"")+` [${today}] Number not on WhatsApp`).trim();saveCrmContact(c.id);}
+        flagged.push(c.name);
+      }
+    }
+  });
+  flushNow();
+  const dk="crm_daily_"+new Date().toDateString();
+  const n=parseInt(localStorage.getItem(dk)||"0")+marked.length;localStorage.setItem(dk,n);
+  const dEl=document.getElementById("crm-daily");if(dEl)dEl.textContent=n;
+  R.crm();
+  document.getElementById("aura-res").innerHTML=`✅ Marked ${marked.length} sent`+(flagged.length?`<br>⚠️ Not on WhatsApp (flagged): ${flagged.join(", ")}`:"")+(unknown.length?`<br>❓ Not matched: ${unknown.join(", ")}`:"");
+  crmToast(`✅ ${marked.length} marked, ${flagged.length} flagged`);
+}
 
 function crmToast(msg){
   let t = document.getElementById("crm-toast");
