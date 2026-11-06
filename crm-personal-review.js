@@ -1,13 +1,18 @@
-// IndiaMart personal-use review. Suggestions never select or delete a lead.
+// IndiaMart personal-name review. Suggestions never select or delete a lead.
 function imPersonalReason(contact, archive) {
   if (contact.source !== 'indiamart' && !String(contact.id).startsWith('im_')) return '';
   const qid = String(contact.qid || String(contact.id).replace(/^im_/, ''));
   const lead = (archive || []).find(l => String(l.qid) === qid) || {};
-  const text = [contact.note, contact.userNotes, contact.response, lead.message, lead.subject].filter(Boolean).join(' ').toLowerCase();
-  if (/\b(?:not|no)\s+(?:for\s+)?personal\s+(?:use|usage)\b/.test(text)) return '';
-  if (/\b(?:personal|own|individual)\s+(?:use|usage|requirement)\b|\bfor\s+(?:myself|my son|my daughter|my child)\b|\bghar ke liye\b|\bkhud ke liye\b/.test(text)) return 'Enquiry mentions personal or family use';
-  // Small quantity alone does not establish personal use.
-  return '';
+  const name = String(contact.name || '').trim();
+  const businessWord = /\b(?:sports?|sporting|traders?|trading|enterprises?|industr(?:y|ies|ial)|pvt|private|ltd|limited|llp|llc|inc|corp(?:oration)?|co|company|store|shop|mart|agency|agencies|distributors?|suppliers?|wholesal\w*|retail\w*|manufactur\w*|exports?|imports?|international|global|overseas|impex|works|factory|fabrics?|textiles?|garments?|footwear|fashion|collection|boutique|jewel\w*|hardware|electricals?|electronics?|technolog\w*|solutions?|services?|systems?|construction|builders?|engineering|rubber|plastic|packaging|printing|press|furniture|furnish\w*|fittings?|medical|pharma\w*|hospital|clinic|school|college|academy|club|association|foundation|trust|cricket|fitness|gym|bat|bats|grips?|handles?|equipment|goods|products?|emporium|bazar|bazaar|udyog|udhyog|kendra|centre|center|depot|sons|brothers|bros)\b/i;
+  // Prefer a separate supplied business name, when present, over a person's display name.
+  const names = [name, contact.company, contact.companyName, contact.businessName, lead.name, lead.company, lead.SENDER_COMPANY].filter(Boolean);
+  if (names.some(n => businessWord.test(String(n)) || /[&@/\\\d]/.test(String(n)) || /\bm\s*\/\s*s\b/i.test(String(n)))) return '';
+  if (!name || /^(?:unknown|buyer|customer|test|na|n\/a|none|null|india\s*mart)$/i.test(name)) return '';
+  // A short name made of letters/initials is a suggestion, not proof of buyer quality.
+  const words = name.replace(/^(?:mr|mrs|ms|dr|shri|smt)\.?\s+/i, '').split(/\s+/);
+  if (words.length > 5 || !words.every(w => /^[\p{L}\p{M}.'’\-]+$/u.test(w)) || !/\p{L}{2}/u.test(name)) return '';
+  return 'Likely personal name — no business wording in the supplied name; please verify';
 }
 
 const IM_PERSONAL_REVIEW = { selected: new Set(), busy: false };
@@ -26,9 +31,9 @@ function openImPersonalReview() {
     modal.id = 'im-personal-review';
     modal.style.cssText = 'position:fixed;inset:0;z-index:10000;background:rgba(0,0,0,.65);padding:16px;overflow:auto';
     modal.innerHTML = `<section role="dialog" aria-modal="true" aria-labelledby="im-review-title" style="background:var(--bg,#fff);color:var(--text,inherit);max-width:900px;margin:20px auto;padding:20px;border-radius:16px">
-      <h2 id="im-review-title">Review personal-use IndiaMart leads</h2>
-      <p>Suggestions look for explicit personal or family use in the enquiry. Small quantities and low prices alone are not flagged. Review each enquiry before selecting it.</p>
-      <label>Show <select id="im-review-mode" class="sel"><option value="suggested">Suggested personal-use leads</option><option value="all">All IndiaMart contacts</option></select></label>
+      <h2 id="im-review-title">Review personal-name IndiaMart leads</h2>
+      <p>Suggestions flag names that look like a person rather than a business. Business names containing words such as Sports, Traders or Enterprises are excluded. A personal name may still belong to a genuine business buyer — review before selecting.</p>
+      <label>Show <select id="im-review-mode" class="sel"><option value="suggested">Likely personal names</option><option value="all">All IndiaMart contacts</option></select></label>
       <label>Search <input id="im-review-search" class="inp" placeholder="Name, phone or enquiry"></label>
       <p id="im-review-count" aria-live="polite"></p><div id="im-review-list"></div>
       <p id="im-review-status" role="status"></p>
@@ -60,7 +65,7 @@ function renderImPersonalReview() {
     const row = document.createElement('label');
     row.style.cssText = 'display:block;border:1px solid var(--b1,#ccc);border-radius:10px;padding:12px;margin:8px 0;overflow-wrap:anywhere';
     row.innerHTML = `<input type="checkbox"> <strong>${imReviewEsc(c.name)}</strong> · ${imReviewEsc(c.phone)} · ${imReviewEsc(c.city)}
-      <div>${imReviewEsc(imPersonalReason(c,D.imLeads) || 'No automatic personal-use signal — review manually')}</div>
+      <div>${imReviewEsc(imPersonalReason(c,D.imLeads) || 'Business-style or unclear name — review manually')}</div>
       <div style="white-space:pre-wrap;margin-top:8px">${imReviewEsc(c.note || lead?.message || 'No enquiry text available')}</div>
       <div style="white-space:pre-wrap">${imReviewEsc(c.userNotes || '')}</div>`;
     const box = row.querySelector('input');
