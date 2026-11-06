@@ -2248,6 +2248,7 @@ document.addEventListener("touchstart", function(e){
     <div class="pt-sub" id="crm-subtitle">Loading contacts…</div></div>
     <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
       <button class="btn" onclick="openImFetch()">📥 IndiaMart Leads</button>
+      <button class="btn" id="im-review-open" onclick="openImPersonalReview()">Review personal-use leads</button>
       <button class="btn" onclick="openImSettings()" title="Daily auto-fetch">⚙️</button>
       <button class="btn btn-p" onclick="openCrmForm()">+ Add Contact</button>
     </div>
@@ -2436,8 +2437,8 @@ document.addEventListener("touchstart", function(e){
 
 <script>
 // ── BUILD VERSION (auto-updated on each push) ──
-const BUILD_STAMP = "30 Sep 2026, 06:43 PM IST";
-const BUILD_ID = "20261103110000";
+const BUILD_STAMP = "6 Nov 2026 · Personal-use lead review";
+const BUILD_ID = "20261106000001";
 
 // One-time: ensure secure ledger opens in the working full-page mode
 try{ if(localStorage.getItem("lg_full_reset_v2")!=="1"){ localStorage.removeItem("lg_full"); localStorage.setItem("lg_full_reset_v2","1"); } }catch(e){}// paint the build stamp into the dashboard as soon as the DOM is ready
@@ -11134,5 +11135,6 @@ async function checkForNewVersion(){
 window.addEventListener("load", ()=> setTimeout(checkForNewVersion, 1500));
 document.addEventListener("visibilitychange", ()=>{ if(!document.hidden) checkForNewVersion(); });
 </script>
+<script src="/crm-personal-review.js"></script>
 </body>
 </html>
