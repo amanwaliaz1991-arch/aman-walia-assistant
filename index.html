@@ -2437,8 +2437,8 @@ document.addEventListener("touchstart", function(e){
 
 <script>
 // ── BUILD VERSION (auto-updated on each push) ──
-const BUILD_STAMP = "6 Nov 2026 · Personal-name lead review";
-const BUILD_ID = "20261106000002";
+const BUILD_STAMP = "6 Nov 2026 · AURA sponsorship staged";
+const BUILD_ID = "20261106000003";
 
 // One-time: ensure secure ledger opens in the working full-page mode
 try{ if(localStorage.getItem("lg_full_reset_v2")!=="1"){ localStorage.removeItem("lg_full"); localStorage.setItem("lg_full_reset_v2","1"); } }catch(e){}// paint the build stamp into the dashboard as soon as the DOM is ready
@@ -2496,6 +2496,7 @@ function doUndo(){
 
 // ── NAV ──
 function go(id){
+  if(id === "aura" && (!window.AURA_CONFIG?.enabled || !window.AuraModule)) return;
   // ── nav history for iOS-style swipe-back ──
   try{
     if(!window.__navHist) window.__navHist=[];
@@ -2532,6 +2533,7 @@ function go(id){
     vehicles:R.vehicles,agentcomm:R.agentcomm,
     gurbani:R.gurbani,taxdates:R.taxdates,attendance:R.attendance};
   rmap[id]?.();
+  if(id === "aura") window.AuraModule?.render();
 }
 function goBack(){
   try{
@@ -7669,6 +7671,7 @@ function applyRole(){
   // Navigate to correct landing module
   if(isEmp) go(((location.search.indexOf("kiosk")>=0)||(location.hash.indexOf("attendance")>=0))?"attendance":"stock");
   else go("home");
+  window.AuraModule?.roleChanged();
 }
 
 function hideLogin(){
@@ -7676,6 +7679,7 @@ function hideLogin(){
 }
 
 function showLogin(){
+  window.AuraUI?.lock();
   // Reset to PIN step
   document.getElementById("login-pin-step").style.display = "block";
   document.getElementById("login-name-step").style.display = "none";
@@ -11136,5 +11140,7 @@ window.addEventListener("load", ()=> setTimeout(checkForNewVersion, 1500));
 document.addEventListener("visibilitychange", ()=>{ if(!document.hidden) checkForNewVersion(); });
 </script>
 <script src="/crm-personal-review.js"></script>
+<script src="/aura-config.js"></script>
+<script src="/aura-entry.js"></script>
 </body>
 </html>

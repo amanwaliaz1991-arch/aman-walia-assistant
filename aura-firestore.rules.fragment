@@ -1,0 +1,44 @@
+// MERGE these matches INSIDE the existing /databases/{database}/documents block.
+// This is deliberately NOT a complete deployable ruleset: existing rules were
+// not supplied and must not be replaced or weakened for the legacy app.
+// Audit recursive wildcard grants: any overlapping allow grants access.
+// Set auraOwner=true ONLY through a trusted Admin SDK for the configured UID.
+function isAuraOwner() {
+  return request.auth != null
+    && request.auth.uid == 'REPLACE_WITH_OWNER_UID'
+    && request.auth.token.auraOwner == true;
+}
+function ownsAuraRecord() {
+  return isAuraOwner() && resource.data.ownerUid == request.auth.uid;
+}
+function validAuraRecord(recordId) {
+  return isAuraOwner()
+    && request.resource.data.ownerUid == request.auth.uid
+    && request.resource.data.id == recordId
+    && request.resource.data.rev is int
+    && request.resource.data.rev > 0
+    && request.resource.data.lastOperation is string
+    && getAfter(/databases/$(database)/documents/auraHistory/$(request.resource.data.lastOperation)).data.actor == request.auth.uid;
+}
+match /{auraCollection}/{recordId} {
+  allow read: if auraCollection in ['auraPlayers','auraShipments','auraPromotions','auraFollowUps','auraSettings']
+    && isAuraOwner();
+  allow create: if auraCollection in ['auraPlayers','auraShipments','auraPromotions','auraFollowUps','auraSettings']
+    && validAuraRecord(recordId);
+  allow update: if auraCollection in ['auraPlayers','auraShipments','auraPromotions','auraFollowUps','auraSettings']
+    && ownsAuraRecord() && validAuraRecord(recordId)
+    && request.resource.data.rev == resource.data.rev + 1
+    && request.resource.data.createdAt == resource.data.createdAt;
+  // No delete permission. Use archive, exception or history-backed correction.
+}
+match /auraHistory/{eventId} {
+  allow read: if isAuraOwner();
+  allow create: if isAuraOwner()
+    && request.resource.data.id == eventId
+    && request.resource.data.ownerUid == request.auth.uid
+    && request.resource.data.actor == request.auth.uid
+    && request.resource.data.rev == 1
+    && request.resource.data.action is string
+    && request.resource.data.changes is list;
+  // Immutable: no updates or deletes, including by the owner client.
+}
