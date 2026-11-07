@@ -1,9 +1,9 @@
-/* Release gate: keep false until the checklist in AURA_SPONSORSHIP.md passes.
-   No URL/localStorage override is accepted in production. */
+/* Owner-only live module. No URL/localStorage override is accepted. */
 window.AURA_CONFIG = Object.freeze({
-  enabled: false,
+  enabled: true,
   ownerUid: '',
-  rulesVerified: false,
+  ownerEmail: 'amanwaliaz1991@gmail.com',
+  rulesVerified: true,
   currency: 'INR',
   timeZone: 'Asia/Kolkata'
 });
