@@ -2438,7 +2438,7 @@ document.addEventListener("touchstart", function(e){
 <script>
 // ── BUILD VERSION (auto-updated on each push) ──
 const BUILD_STAMP = "7 Nov 2026 · AURA player sponsorship";
-const BUILD_ID = "20261107000001";
+const BUILD_ID = "20261107160000";
 
 // One-time: ensure secure ledger opens in the working full-page mode
 try{ if(localStorage.getItem("lg_full_reset_v2")!=="1"){ localStorage.removeItem("lg_full"); localStorage.setItem("lg_full_reset_v2","1"); } }catch(e){}// paint the build stamp into the dashboard as soon as the DOM is ready
@@ -8288,11 +8288,25 @@ function payAgingFilter(key){
 
 
 
-// ══ AURA batch: pick next 20 Indian retailers for the WhatsApp sender, then mark sent from its log ══
-const AURA_NOTE="AURA grips catalogue + launch offer";
+// ══ AURA batch: pick next parties for the WhatsApp sender, then mark sent from its log ══
+// Modes: "grips" = new India retailers get grips catalogue + launch offer
+//        "goat"  = follow-up: parties who got grips >=7 days ago get AURA GOAT KW catalogue (oldest first)
+const AURA_MODES={
+  grips:{label:"Grips catalogue (new retailers)",note:"AURA grips catalogue + launch offer",files:"AURA_Grips_Catalogue_2026.pdf + LaunchOffer.pdf",msg:"Namaste ji, this is Team AURA. Sharing our new AURA bat grips catalogue and launch offer. Reply for rates/samples."},
+  goat:{label:"Follow-up: GOAT KW bats",note:"AURA GOAT KW catalogue follow-up",files:"AURA_GOAT_KW.pdf",msg:"Namaste ji 🙏 Following up on the AURA grips catalogue we shared. We have now launched AURA GOAT Kashmir Willow bats — catalogue with rates attached. Reply here with model and quantity to order."}
+};
+const AURA_NOTE=AURA_MODES.grips.note;
+let auraMode="grips";
 function auraDigits(c){let d=String(c.phone||"").replace(/\D/g,"");if(d.length===10)d="91"+d;return d;}
-function auraNextBatch(n=20){
+function auraGripsDate(c){const ds=(c.contactLog||[]).filter(l=>/AURA grips/.test(l.note||"")&&!/text only/.test(l.note||"")).map(l=>l.date).sort();return ds[0]||"";}
+function auraNextBatch(n=20,mode=auraMode){
   const seen=new Set(),out=[];
+  if(mode==="goat"){
+    const cut=new Date(Date.now()-7*864e5);const cutS=`${cut.getFullYear()}-${String(cut.getMonth()+1).padStart(2,"0")}-${String(cut.getDate()).padStart(2,"0")}`;
+    const list=(D.crm||[]).map(c=>[c,auraGripsDate(c)]).filter(([c,d])=>d&&d<=cutS&&!(c.contactLog||[]).some(l=>/GOAT/.test(l.note||""))&&!/not on whatsapp/i.test(c.userNotes||"")).sort((a,b)=>a[1].localeCompare(b[1]));
+    for(const [c] of list){const p=auraDigits(c);if(seen.has(p))continue;seen.add(p);out.push(c);if(out.length>=n)break;}
+    return out;
+  }
   for(const c of (D.crm||[])){
     if(c.bizType==="manufacturer"||c.source==="indiamart")continue;
     if(!/^(in|india)$/i.test(c.country||"IN"))continue;
@@ -8305,29 +8319,35 @@ function auraNextBatch(n=20){
   }
   return out;
 }
-function auraLeft(){return auraNextBatch(1e9).length;}
+function auraLeft(mode=auraMode){return auraNextBatch(1e9,mode).length;}
+function auraSetMode(m){auraMode=m;auraBatchOpen();}
 function auraBatchOpen(){
+  const M=AURA_MODES[auraMode];
   const list=auraNextBatch(20);
   const txt=list.map(c=>`${String(c.name||"").replace(/[,*]/g,"").trim()}${c.city?" "+c.city:""}, ${auraDigits(c)}`).join("\n");
-  document.getElementById("crm-mo-t").textContent="📤 AURA batch — India retailers";
+  const esc=t=>String(t).replace(/&/g,"&amp;").replace(/</g,"&lt;");
+  document.getElementById("crm-mo-t").textContent="📤 AURA batch";
   document.getElementById("crm-mo-b").innerHTML=`
-    <div style="font-size:12.5px;color:var(--muted);margin-bottom:6px">Next ${list.length} of ${auraLeft()} pending retailers (no bat makers, no IndiaMart, India mobiles only).</div>
-    <div style="font-weight:700;font-size:13px;margin:4px 0">1. Copy and paste into AURA Sender</div>
-    <textarea id="aura-list" class="inp" rows="8" style="width:100%;box-sizing:border-box;font-size:12px;font-family:monospace" readonly>${txt.replace(/</g,"&lt;")}</textarea>
-    <button class="btn btn-p" style="margin:6px 0 14px" onclick="auraCopy()">📋 Copy list</button>
+    <div style="display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap">${Object.entries(AURA_MODES).map(([k,v])=>`<button class="btn btn-sm ${k===auraMode?"btn-p":""}" onclick="auraSetMode('${k}')">${v.label}</button>`).join("")}</div>
+    <div style="font-size:12.5px;color:var(--muted);margin-bottom:6px">Next ${list.length} of ${auraLeft()} ${auraMode==="goat"?"(got grips catalogue 7+ days ago, oldest first)":"pending India retailers (no bat makers, no IndiaMart)"}.<br>PDF to pick in sender: <b>${M.files}</b></div>
+    <div style="font-weight:700;font-size:13px;margin:4px 0">1. Copy list → paste in AURA Sender</div>
+    <textarea id="aura-list" class="inp" rows="7" style="width:100%;box-sizing:border-box;font-size:12px;font-family:monospace" readonly>${esc(txt)}</textarea>
+    <div style="display:flex;gap:6px;margin:6px 0 4px;flex-wrap:wrap"><button class="btn btn-p" onclick="auraCopy('aura-list')">📋 Copy list</button><button class="btn" onclick="auraCopy('aura-msg')">💬 Copy message</button></div>
+    <textarea id="aura-msg" class="inp" rows="3" style="width:100%;box-sizing:border-box;font-size:12px;margin-bottom:12px" readonly>${esc(M.msg)}</textarea>
     <div style="font-weight:700;font-size:13px;margin:4px 0">2. After the run: paste the sender's log here</div>
     <textarea id="aura-log" class="inp" rows="6" style="width:100%;box-sizing:border-box;font-size:12px" placeholder="1. Shop Name — sent ✅ (+91 98xxx xxxxx)&#10;2. Shop Name — not on WhatsApp / failed to open"></textarea>
     <button class="btn btn-p" style="margin-top:6px" onclick="auraMarkFromLog()">✅ Mark sent in CRM</button>
     <div id="aura-res" style="font-size:12.5px;margin-top:8px"></div>`;
   document.getElementById("crm-mo").style.display="flex";
 }
-function auraCopy(){
-  const t=document.getElementById("aura-list");
-  const done=()=>crmToast("📋 Copied — paste into AURA Sender");
+function auraCopy(id){
+  const t=document.getElementById(id||"aura-list");
+  const done=()=>crmToast("📋 Copied");
   if(navigator.clipboard)navigator.clipboard.writeText(t.value).then(done,()=>{t.select();document.execCommand("copy");done();});
   else{t.select();document.execCommand("copy");done();}
 }
 function auraMarkFromLog(){
+  const NOTE=AURA_MODES[auraMode].note, KEY=auraMode==="goat"?/GOAT/:/AURA grips/;
   const log=document.getElementById("aura-log").value;
   const listTxt=document.getElementById("aura-list").value;
   const nameToNum={};
@@ -8345,9 +8365,9 @@ function auraMarkFromLog(){
     const cs=find(num);if(!cs.length){unknown.push(name);return;}
     for(const c of cs){
       if(/sent ✅|text sent/i.test(res)){
-        if((c.contactLog||[]).some(l=>l.date===today&&/AURA/.test(l.note||"")))continue;
+        if((c.contactLog||[]).some(l=>l.date===today&&KEY.test(l.note||"")))continue;
         c.lastContact=today;c.contactCount=(c.contactCount||0)+1;c.contactLog=c.contactLog||[];
-        c.contactLog.push({date:today,time:tm,via:"WhatsApp",note:AURA_NOTE+(/text sent/i.test(res)?" (text only, PDF failed)":"")});
+        c.contactLog.push({date:today,time:tm,via:"WhatsApp",note:NOTE+(/text sent/i.test(res)?" (text only, PDF failed)":"")});
         if(c.contactLog.length>30)c.contactLog=c.contactLog.slice(-30);
         if(c.status==="pending")c.status="done";
         saveCrmContact(c.id);marked.push(c.name);
