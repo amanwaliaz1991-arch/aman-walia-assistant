@@ -20,37 +20,23 @@
       this.render();
     },
     allowed(){return this.config?.enabled&&typeof currentRole!=='undefined'&&currentRole==='owner'&&document.getElementById('login-screen')?.style.display==='none';},
-    lock(){this.generation++;this.opening=false;this.authStop?.();this.authStop=null;this.store?.close();this.store=null;document.getElementById('aura-dialog')?.remove();if(this.root)this.root.replaceChildren();if(this.auth)this.auth.signOut().catch(()=>{});},
+    lock(){this.generation++;this.opening=false;this.authStop?.();this.authStop=null;this.store?.close();this.store=null;document.getElementById('aura-dialog')?.remove();if(this.root)this.root.replaceChildren();},
     notice(message){if(!this.root||!this.allowed())return;const el=document.getElementById('aura-message');if(el){el.textContent=message;el.hidden=false;}},
     async signIn(){
-      if(!this.allowed())throw new Error('Owner login required');
-      if(!(this.config.ownerUid||this.config.ownerEmail)||!this.config.rulesVerified)throw new Error('AURA is awaiting owner identity and verified database permissions.');
-      if(this.opening)return;this.opening=true;const generation=++this.generation;
+      // No separate Google owner verification: opens with the app's own login.
+      if(!this.allowed())throw new Error('Please log in to the app first');
+      if(this.opening||this.store)return;this.opening=true;const generation=++this.generation;
       try{
-        if(!root.firebase.auth)await new Promise((resolve,reject)=>{const s=document.createElement('script');s.src='https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js';s.onload=resolve;s.onerror=()=>reject(new Error('Unable to load owner sign-in'));document.head.append(s);});
-        if(!this.allowed()||generation!==this.generation)return;
-        // Named Firebase app isolates AURA auth from the legacy database client.
-        const app=root.firebase.apps.find(a=>a.name==='aura-owner')||root.firebase.initializeApp(FIREBASE_CONFIG,'aura-owner');
-        this.auth=app.auth();await this.auth.setPersistence(root.firebase.auth.Auth.Persistence.LOCAL);
-        let user=this.auth.currentUser;
-        if(!user)user=(await this.auth.signInWithPopup(new root.firebase.auth.GoogleAuthProvider())).user;
-        if(!this.allowed()||generation!==this.generation){await this.auth.signOut();return;}
-        const emailOwner=!!this.config.ownerEmail;
-        if(emailOwner?(user.email?.toLowerCase()!==this.config.ownerEmail.toLowerCase()):user.uid!==this.config.ownerUid){await this.auth.signOut();throw new Error('This Google account is not the configured sponsorship owner');}
-        const token=await user.getIdTokenResult();
-        const verifiedOwner=emailOwner?token.claims.email===this.config.ownerEmail&&token.claims.email_verified===true&&token.claims.firebase?.sign_in_provider==='google.com':token.claims.auraOwner===true;
-        if(!verifiedOwner){await this.auth.signOut();throw new Error('Owner permissions have not been granted by the Firebase administrator');}
-        const store=new root.AuraStore({uid:user.uid,db:app.firestore(),onChange:()=>{if(!document.getElementById('aura-dialog'))this.render();}});
+        const store=new root.AuraStore({uid:'owner',db:new root.AuraDocDB(root.firebase.firestore()),onChange:()=>{if(!document.getElementById('aura-dialog'))this.render();}});
         this.store=store;await store.open();
         if(!this.allowed()||generation!==this.generation){store.close();if(this.store===store)this.store=null;return;}
         this.render();
-        this.authStop=this.auth.onAuthStateChanged(user=>{if(!user||(this.config.ownerEmail?user.email?.toLowerCase()!==this.config.ownerEmail.toLowerCase():user.uid!==this.config.ownerUid)){this.lock();this.render();}});
-      }finally{this.opening=false;}
+      }catch(e){this.store=null;throw e;}finally{this.opening=false;}
     },
     render(){
       if(!this.root||!this.allowed())return;
-      const head=`<div class="au-head"><div><p class="au-muted">AURA · PLAYER PARTNERSHIPS</p><h1>Player sponsorship</h1><p class="au-muted">Dispatched → Delivered → Promoted</p></div>${this.store?btn('Lock sponsorship','lock'):''}</div><div id="aura-message" class="au-alert" role="status" hidden></div>`;
-      if(!this.store){this.root.innerHTML=head+`<div class="au-card"><h2>Owner access</h2><p>Use your verified owner Google account to open sponsorship records.</p>${!(this.config.ownerUid||this.config.ownerEmail)||!this.config.rulesVerified?'<p class="au-alert">Owner sign-in setup is incomplete.</p>':btn('Sign in as owner','signin','',true)}</div>`;return;}
+      const head=`<div class="au-head"><div><p class="au-muted">AURA · PLAYER PARTNERSHIPS</p><h1>Player sponsorship</h1><p class="au-muted">Dispatched → Delivered → Promoted</p></div></div><div id="aura-message" class="au-alert" role="status" hidden></div>`;
+      if(!this.store){this.root.innerHTML=head+'<p role="status">Opening sponsorship records…</p>';this.signIn().catch(e=>{if(this.root)this.root.innerHTML=head+'<p class="au-alert">'+esc(e.message)+'</p>';});return;}
       if(!this.store.ready){this.root.innerHTML=head+'<p role="status">Opening secure local records…</p>';return;}
       const s=this.store.state;
       this.root.innerHTML=head+`<div class="au-alert" role="status">${esc(this.store.message)} · ${this.store.queue.length} pending ${btn('Retry sync','sync')}${this.store.queue.some(x=>x.error)?btn('Resolve pending changes','resolve'):''}</div><div class="au-toolbar">${['dashboard','players','followups','settings','history'].map(v=>`<button data-action="view" data-id="${v}" aria-pressed="${this.view===v}">${({dashboard:'Dashboard',players:'Players',followups:'Follow-ups',settings:'Commitments',history:'Activity'})[v]}</button>`).join('')}</div><div class="au-toolbar">${btn('Add player','player-new','',true)}${btn('Export AURA backup','export')}${btn('Restore AURA backup','import')}</div>`+

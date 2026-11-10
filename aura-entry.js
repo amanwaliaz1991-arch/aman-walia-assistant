@@ -9,7 +9,7 @@
     if(started)return;started=true;
     try{
       const style=document.createElement('link');style.rel='stylesheet';style.href='/aura.css';document.head.append(style);
-      await script('/aura-core.js');await script('/aura-store.js');await script('/aura-ui.js');
+      await script('/aura-core.js');await script('/aura-docdb.js');await script('/aura-store.js');await script('/aura-ui.js');
       window.AuraUI.mount(config);
     }catch(e){started=false;alert('AURA could not open: '+e.message);}
   }
