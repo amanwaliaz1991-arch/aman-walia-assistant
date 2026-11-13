@@ -2438,7 +2438,7 @@ document.addEventListener("touchstart", function(e){
 <script>
 // ── BUILD VERSION (auto-updated on each push) ──
 const BUILD_STAMP = "7 Nov 2026 · AURA player sponsorship";
-const BUILD_ID = "20261110070000";
+const BUILD_ID = "20261113093000";
 
 // One-time: ensure secure ledger opens in the working full-page mode
 try{ if(localStorage.getItem("lg_full_reset_v2")!=="1"){ localStorage.removeItem("lg_full"); localStorage.setItem("lg_full_reset_v2","1"); } }catch(e){}// paint the build stamp into the dashboard as soon as the DOM is ready
@@ -2511,7 +2511,7 @@ function go(id){
     lgFlushThenWipe();   // saves pending grid edits, then clears the key from memory
   }
   // Employee access guard — only Stock allowed
-  if(typeof currentRole!=="undefined" && currentRole==="employee" && id!=="stock" && id!=="production" && id!=="attendance"){ id = "stock"; }
+  if(typeof currentRole!=="undefined" && currentRole==="employee" && !empAllowed(id)){ id = currentPerson ? "tasks" : "stock"; }
   if(typeof AttModule!=="undefined" && id!=="attendance"){try{AttModule.stop();}catch(e){}}
   document.querySelectorAll(".mod").forEach(m=>m.classList.remove("on"));
   document.querySelectorAll(".sb-item,.bnav-item").forEach(m=>m.classList.remove("on"));
@@ -7592,9 +7592,17 @@ function runGlobalSearch() {
 // LOGIN / ACCESS CONTROL
 // ══════════════════════════════════════════
 const OWNER_PIN = "7172";
-const EMPLOYEE_PIN = "1234";
+const EMPLOYEE_PIN = "1234";   // shared PIN — other workers (Stock / Production / Attendance only)
+// Personal PINs — the app knows exactly who is logged in (needed for Team Tasks)
+const RAMAN_PIN = "2626";      // co-owner — full owner access
+const STAFF_PINS = { "3131":"Deevanshu", "4545":"Yash" };
 let currentRole = "owner";   // "owner" | "employee"
 let currentUser = "Owner";   // name stamped on stock movements
+let currentPerson = "Aman";  // verified identity: Aman | Raman | Deevanshu | Yash | "" (shared PIN)
+function empAllowed(id){
+  if(id==="stock"||id==="production"||id==="attendance") return true;
+  return id==="tasks" && !!currentPerson;   // only staff with a personal PIN
+}
 
 function loginPinInput(el){
   el.value = el.value.replace(/[^0-9]/g,"");
@@ -7607,10 +7615,20 @@ function checkLoginPin(){
   const remember = document.getElementById("login-remember")?.checked;
   const errEl = document.getElementById("login-error");
 
-  if(pin === OWNER_PIN){
+  if(pin === OWNER_PIN || pin === RAMAN_PIN){
+    const isRaman = pin === RAMAN_PIN;
     currentRole = "owner";
-    currentUser = "Owner";
-    if(remember){ localStorage.setItem("aman_role","owner"); localStorage.setItem("aman_user","Owner"); }
+    currentUser = isRaman ? "Raman" : "Owner";
+    currentPerson = isRaman ? "Raman" : "Aman";
+    if(remember){ localStorage.setItem("aman_role","owner"); localStorage.setItem("aman_user",currentUser); localStorage.setItem("aman_person",currentPerson); }
+    applyRole();
+    hideLogin();
+  }
+  else if(STAFF_PINS[pin]){
+    currentRole = "employee";
+    currentUser = STAFF_PINS[pin];
+    currentPerson = STAFF_PINS[pin];
+    if(remember){ localStorage.setItem("aman_role","employee"); localStorage.setItem("aman_user",currentUser); localStorage.setItem("aman_person",currentPerson); }
     applyRole();
     hideLogin();
   }
@@ -7637,7 +7655,8 @@ function confirmEmpName(){
   const remember = document.getElementById("login-remember")?.checked;
   currentRole = "employee";
   currentUser = name;
-  if(remember){ localStorage.setItem("aman_role","employee"); localStorage.setItem("aman_user",name); }
+  currentPerson = "";
+  if(remember){ localStorage.setItem("aman_role","employee"); localStorage.setItem("aman_user",name); localStorage.removeItem("aman_person"); }
   applyRole();
   hideLogin();
 }
@@ -7647,7 +7666,7 @@ function applyRole(){
   // Show/hide sidebar items — employee sees only Stock
   document.querySelectorAll(".sb-item").forEach(item=>{
     const id = item.id.replace("n-","");
-    item.style.display = (isEmp && id !== "stock" && id !== "production" && id !== "attendance") ? "none" : "";
+    item.style.display = (isEmp && !empAllowed(id)) ? "none" : "";
   });
   // Hide sidebar group labels for employee (only Stock's group should be visible)
   document.querySelectorAll(".sb-lbl").forEach(l=>{ l.style.display = isEmp ? "none" : ""; });
@@ -7665,11 +7684,11 @@ function applyRole(){
   // Update header label
   const rl = document.getElementById("role-label");
   if(rl){
-    rl.textContent = isEmp ? ("👷 "+currentUser) : "👑 Owner";
+    rl.textContent = isEmp ? ("👷 "+currentUser) : ("👑 "+(currentPerson||"Owner"));
     rl.style.display = "inline-flex";
   }
   // Navigate to correct landing module
-  if(isEmp) go(((location.search.indexOf("kiosk")>=0)||(location.hash.indexOf("attendance")>=0))?"attendance":"stock");
+  if(isEmp) go(((location.search.indexOf("kiosk")>=0)||(location.hash.indexOf("attendance")>=0))?"attendance":(currentPerson?"tasks":"stock"));
   else go("home");
   window.AuraModule?.roleChanged();
 }
@@ -7693,19 +7712,27 @@ function logout(){
   if(!confirm("Logout and return to PIN screen?")) return;
   localStorage.removeItem("aman_role");
   localStorage.removeItem("aman_user");
+  localStorage.removeItem("aman_person");
   currentRole = "owner";
   currentUser = "Owner";
+  currentPerson = "Aman";
   showLogin();
 }
 
 function initLogin(){
   const savedRole = localStorage.getItem("aman_role");
   const savedUser = localStorage.getItem("aman_user");
+  const savedPerson = localStorage.getItem("aman_person") || "";
   if(savedRole === "owner"){
-    currentRole = "owner"; currentUser = "Owner";
+    currentRole = "owner";
+    currentPerson = savedPerson==="Raman" ? "Raman" : "Aman";
+    currentUser = currentPerson==="Raman" ? "Raman" : "Owner";
     applyRole(); hideLogin();
-  } else if(savedRole === "employee" && savedUser){
-    currentRole = "employee"; currentUser = savedUser;
+  } else if(savedRole === "employee" && savedUser && Object.values(STAFF_PINS).includes(savedPerson)){
+    currentRole = "employee"; currentUser = savedPerson; currentPerson = savedPerson;
+    applyRole(); hideLogin();
+  } else if(savedRole === "employee" && savedUser && !/deev|devan|yash/i.test(savedUser)){
+    currentRole = "employee"; currentUser = savedUser; currentPerson = "";
     applyRole(); hideLogin();
   } else {
     showLogin();
@@ -11160,6 +11187,7 @@ window.addEventListener("load", ()=> setTimeout(checkForNewVersion, 1500));
 document.addEventListener("visibilitychange", ()=>{ if(!document.hidden) checkForNewVersion(); });
 </script>
 <script src="/crm-personal-review.js"></script>
+<script src="/team-tasks.js"></script>
 <script src="/aura-config.js"></script>
 <script src="/aura-entry.js"></script>
 </body>
