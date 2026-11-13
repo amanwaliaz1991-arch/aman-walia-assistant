@@ -47,7 +47,7 @@
   const fmtDate = (s) => parse(s).toLocaleDateString("en-IN", { weekday: "short", day: "numeric", month: "short" });
   const nowIso = () => new Date().toISOString();
   const me = () => (typeof currentPerson !== "undefined" ? currentPerson : "");
-  const isOwner = () => typeof currentRole !== "undefined" && currentRole === "owner";
+  const isOwner = () => OWNERS.includes(me());   // Aman & Raman manage tasks (Raman's app login is otherwise limited)
   const uid = () => "t" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
   const live = () => Object.values(TT.tasks).filter((t) => t && !t.deleted);
   const isOpen = (t) => t.status !== "done";
@@ -649,10 +649,15 @@
       if (!mc) return;
       bar = document.createElement("div");
       bar.id = "tt-empnav";
-      bar.innerHTML = [["tasks", "📋 My Tasks"], ["stock", "📦 Stock"], ["production", "🏭 Production"], ["attendance", "🕐 Attendance"]]
-        .map((x) => '<button data-nav="' + x[0] + '">' + x[1] + "</button>").join("");
       bar.addEventListener("click", (e) => { const b = e.target.closest("[data-nav]"); if (b) go(b.dataset.nav); });
       mc.insertBefore(bar, mc.firstChild);
+    }
+    const tabs = [["tasks", isOwner() ? "📋 Team Tasks" : "📋 My Tasks"], ["stock", "📦 Stock"], ["production", "🏭 Production"], ["attendance", "🕐 Attendance"]]
+      .filter((x) => typeof empAllowed !== "function" || empAllowed(x[0]));
+    const sig = tabs.map((x) => x[0]).join(",") + me();
+    if (bar.dataset.sig !== sig) {
+      bar.dataset.sig = sig;
+      bar.innerHTML = tabs.map((x) => '<button data-nav="' + x[0] + '">' + x[1] + "</button>").join("");
     }
     bar.style.display = show ? "flex" : "none";
     const on = document.querySelector(".mod.on");

@@ -2438,7 +2438,7 @@ document.addEventListener("touchstart", function(e){
 <script>
 // ── BUILD VERSION (auto-updated on each push) ──
 const BUILD_STAMP = "7 Nov 2026 · AURA player sponsorship";
-const BUILD_ID = "20261113101500";
+const BUILD_ID = "20261113104500";
 
 // One-time: ensure secure ledger opens in the working full-page mode
 try{ if(localStorage.getItem("lg_full_reset_v2")!=="1"){ localStorage.removeItem("lg_full"); localStorage.setItem("lg_full_reset_v2","1"); } }catch(e){}// paint the build stamp into the dashboard as soon as the DOM is ready
@@ -7594,12 +7594,13 @@ function runGlobalSearch() {
 const OWNER_PIN = "7172";
 const EMPLOYEE_PIN = "1234";   // shared PIN — other workers (Stock / Production / Attendance only)
 // Personal PINs — the app knows exactly who is logged in (needed for Team Tasks)
-const RAMAN_PIN = "2626";      // co-owner — full owner access
+const RAMAN_PIN = "2626";      // co-owner — assigns tasks; app access limited to Team Tasks, Stock, Production
 const STAFF_PINS = { "3131":"Deevanshu", "4545":"Yash" };
 let currentRole = "owner";   // "owner" | "employee"
 let currentUser = "Owner";   // name stamped on stock movements
 let currentPerson = "Aman";  // verified identity: Aman | Raman | Deevanshu | Yash | "" (shared PIN)
 function empAllowed(id){
+  if(currentPerson==="Raman") return id==="tasks"||id==="stock"||id==="production";
   if(id==="stock"||id==="production"||id==="attendance") return true;
   return id==="tasks" && !!currentPerson;   // only staff with a personal PIN
 }
@@ -7615,8 +7616,16 @@ function checkLoginPin(){
   const remember = document.getElementById("login-remember")?.checked;
   const errEl = document.getElementById("login-error");
 
-  if(pin === OWNER_PIN || pin === RAMAN_PIN){
-    const isRaman = pin === RAMAN_PIN;
+  if(pin === RAMAN_PIN){
+    currentRole = "employee";   // limited modules; Team Tasks still gives him owner powers
+    currentUser = "Raman";
+    currentPerson = "Raman";
+    if(remember){ localStorage.setItem("aman_role","employee"); localStorage.setItem("aman_user","Raman"); localStorage.setItem("aman_person","Raman"); }
+    applyRole();
+    hideLogin();
+  }
+  else if(pin === OWNER_PIN){
+    const isRaman = false;
     currentRole = "owner";
     currentUser = isRaman ? "Raman" : "Owner";
     currentPerson = isRaman ? "Raman" : "Aman";
@@ -7684,7 +7693,7 @@ function applyRole(){
   // Update header label
   const rl = document.getElementById("role-label");
   if(rl){
-    rl.textContent = isEmp ? ("👷 "+currentUser) : ("👑 "+(currentPerson||"Owner"));
+    rl.textContent = (isEmp && currentPerson!=="Raman") ? ("👷 "+currentUser) : ("👑 "+(currentPerson||"Owner"));
     rl.style.display = "inline-flex";
   }
   // Navigate to correct landing module
@@ -7723,10 +7732,12 @@ function initLogin(){
   const savedRole = localStorage.getItem("aman_role");
   const savedUser = localStorage.getItem("aman_user");
   const savedPerson = localStorage.getItem("aman_person") || "";
-  if(savedRole === "owner"){
-    currentRole = "owner";
-    currentPerson = savedPerson==="Raman" ? "Raman" : "Aman";
-    currentUser = currentPerson==="Raman" ? "Raman" : "Owner";
+  if(savedPerson === "Raman"){
+    currentRole = "employee"; currentUser = "Raman"; currentPerson = "Raman";
+    localStorage.setItem("aman_role","employee");
+    applyRole(); hideLogin();
+  } else if(savedRole === "owner"){
+    currentRole = "owner"; currentPerson = "Aman"; currentUser = "Owner";
     applyRole(); hideLogin();
   } else if(savedRole === "employee" && savedUser && Object.values(STAFF_PINS).includes(savedPerson)){
     currentRole = "employee"; currentUser = savedPerson; currentPerson = savedPerson;
