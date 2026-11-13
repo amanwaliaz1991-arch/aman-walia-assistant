@@ -285,7 +285,7 @@
       '<input type="date" class="inp" id="tt-f-due" value="' + esc(t.due) + '" style="padding:6px 8px"></div>' +
       '<label class="tt-lbl">Priority</label><div class="tt-chips"><button type="button" class="tt-chip" data-p="normal">Normal</button><button type="button" class="tt-chip tt-urg" data-p="urgent">🔴 Urgent</button></div>' +
       '<label class="tt-lbl">Note (optional)</label><input class="inp tt-w" id="tt-f-notes" value="' + esc(t.notes) + '" placeholder="Party name, quantity, any detail">' +
-      '<div class="tt-row">' + (existing ? "" : '<label class="tt-wa"><input type="checkbox" id="tt-f-wa" checked> Send on WhatsApp</label>') +
+      '<div class="tt-row">' + (existing ? "" : '<label class="tt-wa"><input type="checkbox" id="tt-f-wa"> Send on WhatsApp</label>') +
       '<button class="btn" id="tt-f-cancel">Cancel</button><button class="btn btn-p" id="tt-f-save">' + (existing ? "Save" : "Assign") + "</button></div>"
     );
     let pri = t.pri || "normal";
