@@ -618,6 +618,7 @@
       const origGo = window.go;
       window.go = function (id) {
         const r = origGo.apply(this, arguments);
+        staffNav();
         if (document.getElementById("mod-tasks").classList.contains("on")) render();
         return r;
       };
@@ -639,6 +640,27 @@
     setInterval(refresh, 5 * 60 * 1000);
   }
 
+  // Staff tab bar — Deevanshu / Yash switch between Tasks and Stock in one tap
+  function staffNav() {
+    let bar = document.getElementById("tt-empnav");
+    const show = typeof currentRole !== "undefined" && currentRole === "employee" && !!me();
+    if (!bar) {
+      const mc = document.getElementById("mc");
+      if (!mc) return;
+      bar = document.createElement("div");
+      bar.id = "tt-empnav";
+      bar.innerHTML = [["tasks", "📋 My Tasks"], ["stock", "📦 Stock"], ["production", "🏭 Production"], ["attendance", "🕐 Attendance"]]
+        .map((x) => '<button data-nav="' + x[0] + '">' + x[1] + "</button>").join("");
+      bar.addEventListener("click", (e) => { const b = e.target.closest("[data-nav]"); if (b) go(b.dataset.nav); });
+      mc.insertBefore(bar, mc.firstChild);
+    }
+    bar.style.display = show ? "flex" : "none";
+    const on = document.querySelector(".mod.on");
+    const cur = on ? on.id.replace("mod-", "") : "";
+    bar.querySelectorAll("[data-nav]").forEach((b) => b.classList.toggle("on", b.dataset.nav === cur));
+  }
+  TT.staffNav = staffNav;
+
   // employees with a personal PIN land on Tasks — if login finished before we mounted, move them there now
   function landEmployee() {
     if (typeof currentRole !== "undefined" && currentRole === "employee" && me() &&
@@ -650,6 +672,9 @@
   }
 
   const css = `
+  #tt-empnav{display:none;gap:6px;overflow-x:auto;margin:0 0 14px;padding-bottom:2px;-webkit-overflow-scrolling:touch}
+  #tt-empnav button{flex:1 0 auto;background:var(--s1);border:1px solid var(--b1);border-radius:10px;padding:10px 12px;font-size:14px;font-weight:700;color:var(--muted);cursor:pointer;font-family:inherit;white-space:nowrap}
+  #tt-empnav button.on{background:var(--ac,#2563eb);border-color:var(--ac,#2563eb);color:#fff}
   .tt-tabs{display:flex;gap:6px;margin-bottom:12px;border-bottom:1px solid var(--b1)}
   .tt-tab{background:none;border:none;border-bottom:3px solid transparent;padding:9px 12px;font-size:14px;font-weight:600;color:var(--muted);cursor:pointer;font-family:inherit}
   .tt-tab.on{color:var(--ac);border-bottom-color:var(--ac)}
@@ -719,7 +744,7 @@
   st.textContent = css;
   document.head.appendChild(st);
 
-  function boot() { mount(); landEmployee(); }
+  function boot() { mount(); landEmployee(); staffNav(); }
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", boot);
   else boot();
 })();
