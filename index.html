@@ -2438,7 +2438,7 @@ document.addEventListener("touchstart", function(e){
 <script>
 // ── BUILD VERSION (auto-updated on each push) ──
 const BUILD_STAMP = "7 Nov 2026 · AURA player sponsorship";
-const BUILD_ID = "20261113104500";
+const BUILD_ID = "20261113111500";
 
 // One-time: ensure secure ledger opens in the working full-page mode
 try{ if(localStorage.getItem("lg_full_reset_v2")!=="1"){ localStorage.removeItem("lg_full"); localStorage.setItem("lg_full_reset_v2","1"); } }catch(e){}// paint the build stamp into the dashboard as soon as the DOM is ready
@@ -7594,13 +7594,14 @@ function runGlobalSearch() {
 const OWNER_PIN = "7172";
 const EMPLOYEE_PIN = "1234";   // shared PIN — other workers (Stock / Production / Attendance only)
 // Personal PINs — the app knows exactly who is logged in (needed for Team Tasks)
-const RAMAN_PIN = "2626";      // co-owner — assigns tasks; app access limited to Team Tasks, Stock, Production
+const RAMAN_PIN = "2626";      // co-owner — assigns tasks; app access: Team Tasks, Stock + all Operations modules
+const RAMAN_MODULES = ["tasks","stock","crm","orders","cod","transport","deadstock","purchase","production","attendance","quotation"];
 const STAFF_PINS = { "3131":"Deevanshu", "4545":"Yash" };
 let currentRole = "owner";   // "owner" | "employee"
 let currentUser = "Owner";   // name stamped on stock movements
 let currentPerson = "Aman";  // verified identity: Aman | Raman | Deevanshu | Yash | "" (shared PIN)
 function empAllowed(id){
-  if(currentPerson==="Raman") return id==="tasks"||id==="stock"||id==="production";
+  if(currentPerson==="Raman") return RAMAN_MODULES.includes(id);
   if(id==="stock"||id==="production"||id==="attendance") return true;
   return id==="tasks" && !!currentPerson;   // only staff with a personal PIN
 }
@@ -10663,7 +10664,7 @@ window.AttModule=(function(){
   let modelsReady=false, subDone=false, EMP=[], stream=null, wakeLock=null;
   let THRESH=0.50, MARGIN=0.06, curVideo=null, enShots=[];
   const $r=()=>document.getElementById("att-root");
-  const isEmp=()=>(typeof currentRole!=="undefined" && currentRole==="employee");
+  const isEmp=()=>(typeof currentRole!=="undefined" && currentRole==="employee" && !(typeof currentPerson!=="undefined" && currentPerson==="Raman"));
 
   /* ---- lazy face-api ---- */
   function loadScript(src){return new Promise((res,rej)=>{

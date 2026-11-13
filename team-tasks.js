@@ -652,7 +652,9 @@
       bar.addEventListener("click", (e) => { const b = e.target.closest("[data-nav]"); if (b) go(b.dataset.nav); });
       mc.insertBefore(bar, mc.firstChild);
     }
-    const tabs = [["tasks", isOwner() ? "📋 Team Tasks" : "📋 My Tasks"], ["stock", "📦 Stock"], ["production", "🏭 Production"], ["attendance", "🕐 Attendance"]]
+    const tabs = [["tasks", isOwner() ? "📋 Team Tasks" : "📋 My Tasks"], ["stock", "📦 Stock"], ["orders", "📦 Orders"], ["crm", "👥 CRM"],
+      ["production", "🏭 Production"], ["transport", "🚚 Transport"], ["cod", "💳 COD"], ["purchase", "🛒 Purchase"], ["deadstock", "📦 Dead Stock"],
+      ["quotation", "📄 Quotation"], ["attendance", "🕐 Attendance"]]
       .filter((x) => typeof empAllowed !== "function" || empAllowed(x[0]));
     const sig = tabs.map((x) => x[0]).join(",") + me();
     if (bar.dataset.sig !== sig) {
