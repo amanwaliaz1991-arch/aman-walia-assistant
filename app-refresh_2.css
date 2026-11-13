@@ -1,0 +1,114 @@
+/* ─────────────────────────────────────────────────────────────────────────
+   KRI Assistant — UI Refresh overlay
+   Cosmetic only. Restyles the app's shared components (cards, buttons, stat
+   tiles, inputs, chips, tables, sidebar, modals, header) using their existing
+   class names, so every module is lifted at once. Loads AFTER the app's inline
+   <style>, so same-specificity rules here win. Remove the <link> to revert.
+   ───────────────────────────────────────────────────────────────────────── */
+:root{
+  --r-card:14px;
+  --r-ctl:10px;
+  --sh-xs:0 1px 2px rgba(16,24,40,.04);
+  --sh-sm:0 1px 2px rgba(16,24,40,.04), 0 3px 10px rgba(16,24,40,.05);
+  --sh-md:0 2px 6px rgba(16,24,40,.05), 0 10px 26px rgba(16,24,40,.07);
+  --sh-pr:0 2px 10px rgba(37,99,235,.28);
+  --bln:#e7ecf3;          /* lighter hairline border */
+  --grad:linear-gradient(135deg,var(--ac),var(--a2));
+}
+html,body{background:
+  radial-gradient(1200px 520px at 100% -10%, rgba(124,58,237,.06), transparent 60%),
+  radial-gradient(1100px 500px at -10% 0%, rgba(37,99,235,.06), transparent 55%),
+  var(--bg);}
+
+/* ── HEADER ── */
+.hdr{box-shadow:0 1px 0 rgba(255,255,255,.12) inset, 0 6px 22px rgba(37,99,235,.28);}
+.hdr-logo{letter-spacing:3.5px;}
+
+/* ── SIDEBAR ── */
+.sb{background:var(--s1);border-right:1px solid var(--bln);}
+.sb-lbl{font-size:10px;letter-spacing:2.2px;color:var(--dim);padding:0 18px 8px;}
+.sb-item{border-radius:0 10px 10px 0;margin-right:10px;padding:11px 16px;}
+.sb-item:hover{background:var(--s2);}
+.sb-item.on{color:#fff;background:var(--grad);border-left-color:transparent;box-shadow:var(--sh-pr);}
+.sb-item.on .sb-bdg{background:rgba(255,255,255,.28);color:#fff;}
+.sb-bdg{border-radius:20px;padding:2px 7px;}
+
+/* ── SECTION TITLE ── */
+.pt{letter-spacing:2.5px;}
+.pt-sub{color:var(--muted);}
+
+/* ── CARDS ── */
+.card{border:1px solid var(--bln);border-radius:var(--r-card);box-shadow:var(--sh-sm);transition:box-shadow .16s ease, transform .16s ease;}
+.card:hover{box-shadow:var(--sh-md);}
+.card-hdr{background:transparent;border-bottom:1px solid var(--bln);padding:14px 18px;font-size:14.5px;}
+.card-body{padding:16px 18px;}
+
+/* ── STAT TILES ── */
+.stat{border:1px solid var(--bln);border-radius:var(--r-card);box-shadow:var(--sh-sm);padding:14px 16px;transition:box-shadow .16s ease, transform .16s ease;}
+.stat:hover{box-shadow:var(--sh-md);transform:translateY(-2px);}
+.stat::before{height:4px;background:linear-gradient(90deg,var(--c,var(--ac)),color-mix(in srgb,var(--c,var(--ac)) 55%, var(--a2)));}
+.stat-lbl{letter-spacing:.9px;font-size:10.5px;}
+.stat-val{font-size:32px;letter-spacing:1px;}
+
+/* ── BUTTONS ── */
+.btn{background:var(--s1);border:1px solid var(--bln);border-radius:var(--r-ctl);box-shadow:var(--sh-xs);transition:all .14s ease;font-weight:600;color:var(--tx);}
+.btn:hover{border-color:var(--ac);background:#f5f8ff;box-shadow:var(--sh-sm);}
+.btn:active{transform:translateY(1px) scale(.99);}
+.btn-p{background:var(--grad);color:#fff;border:none;box-shadow:var(--sh-pr);}
+.btn-p:hover{opacity:1;filter:brightness(1.05);box-shadow:0 4px 16px rgba(37,99,235,.36);color:#fff;}
+.btn-e,.btn-d,.btn-u{border-radius:var(--r-ctl);box-shadow:var(--sh-xs);font-weight:600;}
+.btn-e:hover{background:#dbeafe;}
+.btn-d:hover{background:#fee2e2;}
+.btn-u:hover{background:#dcfce7;}
+
+/* ── INPUTS ── */
+.inp,.sel,.ta{border:1px solid var(--bln);border-radius:var(--r-ctl);padding:11px 13px;transition:border .14s, box-shadow .14s;}
+.inp:focus,.sel:focus,.ta:focus{border-color:var(--ac);box-shadow:0 0 0 3px rgba(37,99,235,.12);}
+
+/* ── TABLE ── */
+.tbl th{background:var(--s2);letter-spacing:.8px;border-bottom:1px solid var(--bln);}
+.tbl td{border-bottom:1px solid var(--bln);}
+.tbl tbody tr:nth-child(even) td{background:rgba(37,99,235,.022);}
+.tbl tr:hover td{background:#eff4ff;}
+
+/* ── PILLS / CHIPS ── (add crisp hairline borders) */
+.pill{border:1px solid transparent;}
+.pg{background:#dcfce7;color:#14532d;border-color:#bbf7d0;}
+.pr{background:#fee2e2;color:#991b1b;border-color:#fecaca;}
+.py{background:#fef3c7;color:#92400e;border-color:#fde68a;}
+.pb{background:#dbeafe;color:#1e40af;border-color:#bfdbfe;}
+.pp{background:#f3e8ff;color:#6b21a8;border-color:#e9d5ff;}
+.po{background:#ffedd5;color:#9a3412;border-color:#fed7aa;}
+.pt2{background:#ccfbf1;color:#134e4a;border-color:#99f6e4;}
+.ps{background:#e0f2fe;color:#075985;border-color:#bae6fd;}
+
+/* ── ALERT STRIPS ── */
+.al{border-radius:var(--r-ctl);border:1px solid transparent;font-weight:600;}
+.al.red{background:#fef2f2;color:#991b1b;border-color:#fecaca;}
+.al.yel{background:#fffbeb;color:#92400e;border-color:#fde68a;}
+.al.blu{background:#eff6ff;color:#1e40af;border-color:#bfdbfe;}
+
+/* ── PROGRESS ── */
+.prg{height:8px;background:var(--b1);border-radius:8px;}
+.prg-f{border-radius:8px;}
+
+/* ── CHECK ── */
+.chk{border-radius:8px;}
+.chk.done{box-shadow:0 2px 6px rgba(22,163,74,.3);}
+
+/* ── MODAL ── */
+.mo{background:rgba(15,23,42,.55);backdrop-filter:blur(6px);}
+.mo-box{border-radius:22px 22px 0 0;box-shadow:0 -12px 50px rgba(16,24,40,.22);}
+.mo-title{letter-spacing:2px;}
+
+/* ── BOTTOM NAV ── */
+.bot-nav{box-shadow:0 -2px 14px rgba(16,24,40,.08);}
+.bnav-item.on{color:var(--ac);}
+
+/* ── EMPTY STATE ── */
+.es{background:var(--s2);border:1px dashed var(--bln);border-radius:var(--r-card);}
+
+/* rounded corners look best on larger screens; keep full-bleed cards on phones */
+@media(max-width:600px){
+  .card,.stat{border-radius:12px;}
+}
