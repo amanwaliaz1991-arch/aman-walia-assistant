@@ -19,7 +19,7 @@
       this.root.addEventListener('input',e=>{if(e.target.id==='aura-search'){this.query=e.target.value;const pos=e.target.selectionStart;this.render();const input=document.getElementById('aura-search');input.focus();input.setSelectionRange(pos,pos);}});
       this.render();
     },
-    allowed(){return this.config?.enabled&&typeof currentRole!=='undefined'&&currentRole==='owner'&&document.getElementById('login-screen')?.style.display==='none';},
+    allowed(){return this.config?.enabled&&typeof window.auraCanAccess==='function'&&window.auraCanAccess()&&document.getElementById('login-screen')?.style.display==='none';},
     lock(){this.generation++;this.opening=false;this.authStop?.();this.authStop=null;this.store?.close();this.store=null;document.getElementById('aura-dialog')?.remove();if(this.root)this.root.replaceChildren();},
     notice(message){if(!this.root||!this.allowed())return;const el=document.getElementById('aura-message');if(el){el.textContent=message;el.hidden=false;}},
     async signIn(){

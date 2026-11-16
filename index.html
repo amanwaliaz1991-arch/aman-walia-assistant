@@ -2438,7 +2438,7 @@ document.addEventListener("touchstart", function(e){
 <script>
 // ── BUILD VERSION (auto-updated on each push) ──
 const BUILD_STAMP = "7 Nov 2026 · AURA player sponsorship";
-const BUILD_ID = "20261113120000";
+const BUILD_ID = "20261116234500";
 
 // One-time: ensure secure ledger opens in the working full-page mode
 try{ if(localStorage.getItem("lg_full_reset_v2")!=="1"){ localStorage.removeItem("lg_full"); localStorage.setItem("lg_full_reset_v2","1"); } }catch(e){}// paint the build stamp into the dashboard as soon as the DOM is ready
@@ -2511,7 +2511,7 @@ function go(id){
     lgFlushThenWipe();   // saves pending grid edits, then clears the key from memory
   }
   // Employee access guard — only Stock allowed
-  if(typeof currentRole!=="undefined" && currentRole==="employee" && !empAllowed(id)){ id = currentPerson ? "tasks" : "stock"; }
+  if(typeof currentRole!=="undefined" && currentRole==="employee" && !empAllowed(id)){ if(currentPerson==="Juhi") return; id = currentPerson ? "tasks" : "stock"; }
   if(typeof AttModule!=="undefined" && id!=="attendance"){try{AttModule.stop();}catch(e){}}
   document.querySelectorAll(".mod").forEach(m=>m.classList.remove("on"));
   document.querySelectorAll(".sb-item,.bnav-item").forEach(m=>m.classList.remove("on"));
@@ -7597,11 +7597,14 @@ const EMPLOYEE_PIN = "1234";   // shared PIN — other workers (Stock / Producti
 const RAMAN_PIN = "2626";      // co-owner — assigns tasks; app access: Team Tasks, Stock + all Operations modules
 const RAMAN_MODULES = ["tasks","stock","crm","orders","cod","transport","deadstock","purchase","production","attendance","quotation"];
 const STAFF_PINS = { "3131":"Deevanshu", "4545":"Yash" };
+const JUHI_PIN = "5858";      // Juhi — AURA Player Sponsorship only
+window.auraCanAccess = ()=> currentRole==="owner" || currentPerson==="Juhi";
 let currentRole = "owner";   // "owner" | "employee"
 let currentUser = "Owner";   // name stamped on stock movements
 let currentPerson = "Aman";  // verified identity: Aman | Raman | Deevanshu | Yash | "" (shared PIN)
 function empAllowed(id){
   if(currentPerson==="Raman") return RAMAN_MODULES.includes(id);
+  if(currentPerson==="Juhi") return id==="aura";
   if(id==="stock"||id==="production"||id==="attendance") return true;
   return id==="tasks" && !!currentPerson;   // only staff with a personal PIN
 }
@@ -7624,6 +7627,12 @@ function checkLoginPin(){
     if(remember){ localStorage.setItem("aman_role","employee"); localStorage.setItem("aman_user","Raman"); localStorage.setItem("aman_person","Raman"); }
     applyRole();
     hideLogin();
+  }
+  else if(pin === JUHI_PIN){
+    currentRole = "employee"; currentUser = "Juhi"; currentPerson = "Juhi";
+    if(remember){ localStorage.setItem("aman_role","employee"); localStorage.setItem("aman_user","Juhi"); localStorage.setItem("aman_person","Juhi"); }
+    hideLogin();
+    applyRole();
   }
   else if(pin === OWNER_PIN){
     const isRaman = false;
@@ -7694,10 +7703,11 @@ function applyRole(){
   // Update header label
   const rl = document.getElementById("role-label");
   if(rl){
-    rl.textContent = (isEmp && currentPerson!=="Raman") ? ("👷 "+currentUser) : ("👑 "+(currentPerson||"Owner"));
+    rl.textContent = currentPerson==="Juhi" ? "🏏 Juhi" : (isEmp && currentPerson!=="Raman") ? ("👷 "+currentUser) : ("👑 "+(currentPerson||"Owner"));
     rl.style.display = "inline-flex";
   }
   // Navigate to correct landing module
+  if(currentPerson==="Juhi"){ document.querySelectorAll(".mod").forEach(m=>m.classList.remove("on")); window.AuraModule?.roleChanged(); setTimeout(()=>window.AuraModule?.open?.(),0); return; }
   if(isEmp) go(((location.search.indexOf("kiosk")>=0)||(location.hash.indexOf("attendance")>=0))?"attendance":(currentPerson?"tasks":"stock"));
   else go("home");
   window.AuraModule?.roleChanged();
@@ -7733,7 +7743,10 @@ function initLogin(){
   const savedRole = localStorage.getItem("aman_role");
   const savedUser = localStorage.getItem("aman_user");
   const savedPerson = localStorage.getItem("aman_person") || "";
-  if(savedPerson === "Raman"){
+  if(savedPerson === "Juhi"){
+    currentRole = "employee"; currentUser = "Juhi"; currentPerson = "Juhi";
+    hideLogin(); applyRole();
+  } else if(savedPerson === "Raman"){
     currentRole = "employee"; currentUser = "Raman"; currentPerson = "Raman";
     localStorage.setItem("aman_role","employee");
     applyRole(); hideLogin();
