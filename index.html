@@ -968,6 +968,7 @@ document.addEventListener("touchstart", function(e){
       <option value="Aman">Aman</option>
       <option value="Raman">Raman</option>
       <option value="Baba Ji">Baba Ji</option>
+      <option value="Honey">Honey</option>
     </select>
     <select class="sel" id="pay-status-filter" onchange="R.payment()" style="width:120px">
       <option value="">All Status</option>
@@ -1417,6 +1418,7 @@ document.addEventListener("touchstart", function(e){
         <option value="Aman">Aman</option>
         <option value="Raman">Raman</option>
         <option value="Baba Ji">Baba Ji</option>
+      <option value="Honey">Honey</option>
       </select>
       <input class="inp" id="ord-search" placeholder="🔍 Party / Invoice…" oninput="R.orders()" style="width:160px">
       <button class="btn btn-p" onclick="Mo.open('orders')">+ Add Order</button>
@@ -2438,7 +2440,7 @@ document.addEventListener("touchstart", function(e){
 <script>
 // ── BUILD VERSION (auto-updated on each push) ──
 const BUILD_STAMP = "7 Nov 2026 · AURA player sponsorship";
-const BUILD_ID = "20261117110000";
+const BUILD_ID = "20261121130000";
 
 // One-time: ensure secure ledger opens in the working full-page mode
 try{ if(localStorage.getItem("lg_full_reset_v2")!=="1"){ localStorage.removeItem("lg_full"); localStorage.setItem("lg_full_reset_v2","1"); } }catch(e){}// paint the build stamp into the dashboard as soon as the DOM is ready
@@ -2774,7 +2776,7 @@ const Mo={
       payment:{t:ie?"EDIT FOLLOW-UP":"ADD PAYMENT FOLLOW-UP",h:`
         <div class="fr"><div class="fg"><label>Party Name *</label><input class="inp" id="mf-party" value="${v('party')}" style="width:100%"></div><div class="fg"><label>Invoice #</label><input class="inp" id="mf-inv" value="${v('inv')}" style="width:100%"></div></div>
         <div class="fr"><div class="fg"><label>Amount (₹) *</label><input class="inp" id="mf-amt" value="${v('amt')}" style="width:100%"></div><div class="fg"><label>Due Date</label><input class="inp" id="mf-due" type="date" value="${v('due')}" style="width:100%"></div></div>
-        <div class="fr"><div class="fg"><label>Agent</label><select class="sel" id="mf-agent" style="width:100%"><option value="" ${!ie||!item.agent?"selected":""}>— No Agent —</option><option value="Aman" ${ie&&item.agent==="Aman"?"selected":""}>Aman</option><option value="Raman" ${ie&&item.agent==="Raman"?"selected":""}>Raman</option><option value="Baba Ji" ${ie&&item.agent==="Baba Ji"?"selected":""}>Baba Ji</option></select></div><div class="fg"><label>Status</label><select class="sel" id="mf-status" style="width:100%">${sel('status',[["pending","Pending"],["partial","Partial"],["promised","Promise Received"],["collected","Collected ✓"]])}</select></div></div>
+        <div class="fr"><div class="fg"><label>Agent</label><select class="sel" id="mf-agent" style="width:100%"><option value="" ${!ie||!item.agent?"selected":""}>— No Agent —</option><option value="Aman" ${ie&&item.agent==="Aman"?"selected":""}>Aman</option><option value="Raman" ${ie&&item.agent==="Raman"?"selected":""}>Raman</option><option value="Baba Ji" ${ie&&item.agent==="Baba Ji"?"selected":""}>Baba Ji</option><option value="Honey" ${ie&&item.agent==="Honey"?"selected":""}>Honey</option></select></div><div class="fg"><label>Status</label><select class="sel" id="mf-status" style="width:100%">${sel('status',[["pending","Pending"],["partial","Partial"],["promised","Promise Received"],["collected","Collected ✓"]])}</select></div></div>
         <div class="fr one"><div class="fg"><label>Remarks</label><input class="inp" id="mf-remark" value="${v('remark')}" style="width:100%"></div></div>`},
       defaulter:{t:ie?"EDIT DEFAULTER":"ADD DEFAULTER",h:`
         <div class="fr"><div class="fg"><label>Party Name *</label><input class="inp" id="mf-party" value="${v('party')}" style="width:100%"></div><div class="fg"><label>Amount (₹)</label><input class="inp" id="mf-amt" value="${v('amt')}" style="width:100%"></div></div>
@@ -2884,7 +2886,7 @@ const Mo={
             return `<option value="${st}" ${(ie?item.status:"pending")===st?"selected":""}>${lbl}</option>`;
           }).join("")}
         </select></div><div class="fg"><label>Dispatch Date <span style="font-size:10px;color:var(--muted)">(when shipped)</span></label><input class="inp" id="mf-dispatchDate" type="date" value="${v('dispatchDate')}" style="width:100%"></div></div>
-        <div class="fr"><div class="fg"><label>Courier</label><input class="inp" id="mf-courier" value="${v('courier')}" placeholder="DTDC, BlueDart…" style="width:100%"></div><div class="fg"><label>Tracking #</label><input class="inp" id="mf-trackNo" value="${v('trackNo')}" style="width:100%"></div><div class="fg"><label>Agent</label><select class="sel" id="mf-agent" style="width:100%"><option value="">— No Agent —</option><option value="Aman" ${ie&&item.agent==="Aman"?"selected":""}>Aman</option><option value="Raman" ${ie&&item.agent==="Raman"?"selected":""}>Raman</option><option value="Baba Ji" ${ie&&item.agent==="Baba Ji"?"selected":""}>Baba Ji</option></select></div></div>
+        <div class="fr"><div class="fg"><label>Courier</label><input class="inp" id="mf-courier" value="${v('courier')}" placeholder="DTDC, BlueDart…" style="width:100%"></div><div class="fg"><label>Tracking #</label><input class="inp" id="mf-trackNo" value="${v('trackNo')}" style="width:100%"></div><div class="fg"><label>Agent</label><select class="sel" id="mf-agent" style="width:100%"><option value="">— No Agent —</option><option value="Aman" ${ie&&item.agent==="Aman"?"selected":""}>Aman</option><option value="Raman" ${ie&&item.agent==="Raman"?"selected":""}>Raman</option><option value="Baba Ji" ${ie&&item.agent==="Baba Ji"?"selected":""}>Baba Ji</option><option value="Honey" ${ie&&item.agent==="Honey"?"selected":""}>Honey</option></select></div></div>
         <div style="border-top:1px solid var(--b1);margin:12px 0 10px;padding-top:10px;font-size:13px;font-weight:700;color:var(--muted);letter-spacing:1px">CHEQUE DETAILS</div>
         <div class="fr"><div class="fg"><label>Cheque #</label><input class="inp" id="mf-chqNo" value="${v('chqNo')}" style="width:100%"></div><div class="fg"><label>Cheque Date</label><input class="inp" id="mf-chqDate" type="date" value="${v('chqDate')}" style="width:100%"></div></div>
         <div class="fr"><div class="fg"><label>Bank Name</label><input class="inp" id="mf-bank" value="${v('bank')}" style="width:100%"></div><div class="fg"><label>Cleared Date</label><input class="inp" id="mf-clearedDate" type="date" value="${v('clearedDate')}" style="width:100%"></div></div>
@@ -3183,7 +3185,7 @@ const R={
     // Agent-wise aging summary line
     const agEl = document.getElementById("pay-aging-agent");
     if(agEl){
-      const agents = ["Baba Ji","Aman","Raman"];
+      const agents = ["Baba Ji","Aman","Raman","Honey"];
       agEl.innerHTML = '<div style="display:flex;gap:16px;flex-wrap:wrap;font-size:12.5px">' + agents.map(ag=>{
         const items = pending.filter(p=>p.agent===ag);
         const amt = items.reduce((s,p)=>s+amtOf(p),0);
@@ -3216,7 +3218,7 @@ const R={
     document.getElementById("pye").style.display=D.payment.length?"none":"block";
     document.getElementById("b-pay").textContent=D.payment.filter(x=>x.status!=="collected").length||0;
     // Agent summary stats
-    const agents=["Aman","Raman","Baba Ji"];
+    const agents=["Aman","Raman","Baba Ji","Honey"];
     const agentStats=agents.map(a=>{
       const ap=D.payment.filter(p=>p.agent===a&&p.status!=="collected");
       const amt=ap.reduce((s,p)=>s+parseInt((p.amt||0).toString().replace(/[₹,]/g,"")),0);
@@ -5068,7 +5070,7 @@ function R_home(){
   const finDateEl = document.getElementById("dash-fin-date");
   if(finDateEl) finDateEl.textContent = months[now.getMonth()]+" "+now.getFullYear();
   // Agent-wise outstanding
-  const agents = ["Baba Ji","Aman","Raman"];
+  const agents = ["Baba Ji","Aman","Raman","Honey"];
   const agentTotals = agents.map(ag=>({
     agent: ag,
     total: (D.payment||[]).filter(p=>p.agent===ag&&p.status!=="collected")
